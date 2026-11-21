@@ -1081,12 +1081,13 @@
     }
 
     else if (type === 'roofpark') {
-      // невысокий дом с плоской крышей; с западной улицы на крышу ведёт пандус
-      const H = 52, bx0 = lx + 150, by0 = ly + 30, bw = LS - 170, bh = LS - 60;
+      // пандус с улицы и цепочка из трёх маленьких домиков: прыгаешь с крыши на крышу
+      const depth = 150, cy = ly + LS / 2, y0 = cy - depth / 2;
+      const houses = [[100, 70, 44], [210, 70, 36], [320, 70, 28]].map(([ox, w, H], i) => ({ x: lx + ox, y: y0, w, h: depth, H, i }));
       op(() => { ctx.fillStyle = PAT.paving; ctx.fillRect(lx, ly, LS, LS); });
-      addObs({ t: 'r', x: bx0, y: by0, w: bw, h: bh, top: H - 14 });   // стена, пока ты внизу; с пандуса заезжаешь на крышу
-      b.roof = { x: bx0, y: by0, w: bw, h: bh, H, cx: bx0 + bw / 2, cy: by0 + bh / 2, rampX0: x, rampW: 120 };
-      addTree(lx + 60, ly + 34, 14); addTree(lx + 60, ly + LS - 34, 14);
+      for (const hs of houses) addObs({ t: 'r', x: hs.x, y: hs.y, w: hs.w, h: hs.h, top: hs.H - 14 });
+      b.roof = { houses, cy, rampX0: x, rampW: 100 };
+      addTree(lx + 50, ly + 34, 14); addTree(lx + 50, ly + LS - 34, 14); addTree(lx + LS - 40, ly + 34, 13);
     }
 
     else if (type === 'parking') {
@@ -2136,10 +2137,15 @@
   // трамплины-«кикеры» в конце моста и на краю крыши
   RAMPS.push({ kick: true, base: DECK, cx: BX[2] - 40, cy: CY, d: 0, ux: 1, uy: 0, L: 80, H: 16, Wd: ROAD_W - 20, vzCap: 150, minVz: 130, boost: 590 });
   for (const b of blocks) if (b.roof) {
-    const Rf = b.roof;
-    PLATS.push({ cx: (Rf.rampX0 + Rf.x) / 2, cy: Rf.cy, ux: 1, uy: 0, L: Rf.x - Rf.rampX0, Wd: Rf.rampW, h0: 0, h1: Rf.H, bot: 0, roof: true });   // пандус
-    PLATS.push({ cx: Rf.cx, cy: Rf.cy, ux: 1, uy: 0, L: Rf.w, Wd: Rf.h, h0: Rf.H, h1: Rf.H, bot: 0, roof: true });                                  // крыша
-    RAMPS.push({ kick: true, base: Rf.H, cx: Rf.x + Rf.w - 40, cy: Rf.cy, d: 0, ux: 1, uy: 0, L: 80, H: 16, Wd: 120, vzCap: 160, minVz: 120 });   // трамплин с крыши
+    const Rf = b.roof, hs = Rf.houses;
+    PLATS.push({ cx: (Rf.rampX0 + hs[0].x) / 2, cy: Rf.cy, ux: 1, uy: 0, L: hs[0].x - Rf.rampX0, Wd: Rf.rampW, h0: 0, h1: hs[0].H, bot: 0, roof: true });   // пандус
+    hs.forEach((h, i) => {
+      PLATS.push({ cx: h.x + h.w / 2, cy: Rf.cy, ux: 1, uy: 0, L: h.w, Wd: h.h, h0: h.H, h1: h.H, bot: 0, roof: true });                       // крыша
+      const last = i === hs.length - 1;
+      // маленький трамплин на краю — перебрасывает на следующую крышу; на последней — большой, на дорогу
+      RAMPS.push(last ? { kick: true, base: h.H, cx: h.x + h.w - 24, cy: Rf.cy, d: 0, ux: 1, uy: 0, L: 44, H: 14, Wd: 90, vzCap: 170, minVz: 120 }
+                      : { kick: true, base: h.H, cx: h.x + h.w - 18, cy: Rf.cy, d: 0, ux: 1, uy: 0, L: 34, H: 7, Wd: 90, vzCap: 45, minVz: 30, hop: true });
+    });
   }
   RAMPS.push({ kick: true, base: ROOF, cx: BX[4] - 45, cy: CY, d: 0, ux: 1, uy: 0, L: 90, H: 18, Wd: ROAD_W - 20, vzCap: 150, minVz: 130, boost: 540 });
   // перила на мосту и стены тоннелей (bot/top — по какой высоте они твёрдые)
@@ -2282,18 +2288,26 @@
       const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; return t;
     }
     const roofMatTop = new THREE.MeshStandardMaterial({ map: roofTex(), roughness: .9 });
+    const HOUSE_COLS = ['#ffcc80', '#90caf9', '#a5d6a7', '#f48fb1', '#ce93d8', '#fff59d'];
+    let hc = 0;
     for (const b of blocks) if (b.roof) {
-      const Rf = b.roof;
-      const fac = new THREE.MeshStandardMaterial({ map: facadeTex('grid', '#b8c4cc'), roughness: .85 });
-      const geo = new THREE.BoxGeometry(Rf.w, Rf.H, Rf.h); scaleBoxUV(geo, Rf.w, Rf.H, Rf.h, 22, 26);
-      const bld = new THREE.Mesh(geo, [fac, fac, roofMatTop, fac, fac, fac]);
-      bld.position.set(Rf.cx, Rf.H / 2, Rf.cy); bld.castShadow = bld.receiveShadow = true; scene.add(bld);
-      const L = Rf.x - Rf.rampX0, grp = new THREE.Group();
+      const Rf = b.roof, hs = Rf.houses;
+      for (const h of hs) {
+        const col = HOUSE_COLS[hc++ % HOUSE_COLS.length];
+        const fac = new THREE.MeshStandardMaterial({ map: facadeTex('house', col), roughness: .85 });
+        const geo = new THREE.BoxGeometry(h.w, h.H, h.h); scaleBoxUV(geo, h.w, h.H, h.h, 24, 30);
+        const bld = new THREE.Mesh(geo, [fac, fac, roofMatTop, fac, fac, fac]);
+        bld.position.set(h.x + h.w / 2, h.H / 2, h.y + h.h / 2); bld.castShadow = bld.receiveShadow = true; scene.add(bld);
+        for (const z of [-1, 1]) {                                        // белый бортик по краям крыши (не мешает ехать)
+          const edge = new THREE.Mesh(new THREE.BoxGeometry(h.w, .8, 2), trimMat); edge.position.set(h.x + h.w / 2, h.H + .4, Rf.cy + z * (h.h / 2 - 1)); scene.add(edge);
+        }
+      }
+      const L = hs[0].x - Rf.rampX0, grp = new THREE.Group();
       grp.position.set(Rf.rampX0 + L / 2, 0, Rf.cy);
-      const wedge = new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-L / 2, 0), new THREE.Vector2(L / 2, 0), new THREE.Vector2(L / 2, Rf.H)]), { depth: Rf.rampW, bevelEnabled: false });
+      const wedge = new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-L / 2, 0), new THREE.Vector2(L / 2, 0), new THREE.Vector2(L / 2, hs[0].H)]), { depth: Rf.rampW, bevelEnabled: false });
       wedge.translate(0, 0, -Rf.rampW / 2);
       const wm = new THREE.Mesh(wedge, sideMat); wm.castShadow = wm.receiveShadow = true; grp.add(wm);
-      slope(grp, 0, Rf.H / 2, Math.hypot(L, Rf.H), Rf.rampW, Math.atan2(Rf.H, L), true);
+      slope(grp, 0, hs[0].H / 2, Math.hypot(L, hs[0].H), Rf.rampW, Math.atan2(hs[0].H, L), true);
       const lip = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, Rf.rampW), rubberMat); lip.position.set(-L / 2 + 1.5, .6, 0); grp.add(lip);
       scene.add(grp);
     }
@@ -2458,7 +2472,8 @@
       [BX[2] + ROAD_W / 2, CY, 100, 2], [BX[3] + 140, CY, ROOF + 14, 1], [BX[3] + 300, CY, ROOF + 14, 1],
       [BX[4] + ROAD_W / 2, CY, 88, 2], [(BX[3] + BX[4]) / 2, CY, 14, 1], [roadPos(6) + ROAD_W / 2, (roadPos(1) + ROAD_W + roadPos(2)) / 2, 14, 1],
     ];
-    for (const b of blocks) if (b.roof) course.push([b.roof.cx - 40, b.roof.cy, b.roof.H + 14, 2]);
+    for (const b of blocks) if (b.roof) { const hs = b.roof.houses;
+      course.push([hs[0].x + hs[0].w + 20, b.roof.cy, hs[0].H + 24, 1], [hs[1].x + hs[1].w + 20, b.roof.cy, hs[1].H + 24, 1], [hs[2].x + 20, b.roof.cy, hs[2].H + 14, 2]); }
     for (const [x, y, z, ti] of course) {
       const c = { x, y, z, taken: false, ph: Math.random() * 6, type: COIN_TYPES[ti] };
       c.mesh = new THREE.Mesh(coinGeo, c.type.mat);
@@ -3133,10 +3148,10 @@
     foot.hp = 100; foot.ko = 0; foot.sinceHit = 9;
     endChase();
   }
-  // попадание пули: в машине меньше урона, пешком больше
+  // попадание пули полиции: всегда минус 15% жизни
   function shotPlayer(dmg, fromX, fromY) {
     if (car.onFoot && foot.ko > 0) return;
-    foot.hp -= car.onFoot ? dmg : dmg * .55;
+    foot.hp -= 15;                                          // каждое попадание полиции — минус 15% жизни
     foot.sinceHit = 0; shake = Math.max(shake, 1.5);
     hurtEl.classList.add('on'); setTimeout(() => hurtEl.classList.remove('on'), 110);
     if (foot.hp <= 0) busted();
@@ -3154,7 +3169,7 @@
     tr.m.scale.set(1, 1, Math.hypot(ax - gx, ay - gy, az - gz)); tr.m.visible = true; tr.life = .07;
     emit(gx, gz, gy, '#ffd54f', 2.2, .08, 0, 0, 0, 10, 1);                                   // вспышка у пистолета
     emit(ax, az, ay, hit ? '#ffffff' : '#bdbdbd', 1.4, .25, (Math.random() - .5) * 80, Math.random() * 60, (Math.random() - .5) * 80, 0, .9);
-    if (hit) shotPlayer(car.onFoot ? 9 : 7, gx, gy);
+    if (hit) shotPlayer(15, gx, gy);
   }
   function updatePolice(dt, time) {
     chase.cool -= dt; chase.hitCd = (chase.hitCd || 0) - dt;
