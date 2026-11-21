@@ -2723,10 +2723,21 @@
   let camDistS = 0, shakeK = .35;
   const drift = { t: 0, score: 0, off: 0 };
   let shake = 0, camAng = 0, prevFwd = 0, roll = 0, pitch = 0, curFwd = 0, lean = 0;
+  // застряли внутри здания, дерева, столба или машины — выталкиваем в ближайшее свободное место
+  function unstick(test) {
+    for (let r = 3; r <= 240; r += 3) for (let k = 0; k < 24; k++) {
+      const a = k / 24 * TAU, x = car.x + Math.cos(a) * r, y = car.y + Math.sin(a) * r;
+      const gz = groundHeight(x, y, car.z);
+      if (!test(x, y, gz)) { car.x = x; car.y = y; car.z = gz; return true; }
+    }
+    return false;
+  }
+  const carHitAt = (x, y, gz) => { const z0 = car.z; car.z = gz; const c = collides(x, y, car.angle); car.z = z0; return c; };
   function update(dt) {
     if (garageOpen || menuOpen || mapOpen) return;
     if (car.onFoot) { walkUpdate(dt); return; }
     if (car.loop) { loopUpdate(dt); return; }
+    if (!car.air && collides(car.x, car.y, car.angle) && unstick(carHitAt)) { car.vx *= .3; car.vy *= .3; car.ramp = null; car.stun = 0; }
     if (car.air || car.stun > 0) { airUpdate(dt); return; }
     const { up, down, left, right, brake } = keys;
     const loopPrevX = car.x;
@@ -3589,7 +3600,9 @@
     car.angle += ((right ? 1 : 0) - (left ? 1 : 0)) * 3.2 * dt;
     const sp = up ? (run ? 150 : 80) : down ? -45 : 0;
     car.vx = Math.cos(car.angle) * sp; car.vy = Math.sin(car.angle) * sp;
-    const hit = (x, y) => [[7, 0], [-7, 0], [0, 7], [0, -7]].some(([ox, oy]) => solidAtZ(x + ox, y + oy, car.z));
+    const hitZ = (x, y, z) => [[7, 0], [-7, 0], [0, 7], [0, -7]].some(([ox, oy]) => solidAtZ(x + ox, y + oy, z));
+    const hit = (x, y) => hitZ(x, y, car.z);
+    if (hit(car.x, car.y)) unstick(hitZ);                                  // застрял в стене — выходим наружу
     const nx = car.x + car.vx * dt, ny = car.y + car.vy * dt;
     if (!hit(nx, ny)) { car.x = nx; car.y = ny; }
     else if (!hit(nx, car.y)) car.x = nx;
@@ -4363,7 +4376,8 @@
   function loop(t) {
     const dt = Math.min(.033, (t - last) / 1000);
     last = t;
-    update(dt);
+    const subs = dt > .018 ? 2 : 1;                       // когда игра подтормаживает — считаем движение мелкими шагами, чтобы не пролетать сквозь стены
+    for (let i = 0; i < subs; i++) update(dt / subs);
     if (!garageOpen) { updateTraffic(dt); drawTraffic(); updatePeople(dt); }
     if (!garageOpen && !menuOpen && !mapOpen) { updatePolice(dt, t); collideVehicles(); updateFriends(dt); }
     netUpdate(dt, t);
