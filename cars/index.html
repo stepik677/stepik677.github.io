@@ -1081,13 +1081,15 @@
     }
 
     else if (type === 'roofpark') {
-      // пандус с улицы и цепочка из трёх маленьких домиков: прыгаешь с крыши на крышу
-      const depth = 150, cy = ly + LS / 2, y0 = cy - depth / 2;
-      const houses = [[100, 70, 44], [210, 70, 36], [320, 70, 28]].map(([ox, w, H], i) => ({ x: lx + ox, y: y0, w, h: depth, H, i }));
+      // пандус на маленький домик A, прыжок на домик B с мёртвой петлёй 360°, мостик с дыркой и трамплином, домик C и прыжок на улицу
+      const depth = 130, cy = ly + LS / 2, y0 = cy - depth / 2;
+      const houses = [[55, 45, 30], [135, 125, 28], [355, 45, 28]].map(([ox, w, H], i) => ({ x: lx + ox, y: y0, w, h: depth, H, i }));
       op(() => { ctx.fillStyle = PAT.paving; ctx.fillRect(lx, ly, LS, LS); });
       for (const hs of houses) addObs({ t: 'r', x: hs.x, y: hs.y, w: hs.w, h: hs.h, top: hs.H - 14 });
-      b.roof = { houses, cy, rampX0: x, rampW: 100 };
-      addTree(lx + 50, ly + 34, 14); addTree(lx + 50, ly + LS - 34, 14); addTree(lx + LS - 40, ly + 34, 13);
+      const bridge = { x0: lx + 260, x1: lx + 355, gap0: lx + 300, gap1: lx + 318, H: 28, Wd: 44 };
+      for (const sy of [-1, 1]) addObs({ t: 'r', x: bridge.x0, y: cy + sy * (bridge.Wd / 2) - (sy > 0 ? 3 : 0), w: bridge.x1 - bridge.x0, h: 3, bot: bridge.H, top: bridge.H + 12 });   // перила мостика
+      b.roof = { houses, cy, rampX0: x, rampW: 90, bridge, loop: { cx: lx + 228, cy, base: 28, R: 24, off: 16, W: 24 } };
+      addTree(lx + 30, ly + 30, 14); addTree(lx + 30, ly + LS - 30, 14); addTree(lx + 300, ly + 40, 13); addTree(lx + 300, ly + LS - 40, 13);
     }
 
     else if (type === 'parking') {
@@ -2136,16 +2138,18 @@
   PLATS.push({ cx: roadPos(6) + ROAD_W / 2, cy: (roadPos(1) + ROAD_W + roadPos(2)) / 2, ux: 0, uy: 1, L: roadPos(2) - roadPos(1) - ROAD_W, Wd: ROAD_W, h0: ROOF, h1: ROOF, bot: ROOF - 8 }); // крыша второго тоннеля
   // трамплины-«кикеры» в конце моста и на краю крыши
   RAMPS.push({ kick: true, base: DECK, cx: BX[2] - 40, cy: CY, d: 0, ux: 1, uy: 0, L: 80, H: 16, Wd: ROAD_W - 20, vzCap: 150, minVz: 130, boost: 590 });
+  const LOOPS = [];
   for (const b of blocks) if (b.roof) {
-    const Rf = b.roof, hs = Rf.houses;
+    const Rf = b.roof, hs = Rf.houses, Bg = Rf.bridge;
     PLATS.push({ cx: (Rf.rampX0 + hs[0].x) / 2, cy: Rf.cy, ux: 1, uy: 0, L: hs[0].x - Rf.rampX0, Wd: Rf.rampW, h0: 0, h1: hs[0].H, bot: 0, roof: true });   // пандус
-    hs.forEach((h, i) => {
-      PLATS.push({ cx: h.x + h.w / 2, cy: Rf.cy, ux: 1, uy: 0, L: h.w, Wd: h.h, h0: h.H, h1: h.H, bot: 0, roof: true });                       // крыша
-      const last = i === hs.length - 1;
-      // маленький трамплин на краю — перебрасывает на следующую крышу; на последней — большой, на дорогу
-      RAMPS.push(last ? { kick: true, base: h.H, cx: h.x + h.w - 24, cy: Rf.cy, d: 0, ux: 1, uy: 0, L: 44, H: 14, Wd: 90, vzCap: 170, minVz: 120 }
-                      : { kick: true, base: h.H, cx: h.x + h.w - 18, cy: Rf.cy, d: 0, ux: 1, uy: 0, L: 34, H: 7, Wd: 90, vzCap: 45, minVz: 30, hop: true });
-    });
+    for (const h of hs) PLATS.push({ cx: h.x + h.w / 2, cy: Rf.cy, ux: 1, uy: 0, L: h.w, Wd: h.h, h0: h.H, h1: h.H, bot: 0, roof: true });   // крыши
+    for (const [a, c] of [[Bg.x0, Bg.gap0], [Bg.gap1, Bg.x1]])                                                                           // мостик (с дыркой посередине)
+      PLATS.push({ cx: (a + c) / 2, cy: Rf.cy, ux: 1, uy: 0, L: c - a, Wd: Bg.Wd, h0: Bg.H, h1: Bg.H, bot: Bg.H - 6, roof: true });
+    const A = hs[0], C = hs[2];
+    RAMPS.push({ kick: true, base: A.H, cx: A.x + A.w - 16, cy: Rf.cy, d: 0, ux: 1, uy: 0, L: 32, H: 7, Wd: 90, vzCap: 38, minVz: 28, hop: true });        // с домика A на домик B
+    RAMPS.push({ kick: true, base: Bg.H, cx: Bg.gap0 - 14, cy: Rf.cy, d: 0, ux: 1, uy: 0, L: 28, H: 6, Wd: Bg.Wd, vzCap: 45, minVz: 32, hop: true });     // через дырку в мостике
+    RAMPS.push({ kick: true, base: C.H, cx: C.x + C.w - 20, cy: Rf.cy, d: 0, ux: 1, uy: 0, L: 40, H: 12, Wd: 90, vzCap: 160, minVz: 110 });              // с домика C на улицу
+    LOOPS.push(Rf.loop);
   }
   RAMPS.push({ kick: true, base: ROOF, cx: BX[4] - 45, cy: CY, d: 0, ux: 1, uy: 0, L: 90, H: 18, Wd: ROAD_W - 20, vzCap: 150, minVz: 130, boost: 540 });
   // перила на мосту и стены тоннелей (bot/top — по какой высоте они твёрдые)
@@ -2247,6 +2251,17 @@
     const sideMat = new THREE.MeshStandardMaterial({ color: '#a31515', roughness: .45, metalness: .35, envMap: scene.userData.env, envMapIntensity: .5 });
     const trimMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .5 });
     const rubberMat = new THREE.MeshStandardMaterial({ color: '#1c1c1c', roughness: .9 });
+    const plankMat = new THREE.MeshStandardMaterial({ color: '#8d6e63', roughness: .85 });
+    const loopRoadMat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: .6, metalness: .1, map: (() => {
+      const c = document.createElement('canvas'); c.width = 128; c.height = 256;
+      const g = c.getContext('2d');
+      g.fillStyle = '#3d4046'; g.fillRect(0, 0, 128, 256);
+      for (let i = 0; i < 1500; i++) { g.fillStyle = ['#34373c', '#4a4d53'][i % 2]; g.fillRect(Math.random() * 128, Math.random() * 256, 1.5, 1.5); }
+      g.fillStyle = '#ff5252'; g.fillRect(0, 0, 10, 256); g.fillRect(118, 0, 10, 256);
+      g.fillStyle = '#ffffff'; for (let y = 0; y < 256; y += 64) g.fillRect(60, y + 8, 8, 36);
+      const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; return t;
+    })() });
+    const loopShellMat = new THREE.MeshStandardMaterial({ color: '#e53935', side: THREE.DoubleSide, roughness: .45, metalness: .35, envMap: scene.userData.env, envMapIntensity: .5 });
     const slope = (grp, x, y, len, w, ang, flip) => {
       const tilt = new THREE.Group(); tilt.position.set(x, y, 0); tilt.rotation.z = ang; grp.add(tilt);
       const top = new THREE.Mesh(new THREE.PlaneGeometry(len, w),
@@ -2310,6 +2325,48 @@
       slope(grp, 0, hs[0].H / 2, Math.hypot(L, hs[0].H), Rf.rampW, Math.atan2(hs[0].H, L), true);
       const lip = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, Rf.rampW), rubberMat); lip.position.set(-L / 2 + 1.5, .6, 0); grp.add(lip);
       scene.add(grp);
+      // мостик между домиком B и домиком C (с дыркой посередине)
+      const Bg = Rf.bridge;
+      for (const [a, c] of [[Bg.x0, Bg.gap0], [Bg.gap1, Bg.x1]]) {
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(c - a, 4, Bg.Wd), plankMat); deck.position.set((a + c) / 2, Bg.H - 2, Rf.cy); deck.castShadow = deck.receiveShadow = true; scene.add(deck);
+        for (const sy of [-1, 1]) {
+          const rail = new THREE.Mesh(new THREE.BoxGeometry(c - a, 1.6, 1.6), trimMat); rail.position.set((a + c) / 2, Bg.H + 10, Rf.cy + sy * (Bg.Wd / 2 - 1)); scene.add(rail);
+          for (let px = a + 3; px < c; px += 12) { const post = new THREE.Mesh(new THREE.BoxGeometry(1.4, 10, 1.4), trimMat); post.position.set(px, Bg.H + 5, Rf.cy + sy * (Bg.Wd / 2 - 1)); scene.add(post); }
+        }
+      }
+      for (const px of [Bg.x0 + 22, Bg.x1 - 20]) for (const sy of [-1, 1]) {            // опоры мостика
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(3, Bg.H - 4, 3), plankMat); leg.position.set(px, (Bg.H - 4) / 2, Rf.cy + sy * (Bg.Wd / 2 - 4)); leg.castShadow = true; scene.add(leg);
+      }
+      // мёртвая петля 360° на крыше домика B
+      const Lp = Rf.loop, N = 120, pos = [], uv = [], idx = [], pos2 = [], wall = [];
+      for (let i = 0; i <= N; i++) {
+        const th = i / N * Math.PI * 2, k = i / N;
+        const zc = Lp.cy - Lp.off / 2 + Lp.off * k;
+        for (const [rr, arr] of [[Lp.R + .3, pos], [Lp.R + 2.2, pos2]]) {
+          const x = Lp.cx + rr * Math.sin(th), y = Lp.base + Lp.R - rr * Math.cos(th);
+          arr.push(x, y, zc - Lp.W / 2, x, y, zc + Lp.W / 2);
+        }
+        uv.push(0, k * 10, 1, k * 10);
+        if (i < N) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+        for (const sz of [-1, 1]) {                                                       // боковые бортики петли (к центру)
+          const x0 = Lp.cx + (Lp.R + 2.2) * Math.sin(th), y0 = Lp.base + Lp.R - (Lp.R + 2.2) * Math.cos(th);
+          const x1 = Lp.cx + (Lp.R - 3) * Math.sin(th), y1 = Lp.base + Lp.R - (Lp.R - 3) * Math.cos(th);
+          wall.push([sz, x0, y0, x1, y1, zc + sz * Lp.W / 2]);
+        }
+      }
+      const mkGeo = (arr, withUv) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); if (withUv) g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); return g; };
+      const road = new THREE.Mesh(mkGeo(pos, true), loopRoadMat); road.castShadow = true; scene.add(road);
+      const shell = new THREE.Mesh(mkGeo(pos2, false), loopShellMat); shell.castShadow = true; scene.add(shell);
+      for (const sz of [-1, 1]) {
+        const w = wall.filter(q => q[0] === sz), wp = [], wi = [];
+        w.forEach((q, i) => { wp.push(q[1], q[2], q[5], q[3], q[4], q[5]); if (i < w.length - 1) { const a = i * 2; wi.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } });
+        const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(wp, 3)); g.setIndex(wi); g.computeVertexNormals();
+        scene.add(new THREE.Mesh(g, loopShellMat));
+      }
+      for (const sx of [-1, 1]) {                                                       // стойки, держащие петлю
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, Lp.R * 1.6, 8), trimMat);
+        pole.position.set(Lp.cx + sx * (Lp.R + 3), Lp.base + Lp.R * .8, Lp.cy + sx * (Lp.W / 2 + 4)); pole.castShadow = true; scene.add(pole);
+      }
     }
   }
 
@@ -2472,8 +2529,8 @@
       [BX[2] + ROAD_W / 2, CY, 100, 2], [BX[3] + 140, CY, ROOF + 14, 1], [BX[3] + 300, CY, ROOF + 14, 1],
       [BX[4] + ROAD_W / 2, CY, 88, 2], [(BX[3] + BX[4]) / 2, CY, 14, 1], [roadPos(6) + ROAD_W / 2, (roadPos(1) + ROAD_W + roadPos(2)) / 2, 14, 1],
     ];
-    for (const b of blocks) if (b.roof) { const hs = b.roof.houses;
-      course.push([hs[0].x + hs[0].w + 20, b.roof.cy, hs[0].H + 24, 1], [hs[1].x + hs[1].w + 20, b.roof.cy, hs[1].H + 24, 1], [hs[2].x + 20, b.roof.cy, hs[2].H + 14, 2]); }
+    for (const b of blocks) if (b.roof) { const hs = b.roof.houses, Lp = b.roof.loop, Bg = b.roof.bridge;
+      course.push([hs[0].x + hs[0].w + 18, b.roof.cy, hs[0].H + 22, 1], [Lp.cx, Lp.cy, Lp.base + 2 * Lp.R - 6, 2], [(Bg.gap0 + Bg.gap1) / 2, b.roof.cy, Bg.H + 20, 1]); }
     for (const [x, y, z, ti] of course) {
       const c = { x, y, z, taken: false, ph: Math.random() * 6, type: COIN_TYPES[ti] };
       c.mesh = new THREE.Mesh(coinGeo, c.type.mat);
@@ -2507,7 +2564,7 @@
 
   // ================== Игра ==================
   function resetCar() {
-    Object.assign(car, { x: T * 1.5, y: 3 * T, angle: Math.PI / 2, vx: 0, vy: 0, steer: 0, z: 0, vz: 0, air: false, ramp: null, stun: 0 });
+    Object.assign(car, { x: T * 1.5, y: 3 * T, angle: Math.PI / 2, vx: 0, vy: 0, steer: 0, z: 0, vz: 0, air: false, ramp: null, stun: 0, loop: null });
     Object.assign(trick, { pitch: 0, pitchT: 0, roll: 0, rollT: 0 });
     camAng = car.angle;
     updateCamera(0, true);
@@ -2566,6 +2623,45 @@
       else if (!collides(car.x, ny, car.angle)) { car.y = ny; car.vx *= -.25; }
       else { car.vx *= -.25; car.vy *= -.25; }
     }
+  }
+  // мёртвая петля: машина едет по кругу, скорость падает на подъёме; если медленно — срывается или скатывается назад
+  const LOOP_G = 180;
+  function startLoop(Lp, v) {
+    car.loop = { L: Lp, th: 0, v, y0: car.y };
+    car.angle = 0; car.vy = 0; car.ramp = null; drift.t = drift.score = 0;
+  }
+  function loopUpdate(dt) {
+    const lo = car.loop, Lp = lo.L;
+    lo.v -= LOOP_G * Math.sin(lo.th) * dt;
+    if (keys.up) lo.v += 50 * dt;
+    lo.th += lo.v / Lp.R * dt;
+    const c = Math.cos(lo.th), sn = Math.sin(lo.th);
+    if (c < -.05 && lo.v * lo.v < LOOP_G * Lp.R * -c) {        // не хватило скорости — срыв с петли
+      const th = lo.th; car.loop = null;
+      car.vx = lo.v * Math.cos(th); car.vy = 0;
+      launch(lo.v * Math.sin(th));
+      trick.pitch = wrapA(th); trick.pitchT = 0; prevAirKeys = { up: true, down: true, left: true, right: true };
+      return;
+    }
+    if (lo.th <= 0) {                                         // скатился назад
+      car.loop = null; car.x = Lp.cx - 2; car.z = Lp.base; car.vx = lo.v; car.vy = 0;
+      Object.assign(trick, { pitch: 0, pitchT: 0, roll: 0, rollT: 0 });
+      return;
+    }
+    const k = Math.min(1, lo.th / TAU), lane = Lp.cy - Lp.off / 2 + Lp.off * k;
+    car.x = Lp.cx + Lp.R * Math.sin(Math.min(lo.th, TAU));
+    car.z = Lp.base + Lp.R * (1 - Math.cos(Math.min(lo.th, TAU)));
+    car.y = lo.y0 + (lane - lo.y0) * Math.min(1, lo.th / .8);
+    trick.pitch = trick.pitchT = Math.min(lo.th, TAU); trick.roll = trick.rollT = 0;
+    curFwd = lo.v;
+    if (lo.th >= TAU) {                                       // петля пройдена!
+      car.loop = null; car.x = Lp.cx + 1; car.z = Lp.base; car.vx = lo.v; car.vy = 0; car.angle = 0;
+      Object.assign(trick, { pitch: 0, pitchT: 0, roll: 0, rollT: 0 });
+      save.money += 400; persist();
+      popMoney('360°! +400 €', '#7CFFB2'); shake = 3;
+      setTimeout(() => addWanted(1), 900);
+    }
+    collectCoins(); shake *= .85;
   }
   function airUpdate(dt) {
     if (car.stun > 0) {           // после неудачной посадки — машину крутит обратно на колёса
@@ -2630,8 +2726,10 @@
   function update(dt) {
     if (garageOpen || menuOpen || mapOpen) return;
     if (car.onFoot) { walkUpdate(dt); return; }
+    if (car.loop) { loopUpdate(dt); return; }
     if (car.air || car.stun > 0) { airUpdate(dt); return; }
     const { up, down, left, right, brake } = keys;
+    const loopPrevX = car.x;
     const fx = Math.cos(car.angle), fy = Math.sin(car.angle);
     let fwd = car.vx * fx + car.vy * fy;
     let lat = -car.vx * fy + car.vy * fx;
@@ -2725,6 +2823,10 @@
       } else { car.z = g; car.ramp = null; }
     }
     if (!car.air) car.climb = dt > 0 ? (car.z - zBefore) / dt : 0;
+    if (!car.air) for (const Lp of LOOPS)                       // въезд в мёртвую петлю
+      if (loopPrevX < Lp.cx && car.x >= Lp.cx && Math.abs(car.y - Lp.cy) < Lp.W / 2 + 4 && Math.abs(car.z - Lp.base) < 4 && Math.cos(car.angle) > .7) {
+        startLoop(Lp, Math.max(0, car.vx)); return;
+      }
 
     // дым и пыль
     const speed = Math.hypot(car.vx, car.vy);
@@ -3448,7 +3550,7 @@
   function toggleVehicle() {
     if (menuOpen || garageOpen || mapOpen) return;
     if (!car.onFoot) {
-      if (car.air || Math.hypot(car.vx, car.vy) > 45) return;          // на ходу не выпрыгнешь
+      if (car.air || car.loop || Math.hypot(car.vx, car.vy) > 45) return;          // на ходу не выпрыгнешь
       Object.assign(vstate, { x: car.x, y: car.y, z: car.z, angle: car.angle });
       const lx = Math.sin(car.angle), ly = -Math.cos(car.angle);
       let px = car.x + lx * 30, py = car.y + ly * 30;
@@ -4158,7 +4260,8 @@
       hpFill.style.width = Math.round(foot.hp) + '%';
       const fg = groundHeight(car.x, car.y, car.z);
       footBlob.position.set(car.x, fg + .5, car.y); footBlob.material.opacity = Math.max(0, .9 - (car.z - fg) / 60);
-    } else if (!car.air) {
+    } else if (car.loop) slopePitch = 0;
+    else if (!car.air) {
       const fx = Math.cos(car.angle) * 20, fy = Math.sin(car.angle) * 20;
       const target = Math.atan2(groundHeight(car.x + fx, car.y + fy) - groundHeight(car.x - fx, car.y - fy), 40);
       slopePitch += (target - slopePitch) * Math.min(1, 14 * dt);
