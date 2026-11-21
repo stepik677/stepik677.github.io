@@ -74,7 +74,15 @@
   @keyframes wflash { from { background: #d50000; } to { background: #1565c0; } }
   #siren { position: fixed; inset: 0; pointer-events: none; z-index: 3; display: none; animation: siren .9s infinite; }
   #siren.on { display: block; }
-  html:not(.onFoot) #hpPill, html:not(.onFoot) #punchBtn { display: none !important; }
+  html:not(.onFoot):not(.wantedOn) #hpPill, html:not(.onFoot) #punchBtn, html:not(.wantedOn) #stars { display: none !important; }
+  .stars { gap: 2px; padding: 6px 12px; }
+  .stars i { font-style: normal; font-size: 20px; line-height: 1; color: rgba(255,255,255,.22); }
+  .stars i.on { color: #ffd54f; text-shadow: 0 0 8px #ffb300; }
+  .stars.flash i.on { color: rgba(255,213,79,.25); text-shadow: none; }
+  #wanted { display: none !important; }
+  #driftMeter { position: fixed; left: 50%; bottom: calc(150px + var(--sb)); transform: translateX(-50%); z-index: 6; pointer-events: none;
+    font: 900 26px "Segoe UI", sans-serif; color: #ff9100; text-shadow: 0 2px 10px rgba(0,0,0,.7); opacity: 0; transition: opacity .2s; }
+  #driftMeter.on { opacity: 1; }
   .hpbar { display: inline-block; width: 90px; height: 10px; border-radius: 6px; background: rgba(255,255,255,.2); overflow: hidden; vertical-align: middle; }
   .hpbar b { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #ff5252, #ffd54f, #69f0ae); transition: width .2s; }
   .pad button.punch { background: rgba(230,81,0,.8); }
@@ -283,10 +291,12 @@
 <div id="hud">
   <div class="pill"><span class="coin-ico"></span><span id="coins">0</span> / <span id="total">0</span></div>
   <div class="pill money">💶 <span id="money">0 €</span></div>
+  <div class="pill stars" id="stars"></div>
   <div class="pill" id="hpPill">❤️ <span class="hpbar"><b id="hpFill"></b></span></div>
 </div>
-<div id="help"><span data-i18n="help"></span><br><span data-i18n="helpExtra"></span><br><span data-i18n="fightHelp"></span></div>
+<div id="help"><span data-i18n="help"></span><br><span data-i18n="helpExtra"></span><br><span data-i18n="fightHelp"></span><br><span data-i18n="driftHelp"></span></div>
 <div id="hurt"></div>
+<div id="driftMeter"></div>
 <canvas id="minimap"></canvas>
 <div id="bigmap">
   <div class="bmTop"><b data-i18n="mapTitle"></b><button id="bmClear" data-i18n="mapClear"></button><button id="bmClose">✕</button></div>
@@ -351,7 +361,7 @@
     </div>
     <div class="mpanel" id="mHow">
       <div class="howto">
-        <h3 data-i18n="hKeys"></h3><p data-i18n="keys1"></p><p data-i18n="helpExtra"></p><p data-i18n="fightHelp"></p>
+        <h3 data-i18n="hKeys"></h3><p data-i18n="keys1"></p><p data-i18n="helpExtra"></p><p data-i18n="fightHelp"></p><p data-i18n="driftHelp"></p>
         <h3 data-i18n="hTouch"></h3><p data-i18n="touchHelp"></p>
         <h3 data-i18n="hTricksT"></h3><p data-i18n="hTricks"></p>
         <h3 data-i18n="hPoliceT"></h3><p data-i18n="hPolice"></p>
@@ -599,6 +609,15 @@
   }).forEach(([k, v]) => { [I18N[k].netOff, I18N[k].netNo, I18N[k].netHow, I18N[k].netRoom, I18N[k].netRoomPh] = v; });
   Object.entries({ ru: 'Бесплатная 3D-игра про машины', en: 'A free 3D car game', uk: 'Безкоштовна 3D-гра про машини', de: 'Ein kostenloses 3D-Autospiel',
     fr: 'Un jeu de voitures 3D gratuit', es: 'Un juego de coches 3D gratis', zh: '免费的 3D 汽车游戏' }).forEach(([k, v]) => { I18N[k].tagline = v; });
+  Object.entries({   // busted, busted0, drift, driftLive, escapedStars, driftHelp
+    ru: ['🚓 Тебя арестовали! Штраф −{p}', '🚓 Тебя арестовали!', '🔥 Дрифт! +{p}', '🔥 ДРИФТ', '😎 Ушёл от полиции! +{p}', '🔥 Дрифт: на скорости поверни и зажми Пробел (ручник) — или резко поверни с газом'],
+    en: ['🚓 Busted! Fine −{p}', '🚓 Busted!', '🔥 Drift! +{p}', '🔥 DRIFT', '😎 You lost the cops! +{p}', '🔥 Drift: at speed, steer and hold Space (handbrake) — or turn hard with gas'],
+    uk: ['🚓 Тебе заарештували! Штраф −{p}', '🚓 Тебе заарештували!', '🔥 Дрифт! +{p}', '🔥 ДРИФТ', '😎 Утік від поліції! +{p}', '🔥 Дрифт: на швидкості поверни й затисни Пробіл (ручник) — або різко поверни з газом'],
+    de: ['🚓 Verhaftet! Strafe −{p}', '🚓 Verhaftet!', '🔥 Drift! +{p}', '🔥 DRIFT', '😎 Polizei abgehängt! +{p}', '🔥 Drift: Bei Tempo lenken und Leertaste (Handbremse) halten — oder mit Gas scharf einlenken'],
+    fr: ['🚓 Arrêté ! Amende −{p}', '🚓 Arrêté !', '🔥 Drift ! +{p}', '🔥 DRIFT', '😎 Tu as semé la police ! +{p}', '🔥 Drift : à vitesse, tourne et maintiens Espace (frein à main) — ou braque fort avec les gaz'],
+    es: ['🚓 ¡Detenido! Multa −{p}', '🚓 ¡Detenido!', '🔥 ¡Derrape! +{p}', '🔥 DERRAPE', '😎 ¡Despistaste a la policía! +{p}', '🔥 Derrape: a velocidad, gira y mantén Espacio (freno de mano) — o gira fuerte con gas'],
+    zh: ['🚓 被逮捕了！罚款 −{p}', '🚓 被逮捕了！', '🔥 漂移！+{p}', '🔥 漂移', '😎 甩掉警察了！+{p}', '🔥 漂移：高速时转向并按住空格（手刹）——或踩油门猛打方向'],
+  }).forEach(([k, v]) => { [I18N[k].busted, I18N[k].busted0, I18N[k].drift, I18N[k].driftLive, I18N[k].escapedStars, I18N[k].driftHelp] = v; });
   for (const k in FOOT_MAP_TEXT) ['helpExtra', 'enter', 'mapTitle', 'mapClear', 'arrived', 'destSet'].forEach((key, i) => { I18N[k][key] = FOOT_MAP_TEXT[k][i]; });
   Object.entries({ ru: '🚨 Ещё полиция!', en: '🚨 More police!', uk: '🚨 Ще поліція!', de: '🚨 Noch mehr Polizei!', fr: '🚨 Encore la police !', es: '🚨 ¡Más policía!', zh: '🚨 更多警察来了！' })
     .forEach(([k, v]) => { I18N[k].moreCops = v; });
@@ -2499,7 +2518,7 @@
         save.money += reward; persist();
         popMoney(names.join(' + ') + '! +' + reward + ' €', flips || rolls ? '#7CFFB2' : '#ffffff');
       }
-      if (flips || rolls) setTimeout(() => (chase.active ? addCop() : startChase()), 900);   // после КАЖДОГО трюка — полиция!
+      if (flips || rolls) setTimeout(() => addWanted(1), 900);   // после каждого трюка — звезда розыска
       Object.assign(trick, { pitch: 0, pitchT: 0, roll: 0, rollT: 0 });
       shake = 3;
     } else {
@@ -2513,6 +2532,7 @@
   }
 
   let camDistS = 0, shakeK = .35;
+  const drift = { t: 0, score: 0, off: 0 };
   let shake = 0, camAng = 0, prevFwd = 0, roll = 0, pitch = 0, curFwd = 0, lean = 0;
   function update(dt) {
     if (garageOpen || menuOpen || mapOpen) return;
@@ -2529,7 +2549,7 @@
     if (up) fwd += (fwd < 0 ? 520 : spec.accel * (1 - .5 * Math.max(0, fwd) / maxSpeed)) * dt;
     if (down) fwd -= (fwd > 0 ? 420 : 140) * dt;
     if (!up && !down) fwd -= fwd * Math.min(1, (offroad ? 1.5 : .55) * dt);
-    if (brake) fwd -= fwd * Math.min(1, 2 * dt);
+    if (brake) fwd -= fwd * Math.min(1, (car.drifting ? .45 : 1.3) * dt);   // в заносе ручник почти не тормозит
     if (fwd > maxSpeed) fwd = Math.max(maxSpeed, fwd - 300 * dt);
     fwd = Math.max(-110, fwd);
 
@@ -2537,11 +2557,30 @@
     const target = (left ? -1 : 0) + (right ? 1 : 0);
     car.steer += (target - car.steer) * Math.min(1, (target ? 5 : 9) * dt);
     const sp = Math.abs(fwd);
-    const turn = car.steer * spec.turn * Math.min(1, sp / 50) * (1 - .45 * Math.min(1, sp / 300)) * Math.sign(fwd || 1) * (brake ? 1.5 : 1);
+    const turn = car.steer * spec.turn * Math.min(1, sp / 50) * (1 - .45 * Math.min(1, sp / 300)) * Math.sign(fwd || 1) * (brake ? 1.9 : car.drifting ? 1.35 : 1);
     car.angle += turn * dt;
+    {   // скорость не поворачивается вместе с машиной мгновенно — так появляется занос
+      const vx0 = fx * fwd - fy * lat, vy0 = fy * fwd + fx * lat, ax = Math.cos(car.angle), ay = Math.sin(car.angle);
+      fwd = vx0 * ax + vy0 * ay; lat = -vx0 * ay + vy0 * ax;
+    }
 
-    const grip = brake ? 2.2 : offroad ? 7 : spec.grip;
+    // сцепление: ручник или газ в резком повороте на скорости срывают зад — дрифт
+    let grip = offroad ? 7 : spec.grip;
+    car.dLock = (car.dLock || 0) - dt;
+    if (brake && sp > 60) { grip = 1.2; car.dLock = .8; }
+    else if (car.dLock > 0 && car.drifting && Math.abs(car.steer) > .25) grip = 3;
+    if (!offroad && up && Math.abs(car.steer) > .55 && sp > 170) grip = Math.min(grip, 3.6);
     const latBefore = lat;
+    car.drifting = Math.abs(latBefore) > 45 && sp > 80 && !offroad;
+    if (car.drifting && up) fwd += 70 * dt;                    // газ в заносе держит скорость
+    if (car.drifting) { drift.t += dt; drift.score += Math.abs(latBefore) * dt * .3; drift.off = 0; }
+    else if (drift.t > 0) {
+      drift.off += dt;
+      if (drift.off > .35) {                                   // дрифт закончился — награда
+        if (drift.t > .8) { const rw = Math.max(20, Math.round(drift.score / 10) * 10); save.money += rw; persist(); popMoney(t('drift', { p: fmt(rw) }), '#ff9100'); }
+        drift.t = drift.score = 0;
+      }
+    }
     lat -= lat * Math.min(1, grip * dt);
 
     const nfx = Math.cos(car.angle), nfy = Math.sin(car.angle);
@@ -2594,6 +2633,7 @@
     const speed = Math.hypot(car.vx, car.vy);
     const rear = [[-16, -10], [-16, 10]].map(([a, b]) => [car.x + a * nfx - b * nfy, car.y + a * nfy + b * nfx]);
     const skidding = Math.abs(latBefore) > 60 || (brake && sp > 90);
+    if (skidding && !offroad && !car.air) addSkid(rear, dt);
     if (skidding && !offroad && Math.random() < .7)
       for (const r of rear) emit(r[0], 4, r[1], '#e8e8e8', 5, 1, (Math.random() - .5) * 20, 12, (Math.random() - .5) * 20, 22, .45);
     if (offroad && speed > 60 && Math.random() < .6)
@@ -2930,76 +2970,188 @@
     for (let i = 1; i < n; i++) { const k = i / n; if (solidAtZ(x0 + (x1 - x0) * k, y0 + (y1 - y0) * k, z)) return false; }
     return true;
   }
-  function startChase() {
-    chase.active = true; chase.farT = 0;
-    let nodes = [];
-    for (let i = 0; i <= NB; i++) for (let j = 0; j <= NB; j++) {
-      const x = nodeC(i), y = nodeC(j), d = Math.hypot(x - car.x, y - car.y);
-      if (d > 650 && d < 1400) nodes.push([x, y]);
+  // ---------- следы шин ----------
+  const SKID_CAP = 900;
+  const skidTex = (() => {
+    const c = document.createElement('canvas'); c.width = 32; c.height = 16;
+    const g = c.getContext('2d'); const gr = g.createLinearGradient(0, 0, 0, 16);
+    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(.3, 'rgba(20,20,20,.75)'); gr.addColorStop(.7, 'rgba(20,20,20,.75)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 32, 16); return new THREE.CanvasTexture(c);
+  })();
+  const skidMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(9, 4).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ map: skidTex, transparent: true, opacity: .55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 }), SKID_CAP);
+  skidMesh.count = 0; skidMesh.frustumCulled = false; skidMesh.renderOrder = 1; scene.add(skidMesh);
+  const skid = { n: 0, acc: 0 };
+  const skM = new THREE.Matrix4(), skQ = new THREE.Quaternion(), skP = new THREE.Vector3(), skS = new THREE.Vector3(1, 1, 1), skY = new THREE.Vector3(0, 1, 0);
+  function addSkid(rear, dt) {
+    skid.acc += dt; if (skid.acc < .022) return; skid.acc = 0;
+    skQ.setFromAxisAngle(skY, -car.angle);
+    for (const r of rear) {
+      skM.compose(skP.set(r[0], groundHeight(r[0], r[1], car.z) + .2, r[1]), skQ, skS);
+      skidMesh.setMatrixAt(skid.n % SKID_CAP, skM); skid.n++;
     }
-    nodes.sort(() => Math.random() - .5);
-    for (const [x, y] of nodes.slice(0, 3)) spawnCop(x, y);
-    showMsg(t('chaseStart'), 2500);
-    wantedEl.classList.add('on'); sirenEl.classList.add('on');
+    skidMesh.count = Math.min(skid.n, SKID_CAP); skidMesh.instanceMatrix.needsUpdate = true;
   }
-  function spawnCop(x, y) {
-    const m = buildCar(policeSpec); scene.add(m.root);
-    chase.cops.push({ x, y, z: 0, h: Math.atan2(car.y - y, car.x - x), v: 0, m, stuck: 0, rev: 0 });
+
+  // ================== Розыск (звёзды) и полиция ==================
+  let wanted = 0;                                          // 0…5 звёзд, как в GTA
+  const COPS_BY_STAR = [0, 1, 2, 3, 4, 6];
+  const starsEl = document.getElementById('stars');
+  function drawStars(flash) {
+    const html = [0, 1, 2, 3, 4].map(i => `<i class="${i < wanted ? 'on' : ''}">★</i>`).join('');
+    if (starsEl.dataset.k !== wanted + '' ) { starsEl.innerHTML = html; starsEl.dataset.k = wanted + ''; }
+    starsEl.classList.toggle('flash', !!flash);
   }
-  // новый трюк во время погони — приезжает ещё одна полицейская машина
-  function addCop() {
-    chase.farT = 0;
-    if (chase.cops.length >= 7) return;
+  function spawnCopFar() {
     const nodes = [];
     for (let i = 0; i <= NB; i++) for (let j = 0; j <= NB; j++) {
       const x = nodeC(i), y = nodeC(j), d = Math.hypot(x - car.x, y - car.y);
-      if (d > 600 && d < 1300) nodes.push([x, y]);
+      if (d > 600 && d < 1400) nodes.push([x, y]);
     }
     if (!nodes.length) return;
     const [x, y] = nodes[Math.floor(Math.random() * nodes.length)];
     spawnCop(x, y);
-    showMsg(t('moreCops'), 1800);
+  }
+  // преступление — добавляем звёзды и полицейских
+  function addWanted(n) {
+    const before = wanted;
+    wanted = Math.min(5, wanted + n);
+    chase.farT = 0;
+    if (!chase.active) {
+      chase.active = true;
+      showMsg(t('chaseStart'), 2500);
+      wantedEl.classList.add('on'); sirenEl.classList.add('on');
+      document.documentElement.classList.add('wantedOn');
+    } else if (wanted > before) showMsg(t('moreCops'), 1800);
+    let tries = 0;
+    while (chase.cops.length < COPS_BY_STAR[wanted] && tries++ < 10) spawnCopFar();
+    drawStars(false);
+  }
+  function startChase() { addWanted(1); }
+  function addCop() { addWanted(1); }
+  function spawnCop(x, y) {
+    const m = buildCar(policeSpec); scene.add(m.root);
+    const officer = buildPerson('#1d4389', '#0d2147', '#0d2147', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac']));
+    chase.cops.push({ x, y, z: 0, h: Math.atan2(car.y - y, car.x - x), v: 0, m, stuck: 0, rev: 0,
+      mode: 'drive', officer, ox: 0, oy: 0, oz: 0, oh: 0, odown: 0, ofall: 0, shootCd: 1, aimT: 0, ph: 0 });
   }
   function endChase() {
-    for (const c of chase.cops) scene.remove(c.m.root);
-    chase.cops = []; chase.active = false; chase.cool = 20;
+    for (const c of chase.cops) { scene.remove(c.m.root); scene.remove(c.officer.root); }
+    chase.cops = []; chase.active = false; chase.cool = 0; wanted = 0;
     wantedEl.classList.remove('on'); sirenEl.classList.remove('on');
+    document.documentElement.classList.remove('wantedOn');
+    drawStars(false);
   }
-  function caught() {
-    const fine = Math.min(save.money, 500);
+  // здоровье кончилось — арест
+  function busted() {
+    const fine = Math.min(save.money, 250 * Math.max(1, wanted));
     save.money -= fine; persist();
-    popMoney(fine ? t('caught', { p: fmt(fine) }) : t('caught0'), '#ff8a80');
-    shake = 8;
+    popMoney(fine ? t('busted', { p: fmt(fine) }) : t('busted0'), '#ff8a80');
+    shake = 6;
+    foot.hp = 100; foot.ko = 0; foot.sinceHit = 9;
     endChase();
   }
+  // попадание пули: в машине меньше урона, пешком больше
+  function shotPlayer(dmg, fromX, fromY) {
+    if (car.onFoot && foot.ko > 0) return;
+    foot.hp -= car.onFoot ? dmg : dmg * .55;
+    foot.sinceHit = 0; shake = Math.max(shake, 1.5);
+    hurtEl.classList.add('on'); setTimeout(() => hurtEl.classList.remove('on'), 110);
+    if (foot.hp <= 0) busted();
+  }
+  // трассеры выстрелов
+  const tracerMat = new THREE.MeshBasicMaterial({ color: '#fff3b0', transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false });
+  const tracerGeo = new THREE.BoxGeometry(.5, .5, 1).translate(0, 0, .5);
+  const tracers = Array.from({ length: 14 }, () => { const m = new THREE.Mesh(tracerGeo, tracerMat); m.visible = false; scene.add(m); return { m, life: 0 }; });
+  let tracerIdx = 0;
+  function fireShot(c, tx, ty, tz, hit) {
+    const gx = c.ox + Math.cos(c.oh) * 7, gy = c.oy + Math.sin(c.oh) * 7, gz = c.oz + 17;
+    const ax = hit ? tx : tx + (Math.random() - .5) * 60, ay = hit ? ty : ty + (Math.random() - .5) * 60, az = tz + (hit ? 0 : Math.random() * 20);
+    const tr = tracers[tracerIdx = (tracerIdx + 1) % tracers.length];
+    tr.m.position.set(gx, gz, gy); tr.m.lookAt(ax, az, ay);
+    tr.m.scale.set(1, 1, Math.hypot(ax - gx, ay - gy, az - gz)); tr.m.visible = true; tr.life = .07;
+    emit(gx, gz, gy, '#ffd54f', 2.2, .08, 0, 0, 0, 10, 1);                                   // вспышка у пистолета
+    emit(ax, az, ay, hit ? '#ffffff' : '#bdbdbd', 1.4, .25, (Math.random() - .5) * 80, Math.random() * 60, (Math.random() - .5) * 80, 0, .9);
+    if (hit) shotPlayer(car.onFoot ? 9 : 7, gx, gy);
+  }
   function updatePolice(dt, time) {
-    chase.cool -= dt;
+    chase.cool -= dt; chase.hitCd = (chase.hitCd || 0) - dt;
+    for (const tr of tracers) if (tr.life > 0) { tr.life -= dt; if (tr.life <= 0) tr.m.visible = false; }
+    if (!car.onFoot) { foot.sinceHit += dt; if (foot.sinceHit > 6 && foot.hp < 100) foot.hp = Math.min(100, foot.hp + 5 * dt); }
     if (!chase.active) return;
     const flash = Math.floor(time / 160) % 2;
     const vmax = Math.max(270, spec.max * .93);   // чуть медленнее тебя на полной скорости — можно оторваться
-    let minD = Infinity;
+    const pSpeed = Math.hypot(car.vx, car.vy);
+    let minD = Infinity, seen = false;
     for (const p of chase.cops) {
-      minD = Math.min(minD, Math.hypot(car.x - p.x, car.y - p.y));
-      // цель: игрок, а если его не видно за домами — ближайший удобный перекрёсток
-      let tx = car.x + car.vx * .3, ty = car.y + car.vy * .3;
-      if (!clearLine(p.x, p.y, car.x, car.y, p.z)) {
-        let best = null, bs = Infinity;
-        const ci = Math.floor(p.x / (STEP * T)), cj = Math.floor(p.y / (STEP * T));
-        for (let i = ci - 1; i <= ci + 2; i++) for (let j = cj - 1; j <= cj + 2; j++) {
-          if (i < 0 || j < 0 || i > NB || j > NB) continue;
-          const nx = nodeC(i), ny = nodeC(j), dn = Math.hypot(nx - p.x, ny - p.y);
-          if (dn < 90 || !clearLine(p.x, p.y, nx, ny, p.z)) continue;
-          const sc = dn + Math.hypot(car.x - nx, car.y - ny);
-          if (sc < bs) { bs = sc; best = [nx, ny]; }
-        }
-        if (best) [tx, ty] = best;
+      const d = Math.hypot(car.x - p.x, car.y - p.y);
+      minD = Math.min(minD, d);
+      // --- полицейский вышел из машины ---
+      if (p.mode === 'drive' && d < 190 && (pSpeed < 150 || d < 90) && Math.abs(p.v) < 260) {
+        p.mode = 'out'; p.v = 0;
+        const lx = Math.sin(p.h), ly = -Math.cos(p.h);
+        p.ox = p.x + lx * 22; p.oy = p.y + ly * 22; p.oz = p.z; p.oh = Math.atan2(car.y - p.oy, car.x - p.ox);
+        p.shootCd = .9; p.officer.root.visible = true;
       }
-      const dA = angDiff(Math.atan2(ty - p.y, tx - p.x), p.h);
-      if (p.rev > 0) { p.rev -= dt; p.v = -90; p.h += 1.6 * dt; }          // застряли — сдаём назад
-      else {
-        p.h += Math.max(-2.6 * dt, Math.min(2.6 * dt, dA)) * Math.min(1, Math.abs(p.v) / 60 + .3);
-        const target = vmax * (Math.abs(dA) > 1 ? .45 : Math.abs(dA) > .5 ? .75 : 1);
-        p.v += Math.max(-400 * dt, Math.min(260 * dt, target - p.v));
+      if (p.mode !== 'drive') {
+        p.v *= Math.pow(.01, dt);
+        const O = p.officer, od = Math.hypot(car.x - p.ox, car.y - p.oy);
+        minD = Math.min(minD, od);
+        let moving = false;
+        if (p.odown > 0) {                                         // сбит с ног
+          p.odown -= dt; p.ofall = Math.min(Math.PI / 2, p.ofall + dt * 9);
+          if (p.odown <= 0) p.ofall = 0;
+        } else if (p.mode === 'back' || od > 430) {                // бежит обратно к машине
+          p.mode = 'back';
+          const bx = p.x - p.ox, by = p.y - p.oy, bd = Math.hypot(bx, by);
+          if (bd < 14) { p.mode = 'drive'; O.root.visible = false; }
+          else { const st = Math.min(bd, 170 * dt); p.ox += bx / bd * st; p.oy += by / bd * st; p.oh = Math.atan2(by, bx); moving = true; }
+        } else {
+          p.oh = Math.atan2(car.y - p.oy, car.x - p.ox);
+          const canSee = clearLine(p.ox, p.oy, car.x, car.y, p.oz);
+          if (canSee) seen = true;
+          if (od > 170 || !canSee) {                               // подходит ближе
+            const st = 95 * dt, nx = p.ox + Math.cos(p.oh) * st, ny = p.oy + Math.sin(p.oh) * st;
+            if (!solidAtZ(nx, ny, p.oz)) { p.ox = nx; p.oy = ny; moving = true; }
+          }
+          p.shootCd -= dt;
+          if (canSee && od < 380 && p.shootCd <= 0) {              // стреляет
+            p.shootCd = .65 + Math.random() * .45; p.aimT = .25;
+            const chance = Math.max(.15, Math.min(.8, .8 - od / 650 - pSpeed / 700));
+            fireShot(p, car.x, car.y, car.z + (car.onFoot ? 14 : 10), Math.random() < chance);
+          }
+        }
+        p.aimT -= dt;
+        p.oz = groundHeight(p.ox, p.oy, p.oz);
+        O.root.position.set(p.ox, p.oz, p.oy); O.root.rotation.y = -p.oh; O.root.rotation.z = p.ofall;
+        p.ph += moving ? dt * 12 : 0;
+        const sw = moving ? Math.sin(p.ph) * .7 : 0;
+        O.limbs[0].rotation.z = sw; O.limbs[1].rotation.z = -sw;
+        O.limbs[2].rotation.z = p.odown > 0 ? 0 : (moving ? -sw * .8 : 1.45);   // рука с пистолетом вытянута
+        O.limbs[3].rotation.z = p.odown > 0 ? 0 : (moving ? sw * .8 : 1.2);
+      } else {
+        // --- едет за тобой ---
+        let tx = car.x + car.vx * .3, ty = car.y + car.vy * .3;
+        if (!clearLine(p.x, p.y, car.x, car.y, p.z)) {
+          let best = null, bs = Infinity;
+          const ci = Math.floor(p.x / (STEP * T)), cj = Math.floor(p.y / (STEP * T));
+          for (let i = ci - 1; i <= ci + 2; i++) for (let j = cj - 1; j <= cj + 2; j++) {
+            if (i < 0 || j < 0 || i > NB || j > NB) continue;
+            const nx = nodeC(i), ny = nodeC(j), dn = Math.hypot(nx - p.x, ny - p.y);
+            if (dn < 90 || !clearLine(p.x, p.y, nx, ny, p.z)) continue;
+            const sc = dn + Math.hypot(car.x - nx, car.y - ny);
+            if (sc < bs) { bs = sc; best = [nx, ny]; }
+          }
+          if (best) [tx, ty] = best;
+        } else if (d < 900) seen = true;
+        const dA = angDiff(Math.atan2(ty - p.y, tx - p.x), p.h);
+        if (p.rev > 0) { p.rev -= dt; p.v = -90; p.h += 1.6 * dt; }
+        else {
+          p.h += Math.max(-2.6 * dt, Math.min(2.6 * dt, dA)) * Math.min(1, Math.abs(p.v) / 60 + .3);
+          const target = vmax * (Math.abs(dA) > 1 ? .45 : Math.abs(dA) > .5 ? .75 : 1) * (d < 220 ? .55 : 1);
+          p.v += Math.max(-400 * dt, Math.min(260 * dt, target - p.v));
+        }
+        for (const pv of p.m.pivots) if (pv.position.x > 0) pv.rotation.y = -Math.max(-.5, Math.min(.5, dA));
       }
       const fx = Math.cos(p.h), fy = Math.sin(p.h);
       const nx = p.x + fx * p.v * dt, ny = p.y + fy * p.v * dt;
@@ -3007,18 +3159,21 @@
       if (!hit(nx, ny)) { p.x = nx; p.y = ny; p.stuck = Math.max(0, p.stuck - dt); }
       else if (!hit(nx, p.y)) { p.x = nx; p.stuck += dt * .5; }
       else if (!hit(p.x, ny)) { p.y = ny; p.stuck += dt * .5; }
-      else { p.v *= .3; p.stuck += dt; }
+      else { p.v *= .3; if (p.mode === 'drive') p.stuck += dt; }
       if (p.stuck > 1) { p.rev = .7; p.stuck = 0; }
       p.z = groundHeight(p.x, p.y, p.z);
       p.m.root.position.set(p.x, p.z, p.y); p.m.root.rotation.y = -p.h;
       for (const w of p.m.wheels) w.rotation.z -= p.v * dt / p.m.r;
-      for (const pv of p.m.pivots) if (pv.position.x > 0) pv.rotation.y = -Math.max(-.5, Math.min(.5, dA));
+      if (p.m.driver) p.m.driver.visible = p.mode === 'drive';
       if (p.m.lights) { p.m.lights[0].emissiveIntensity = flash ? 3 : .2; p.m.lights[1].emissiveIntensity = flash ? .2 : 3; }
     }
-    if (minD > 1300) chase.farT += dt; else chase.farT = 0;
-    if (chase.farT > 4) {                                 // оторвался!
-      save.money += 500; persist();
-      popMoney(t('escaped'), '#7CFFB2');
+    // оторвался: далеко и не видно — звёзды мигают и гаснут
+    if (minD > 1100 && !seen) chase.farT += dt; else chase.farT = Math.max(0, chase.farT - dt * 2);
+    drawStars(chase.farT > .3 && Math.floor(time / 250) % 2);
+    if (chase.farT > 3 + wanted * 1.5) {
+      const reward = 150 * wanted;
+      save.money += reward; persist();
+      popMoney(t('escapedStars', { p: fmt(reward) }), '#7CFFB2');
       endChase();
     }
   }
@@ -3044,7 +3199,7 @@
           for (let i = 0; i < 8; i++) emit(o.x + nx * 17, 8, o.y + ny * 17, '#ffd27a', 1.5, .35, (Math.random() - .5) * 160, Math.random() * 80, (Math.random() - .5) * 160, 0, 1);
         }
       }
-      if (chase.cops.includes(o)) { caught(); return; }
+      if (chase.cops.includes(o) && vn < -110 && chase.hitCd <= 0) { chase.hitCd = 3; addWanted(1); }
     }
   }
 
@@ -3155,6 +3310,17 @@
       const dx = pp.x - car.x, dy = pp.y - car.y, d = Math.hypot(dx, dy);
       if (d < bd && (dx * fx + dy * fy) / (d || 1) > .25) { bd = d; best = pp; }
     }
+    let bestCop = null;
+    for (const c of chase.cops) if (c.mode !== 'drive' && !(c.odown > 0)) {
+      const dx = c.ox - car.x, dy = c.oy - car.y, d = Math.hypot(dx, dy);
+      if (d < bd && (dx * fx + dy * fy) / (d || 1) > .25) { bd = d; bestCop = c; }
+    }
+    if (bestCop) {                                          // сбил полицейского — ещё звезда
+      bestCop.odown = 4; bestCop.ofall = 0; shake = 1.2;
+      for (let k = 0; k < 10; k++) emit(bestCop.ox, 20, bestCop.oy, '#fff59d', 1.6, .35, (Math.random() - .5) * 120, Math.random() * 80, (Math.random() - .5) * 120, 0, 1);
+      addWanted(1);
+      return;
+    }
     if (!best) return;
     // попал! прохожий падает, потом встанет и полезет в драку
     best.kos = (best.kos || 0) + 1;
@@ -3163,6 +3329,7 @@
     best.x += fx * 10; best.y += fy * 10;
     shake = 1.2;
     for (let k = 0; k < 10; k++) emit(best.x - fx * 8, 20, best.y - fy * 8, '#fff59d', 1.6, .35, (Math.random() - .5) * 120, Math.random() * 80, (Math.random() - .5) * 120, 0, 1);
+    if (wanted < 1 && Math.random() < .4) addWanted(1);   // кто-то увидел драку и вызвал полицию
     for (const o of people) if (o !== best && o.mode === 'walk' && Math.hypot(o.x - best.x, o.y - best.y) < 180 && Math.random() < .3) { o.mode = 'fight'; o.angryT = 12; }   // друзья вступаются
   }
   window.__punch = punch;
@@ -3308,6 +3475,7 @@
         // помогаем в драке: идём к злому прохожему рядом с тобой
         let enemy = null, ed = fightT > 0 ? 420 : 300;
         for (const pp of people) if (pp.mode === 'fight') { const d = Math.hypot(pp.x - car.x, pp.y - car.y); if (d < ed) { ed = d; enemy = pp; } }
+        for (const c of chase.cops) if (c.mode !== 'drive' && !(c.odown > 0)) { const d = Math.hypot(c.ox - car.x, c.oy - car.y); if (d < ed) { ed = d; enemy = { cop: c, x: c.ox, y: c.oy }; } }
         // ты дерёшься с прохожим, а он ещё лежит — друг подбегает и ждёт рядом
         if (!enemy && fightT > 0) for (const pp of people) if (pp.mode === 'down') { const d = Math.hypot(pp.x - car.x, pp.y - car.y); if (d < 200) { enemy = null; f.guard = pp; break; } }
         if (enemy && !f.engaged) { f.engaged = true; showMsg(t('helpYou', { n: (save.friends.names[f.i] || '').trim() || (f.i ? 'Кинан' : 'Армин') }), 1600); }
@@ -3324,9 +3492,12 @@
           f.ang = Math.atan2(dy, dx);
           if (f.punchCd <= 0) {
             f.punchT = .3; f.punchCd = .6;
-            enemy.kos = (enemy.kos || 0) + 1;
-            enemy.mode = 'down'; enemy.downT = 2.6; enemy.fallA = 0; enemy.punchT = 0;
-            enemy.yaw = Math.atan2(f.py - enemy.y, f.px - enemy.x);
+            if (enemy.cop) { enemy.cop.odown = 4; enemy.cop.ofall = 0; }
+            else {
+              enemy.kos = (enemy.kos || 0) + 1;
+              enemy.mode = 'down'; enemy.downT = 2.6; enemy.fallA = 0; enemy.punchT = 0;
+              enemy.yaw = Math.atan2(f.py - enemy.y, f.px - enemy.x);
+            }
             for (let k = 0; k < 8; k++) emit(enemy.x, 20, enemy.y, '#fff59d', 1.4, .3, (Math.random() - .5) * 100, Math.random() * 70, (Math.random() - .5) * 100, 0, 1);
           }
         } else if (d > 5) {
@@ -3868,7 +4039,12 @@
     sun.position.set(fx + SUN_OFF.x, SUN_OFF.y, fz + SUN_OFF.z);
   }
 
+  const driftEl = document.getElementById('driftMeter');
   function updateVisuals(dt, t) {
+    hpFill.style.width = Math.max(0, Math.round(foot.hp)) + '%';
+    const showDrift = drift.t > .35 && !car.onFoot;
+    driftEl.classList.toggle('on', showDrift);
+    if (showDrift) driftEl.textContent = window.t('driftLive') + ' +' + fmt(Math.max(20, Math.round(drift.score / 10) * 10));
     const V = car.onFoot ? vstate : car;
     player.root.position.set(V.x, V.z, V.y);
     {   // пятно тени под машиной игрока: на земле, бледнеет в прыжке
