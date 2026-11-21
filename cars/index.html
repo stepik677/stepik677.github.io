@@ -2190,21 +2190,48 @@
     return false;
   }
 
-  // ---------- 3D: трамплины ----------
+  // ---------- 3D: трамплины — красные, с большой белой стрелкой ----------
   {
-    const c = document.createElement('canvas'); c.width = c.height = 128;
-    const g = c.getContext('2d');
-    g.fillStyle = '#ffc107'; g.fillRect(0, 0, 128, 128);
-    g.fillStyle = '#1b1b1b';
-    for (const y of [0, 64]) { g.beginPath(); g.moveTo(20, y + 8); g.lineTo(70, y + 32); g.lineTo(20, y + 56); g.lineTo(44, y + 56); g.lineTo(94, y + 32); g.lineTo(44, y + 8); g.closePath(); g.fill(); }
-    const chev = new THREE.CanvasTexture(c);
-    chev.wrapS = chev.wrapT = THREE.RepeatWrapping; chev.colorSpace = THREE.SRGBColorSpace; chev.anisotropy = maxAniso;
-    const sideMat = new THREE.MeshStandardMaterial({ color: '#6d747c', roughness: .7, metalness: .2 });
+    // поверхность склона: красный металл с рифлением, белые полосы по краям и большая стрелка вверх
+    function rampTex(len, w, flip) {
+      const W = 512, H = Math.max(128, Math.min(2048, Math.round(W * w / len)));
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const g = c.getContext('2d');
+      const gr = g.createLinearGradient(0, 0, W, 0);
+      gr.addColorStop(0, '#c62828'); gr.addColorStop(1, '#e53935');
+      g.fillStyle = gr; g.fillRect(0, 0, W, H);
+      g.fillStyle = 'rgba(255,255,255,.07)';                              // рифлёный металл
+      for (let y = 6; y < H; y += 18) for (let x = (y / 18 % 2) * 12; x < W; x += 24) { g.save(); g.translate(x, y); g.rotate(.6); g.fillRect(-6, -1.5, 12, 3); g.restore(); }
+      g.fillStyle = 'rgba(0,0,0,.18)';                                    // стыки листов
+      for (let x = W / 4; x < W; x += W / 4) g.fillRect(x - 1, 0, 2, H);
+      const edge = Math.max(10, H * .045);
+      g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, edge); g.fillRect(0, H - edge, W, edge);   // белые края
+      g.fillStyle = '#b71c1c'; g.fillRect(0, edge, W, 3); g.fillRect(0, H - edge - 3, W, 3);
+      const n = Math.max(1, Math.round(H / W / 1.2));                     // на широком трамплине — несколько стрелок
+      for (let i = 0; i < n; i++) {
+        const cy = (i + .5) * H / n, aw = Math.min(H / n * .62, W * .5), x0 = W * .18, x1 = W * .84, hx = W * .56;
+        const draw = () => { g.beginPath(); g.moveTo(x0, cy - aw * .2); g.lineTo(hx, cy - aw * .2); g.lineTo(hx, cy - aw * .5); g.lineTo(x1, cy);
+          g.lineTo(hx, cy + aw * .5); g.lineTo(hx, cy + aw * .2); g.lineTo(x0, cy + aw * .2); g.closePath(); };
+        g.save(); g.translate(5, 5); draw(); g.fillStyle = 'rgba(0,0,0,.25)'; g.fill(); g.restore();   // тень стрелки
+        draw(); g.fillStyle = '#ffffff'; g.fill();
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso;
+      if (!flip) t.repeat.x = -1;                             // стрелка смотрит вверх по склону
+      return t;
+    }
+    const sideMat = new THREE.MeshStandardMaterial({ color: '#a31515', roughness: .45, metalness: .35, envMap: scene.userData.env, envMapIntensity: .5 });
+    const trimMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .5 });
+    const rubberMat = new THREE.MeshStandardMaterial({ color: '#1c1c1c', roughness: .9 });
     const slope = (grp, x, y, len, w, ang, flip) => {
-      const t = chev.clone(); t.needsUpdate = true; t.repeat.set((flip ? -1 : 1) * len / 46, w / 46);
       const tilt = new THREE.Group(); tilt.position.set(x, y, 0); tilt.rotation.z = ang; grp.add(tilt);
-      const top = new THREE.Mesh(new THREE.PlaneGeometry(len, w), new THREE.MeshStandardMaterial({ map: t, roughness: .6 }));
+      const top = new THREE.Mesh(new THREE.PlaneGeometry(len, w),
+        new THREE.MeshStandardMaterial({ map: rampTex(len, w, flip), roughness: .5, metalness: .25, envMap: scene.userData.env, envMapIntensity: .45 }));
       top.rotation.x = -Math.PI / 2; top.position.y = .25; top.receiveShadow = true; tilt.add(top);
+      for (const z of [-1, 1]) {                                          // белые бортики по краям
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(len, 1.6, 1.8), trimMat);
+        rail.position.set(0, .9, z * (w / 2 - .9)); rail.castShadow = true; tilt.add(rail);
+      }
     };
     for (const r of RAMPS) {
       const grp = new THREE.Group();
@@ -2213,10 +2240,15 @@
       const geo = new THREE.ExtrudeGeometry(new THREE.Shape(pts.map(([a, b]) => new THREE.Vector2(a, b))), { depth: r.Wd, bevelEnabled: false });
       geo.translate(0, 0, -r.Wd / 2);
       const base = new THREE.Mesh(geo, sideMat); base.castShadow = base.receiveShadow = true; grp.add(base);
-      if (r.kick) slope(grp, 0, r.H / 2, Math.hypot(r.L, r.H), r.Wd, Math.atan2(r.H, r.L), true);
-      else {
+      if (r.kick) {
+        slope(grp, 0, r.H / 2, Math.hypot(r.L, r.H), r.Wd, Math.atan2(r.H, r.L), true);
+        const lip = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, r.Wd), rubberMat); lip.position.set(-r.L / 2 + 1.5, .6, 0); grp.add(lip);   // резиновый край заезда
+        const top = new THREE.Mesh(new THREE.BoxGeometry(2, 2.2, r.Wd + .5), trimMat); top.position.set(r.L / 2 - 1, r.H + .2, 0); grp.add(top); // белая кромка вылета
+      } else {
         const half = r.L / 2, sl = Math.hypot(half, r.H), ang = Math.atan2(r.H, half);
-        for (const side of [-1, 1]) slope(grp, side * half / 2, r.H / 2, sl, r.Wd, -side * ang, side < 0); // стрелки вверх к вершине
+        for (const side of [-1, 1]) slope(grp, side * half / 2, r.H / 2, sl, r.Wd, -side * ang, side < 0);   // стрелки вверх к вершине
+        for (const side of [-1, 1]) { const lip = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, r.Wd), rubberMat); lip.position.set(side * (half - 1.5), .6, 0); grp.add(lip); }
+        const crest = new THREE.Mesh(new THREE.BoxGeometry(3, 1.4, r.Wd + .5), trimMat); crest.position.set(0, r.H + .3, 0); grp.add(crest);
       }
       scene.add(grp);
     }
@@ -3823,14 +3855,14 @@
     // мост, тоннели, трамплины
     for (const pl of PLATS) {
       const w = pl.ux ? pl.L : pl.Wd, h = pl.ux ? pl.Wd : pl.L, x0 = pl.cx - w / 2, y0 = pl.cy - h / 2;
-      g.fillStyle = pl.h0 !== pl.h1 ? '#ff8a65' : pl.bot >= 50 ? '#e53935' : '#37474f';
+      g.fillStyle = pl.h0 !== pl.h1 ? '#b39ddb' : pl.bot >= 50 ? '#7e57c2' : '#37474f';
       g.fillRect(x0, y0, w, h);
       g.strokeStyle = pl.bot >= 50 || pl.h0 !== pl.h1 ? '#ffffff' : '#ffd54f'; g.lineWidth = 12; g.strokeRect(x0, y0, w, h);
     }
     for (const r of RAMPS) {
       const along = Math.abs(r.ux) > .5, w = along ? r.L : r.Wd, h = along ? r.Wd : r.L;
-      g.fillStyle = '#ff9800'; g.fillRect(r.cx - w / 2, r.cy - h / 2, w, h);
-      g.strokeStyle = '#4e2a00'; g.lineWidth = 8; g.strokeRect(r.cx - w / 2, r.cy - h / 2, w, h);
+      g.fillStyle = '#ff1744'; g.fillRect(r.cx - w / 2, r.cy - h / 2, w, h);
+      g.strokeStyle = '#ffffff'; g.lineWidth = 10; g.strokeRect(r.cx - w / 2, r.cy - h / 2, w, h);
     }
   }
   let mapOpen = false, dest = null;
@@ -3950,8 +3982,8 @@
     ['lgCoins', '', 'background:#ffd54f;border-radius:50%;width:12px;height:12px;border:2px solid #7a5600'],
     ['lgCar', '', 'background:#1e88e5;border-radius:50%;width:12px;height:12px;border:2px solid #fff'],
     ['lgDest', '📍', ''],
-    ['lgRamp', '', 'background:#ff9800;border:2px solid #4e2a00'],
-    ['lgBridge', '', 'background:#e53935;border:2px solid #fff'],
+    ['lgRamp', '', 'background:#ff1744;border:2px solid #fff'],
+    ['lgBridge', '', 'background:#7e57c2;border:2px solid #fff'],
     ['lgTunnel', '', 'background:#37474f;border:2px solid #ffd54f'],
     ['lgPark', '🌳', 'background:#6cc25f'],
     ['lgLake', '🌊', 'background:#3d9be0'],
