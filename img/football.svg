@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1730"/>
+      <stop offset="1" stop-color="#1d3a6b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff8d6" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#fff8d6" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="net" width="22" height="22" patternUnits="userSpaceOnUse">
+      <path d="M0 0L22 22M22 0L0 22" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="750" fill="url(#sky)"/>
+
+  <!-- floodlights -->
+  <circle cx="150" cy="90" r="140" fill="url(#glow)"/>
+  <circle cx="1050" cy="90" r="140" fill="url(#glow)"/>
+  <rect x="95" y="60" width="110" height="50" rx="8" fill="#e8eef7"/>
+  <rect x="995" y="60" width="110" height="50" rx="8" fill="#e8eef7"/>
+
+  <!-- stands -->
+  <path d="M0 250 L1200 250 L1200 380 L0 380 Z" fill="#26324a"/>
+  <g fill="#3a4a6b">
+    <rect x="0" y="262" width="1200" height="14"/>
+    <rect x="0" y="292" width="1200" height="14"/>
+    <rect x="0" y="322" width="1200" height="14"/>
+    <rect x="0" y="352" width="1200" height="14"/>
+  </g>
+  <!-- crowd dots -->
+  <g fill="#e63946">
+    <circle cx="60" cy="285" r="7"/><circle cx="180" cy="315" r="7"/><circle cx="310" cy="285" r="7"/>
+    <circle cx="450" cy="345" r="7"/><circle cx="620" cy="285" r="7"/><circle cx="780" cy="315" r="7"/>
+    <circle cx="900" cy="345" r="7"/><circle cx="1040" cy="285" r="7"/><circle cx="1150" cy="315" r="7"/>
+  </g>
+  <g fill="#ffd23f">
+    <circle cx="120" cy="345" r="7"/><circle cx="250" cy="345" r="7"/><circle cx="390" cy="315" r="7"/>
+    <circle cx="540" cy="315" r="7"/><circle cx="700" cy="345" r="7"/><circle cx="840" cy="285" r="7"/>
+    <circle cx="980" cy="315" r="7"/><circle cx="1100" cy="345" r="7"/>
+  </g>
+  <rect x="0" y="378" width="1200" height="22" fill="#1b2438"/>
+
+  <!-- pitch with stripes -->
+  <rect x="0" y="400" width="1200" height="350" fill="#2f9e44"/>
+  <g fill="#37b24d">
+    <path d="M0 400 H150 L60 750 H0 Z"/>
+    <path d="M300 400 H450 L420 750 H240 Z"/>
+    <path d="M600 400 H750 L780 750 H600 Z"/>
+    <path d="M900 400 H1050 L1140 750 H960 Z"/>
+  </g>
+
+  <!-- penalty box lines -->
+  <g stroke="#ffffff" stroke-width="6" fill="none" stroke-opacity="0.9">
+    <path d="M140 750 L250 470 H950 L1060 750"/>
+    <path d="M0 470 H1200" stroke-opacity="0.5"/>
+  </g>
+  <ellipse cx="600" cy="640" rx="10" ry="5" fill="#ffffff"/>
+
+  <!-- goal -->
+  <rect x="330" y="230" width="540" height="240" fill="url(#net)"/>
+  <rect x="330" y="230" width="540" height="240" fill="#ffffff" fill-opacity="0.06"/>
+  <g fill="#f8f9fa">
+    <rect x="318" y="218" width="16" height="256" rx="4"/>
+    <rect x="866" y="218" width="16" height="256" rx="4"/>
+    <rect x="318" y="218" width="564" height="16" rx="4"/>
+  </g>
+
+  <!-- goalkeeper diving -->
+  <g transform="translate(470 340) rotate(-22)">
+    <rect x="-60" y="-28" width="120" height="56" rx="26" fill="#ffd23f"/>
+    <rect x="-20" y="-28" width="12" height="56" fill="#f59f00"/>
+    <circle cx="-88" cy="0" r="28" fill="#f1c27d"/>
+    <path d="M-112 -10 Q-88 -40 -64 -10 Z" fill="#5c3b1e"/>
+    <rect x="50" y="-24" width="70" height="22" rx="11" fill="#212529"/>
+    <rect x="50" y="4" width="70" height="22" rx="11" fill="#212529"/>
+    <rect x="-150" y="-50" width="60" height="18" rx="9" fill="#ffd23f"/>
+    <circle cx="-160" cy="-41" r="16" fill="#51cf66" stroke="#2b8a3e" stroke-width="4"/>
+  </g>
+
+  <!-- ball trail -->
+  <path d="M600 640 Q700 520 760 300" stroke="#ffffff" stroke-opacity="0.35" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="2 22"/>
+
+  <!-- ball -->
+  <g transform="translate(762 296)">
+    <circle r="34" fill="#ffffff" stroke="#212529" stroke-width="4"/>
+    <path d="M0 -12 L11 -4 L7 10 L-7 10 L-11 -4 Z" fill="#212529"/>
+    <path d="M0 -34 L0 -12 M11 -4 L31 -12 M7 10 L20 27 M-7 10 L-20 27 M-11 -4 L-31 -12" stroke="#212529" stroke-width="4"/>
+  </g>
+</svg>

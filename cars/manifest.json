@@ -1,0 +1,13 @@
+{
+  "name": "Машинки — поездка по городу",
+  "short_name": "Машинки",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#9fcfee",
+  "theme_color": "#151c26",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -1,0 +1,3290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Пенальти">
+  <meta name="theme-color" content="#0b1119">
+  <title>Серия пенальти — футбольный симулятор</title>
+  <style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: radial-gradient(circle at top, #1b2a3a, #0b1119 70%);
+  color: #e8eef4;
+  min-height: 100vh;
+}
+header { text-align: center; padding: 18px 0 6px; }
+h1 { margin: 0; font-size: 28px; letter-spacing: .5px; }
+h2 { font-size: 16px; margin: 0 0 10px; color: #9fb3c8; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; }
+main { max-width: 980px; margin: 0 auto; padding: 10px 12px 30px; }
+.hidden { display: none !important; }
+
+.panel { background: #142130; border: 1px solid #22364b; border-radius: 14px; padding: 22px; }
+.setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+@media (max-width: 640px) { .setup-grid { grid-template-columns: 1fr; } }
+.team-list { display: grid; gap: 6px; max-height: 360px; overflow-y: auto; padding-right: 6px; }
+.team-list::-webkit-scrollbar { width: 8px; }
+.team-list::-webkit-scrollbar-thumb { background: #2b4a68; border-radius: 4px; }
+.league-head { font-size: 12px; font-weight: 700; color: #4fc3f7; text-transform: uppercase; letter-spacing: 1px; margin: 8px 0 2px 4px; }
+.team-list.tall { max-height: 420px; margin: 14px 0 0; }
+.league { margin-left: auto; font-size: 11px; color: #7f95ab; background: #101b27; padding: 2px 7px; border-radius: 6px; }
+.team-btn {
+  display: flex; align-items: center; gap: 10px;
+  background: #1a2a3c; border: 2px solid transparent; color: inherit;
+  padding: 9px 12px; border-radius: 10px; cursor: pointer; font-size: 15px; text-align: left;
+}
+.team-btn:hover { background: #20344a; }
+.team-btn.active { border-color: #4fc3f7; background: #1f3850; }
+.team-btn:disabled { opacity: .35; cursor: not-allowed; }
+.badge {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  border: 3px solid; box-shadow: 0 0 0 1px #0006;
+}
+.setup-row { margin-top: 22px; }
+.fk-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.fk-side .howto { margin-top: 16px; }
+.fk-side .primary { margin-top: 16px; }
+.fk-best { margin-top: 14px; color: #ffd54f; font-weight: 600; }
+@media (max-width: 720px) { .fk-top { grid-template-columns: 1fr; } }
+.seg { display: inline-flex; background: #1a2a3c; border-radius: 10px; padding: 4px; gap: 4px; }
+.seg button { background: none; border: 0; color: #9fb3c8; padding: 8px 16px; border-radius: 7px; cursor: pointer; font-size: 15px; }
+.seg button.active { background: #2b4a68; color: #fff; }
+.howto { margin-top: 20px; font-size: 14px; color: #b8c7d6; line-height: 1.5; background: #101b27; border-radius: 10px; padding: 6px 16px; }
+kbd { background: #2b3d52; border-radius: 4px; padding: 1px 6px; margin: 0 1px; font-family: inherit; font-size: 12px; border-bottom: 2px solid #1a2736; }
+button.primary {
+  margin-top: 20px; width: 100%;
+  background: linear-gradient(#43a047, #2e7d32); color: #fff; border: 0;
+  padding: 14px; font-size: 18px; font-weight: 600; border-radius: 10px; cursor: pointer;
+}
+button.primary:hover { filter: brightness(1.1); }
+
+.board { display: grid; gap: 6px; margin-bottom: 10px; }
+.board-row {
+  display: flex; align-items: center; gap: 12px;
+  background: #142130; border: 1px solid #22364b; border-radius: 10px; padding: 8px 14px;
+}
+.board-row.turn { border-color: #4fc3f7; }
+.board-name { flex: 1; font-weight: 600; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.board-name span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.dot { width: 18px; height: 18px; border-radius: 50%; background: #2a3b4e; border: 2px solid #3a4f66; }
+.dot.goal { background: #43a047; border-color: #81c784; }
+.dot.miss { background: #e53935; border-color: #ef9a9a; }
+.board-score { font-size: 24px; font-weight: 700; width: 34px; text-align: right; }
+
+.canvas-wrap { position: relative; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 40px #0008; }
+canvas { display: block; width: 100%; height: auto; touch-action: none; cursor: crosshair; background: #0d1a10; }
+.status { text-align: center; color: #b8c7d6; min-height: 22px; margin: 10px 0 0; }
+
+/* Окно итога — внизу, чтобы не закрывать празднование команды */
+.over {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(transparent 60%, #000b);
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 14px;
+  animation: fadeIn .5s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.over-card {
+  pointer-events: auto;
+  background: #142130ee; border: 1px solid #2b4a68; border-radius: 14px; padding: 12px 18px;
+  display: flex; align-items: center; gap: 18px; text-align: left;
+}
+.over-card h2 { font-size: 22px; color: #fff; text-transform: none; letter-spacing: 0; margin: 0; }
+.over-card p { font-size: 15px; color: #b8c7d6; margin: 2px 0 0; }
+.over-btns { display: flex; gap: 8px; }
+.over-btns button { padding: 10px 16px !important; font-size: 15px !important; width: auto !important; }
+@media (max-width: 640px) { .over-card { flex-direction: column; text-align: center; } }
+.over-btns button { margin-top: 0; }
+#back { background: #22364b; color: #fff; border: 0; padding: 12px; border-radius: 10px; font-size: 16px; cursor: pointer; }
+
+/* ---------- Навигация ---------- */
+#nav { display: inline-flex; gap: 4px; margin-top: 12px; background: #142130; border: 1px solid #22364b; border-radius: 12px; padding: 4px; }
+#nav button { background: none; border: 0; color: #9fb3c8; padding: 9px 16px; border-radius: 9px; cursor: pointer; font-size: 15px; }
+#nav button.active { background: #2b4a68; color: #fff; }
+
+/* ---------- Сезон ---------- */
+.muted { color: #8aa0b6; }
+.small { font-size: 13px; }
+.badge.sm { width: 16px; height: 16px; border-width: 2px; display: inline-block; vertical-align: -3px; margin: 0 6px; }
+button.primary:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+button.ghost { background: #22364b; color: #fff; border: 0; padding: 14px; font-size: 16px; border-radius: 10px; cursor: pointer; margin-top: 20px; }
+button.link { background: none; border: 0; color: #6f88a3; cursor: pointer; margin: 14px auto 0; display: block; text-decoration: underline; font-size: 13px; }
+
+.season-head { margin-bottom: 12px; }
+.sh-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.sh-club { display: flex; align-items: center; gap: 4px; font-size: 18px; }
+.sh-club .badge.sm { width: 30px; height: 30px; border-width: 3px; }
+.sh-progress { min-width: 220px; text-align: right; font-size: 13px; }
+.bar { height: 8px; background: #1a2a3c; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+.bar div { height: 100%; background: linear-gradient(90deg, #43a047, #4fc3f7); }
+.next h3 { margin: 18px 0 8px; font-size: 18px; }
+.my-match { font-size: 18px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; background: #101b27; padding: 12px 14px; border-radius: 10px; }
+.my-match .vs { margin: 0 8px; color: #6f88a3; }
+.my-match .comp { margin-left: auto; font-size: 12px; color: #4fc3f7; background: #142130; padding: 3px 8px; border-radius: 6px; }
+.btn-row { display: flex; gap: 10px; }
+.btn-row button { flex: 1; margin-top: 12px; }
+.last { margin-top: 12px; font-size: 14px; color: #b8c7d6; }
+.win { font-weight: 700; color: #fff; }
+.sc { margin: 0 8px; color: #ffd54f; }
+.champs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; margin: 10px 0; }
+.champ { background: #101b27; padding: 8px 10px; border-radius: 8px; font-size: 14px; }
+.champ.cl { grid-column: 1 / -1; font-size: 16px; background: linear-gradient(90deg, #1f3850, #101b27); }
+
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.tabs button { background: #142130; border: 1px solid #22364b; color: #9fb3c8; padding: 8px 12px; border-radius: 9px; cursor: pointer; font-size: 14px; }
+.tabs button.active { background: #2b4a68; color: #fff; border-color: #4fc3f7; }
+
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th { color: #7f95ab; font-weight: 600; font-size: 12px; text-align: center; padding: 6px 4px; border-bottom: 1px solid #22364b; }
+.tbl td { text-align: center; padding: 8px 4px; border-bottom: 1px solid #1a2a3c; }
+.tbl .club { text-align: left; white-space: nowrap; }
+.tbl .pos { width: 28px; color: #8aa0b6; }
+.tbl .pts { font-weight: 700; color: #fff; font-size: 15px; }
+.tbl tr.ucl td.pos { box-shadow: inset 3px 0 #4fc3f7; }
+.tbl tr.ucl4 td.pos { box-shadow: inset 3px 0 #4fc3f766; }
+.tbl tr.me td { background: #1f3850; color: #fff; }
+.tbl.hist { font-size: 13px; }
+.tbl.hist td { text-align: left; }
+.legend { font-size: 12px; color: #8aa0b6; margin: 8px 0 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lg { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.lg.ucl { background: #4fc3f7; }
+.lg.ucl4 { background: #4fc3f766; margin-left: 10px; }
+h4 { margin: 16px 0 8px; color: #9fb3c8; font-size: 14px; }
+.results { display: grid; gap: 4px; }
+.res { background: #101b27; padding: 7px 10px; border-radius: 8px; font-size: 14px; }
+.res.me { outline: 1px solid #4fc3f7; }
+
+.bracket { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 10px; overflow-x: auto; }
+.col { display: flex; flex-direction: column; }
+.col h4 { margin: 0 0 8px; text-align: center; }
+.col-ties { display: flex; flex-direction: column; justify-content: space-around; flex: 1; gap: 8px; }
+.tie { background: #101b27; border: 1px solid #22364b; border-radius: 8px; font-size: 13px; overflow: hidden; }
+.tie > div { display: flex; align-items: center; padding: 5px 6px; gap: 2px; }
+.tie > div span:not(.badge) { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tie .badge.sm { flex: 0 0 auto; margin: 0 6px 0 0; }
+.tie > div + div { border-top: 1px solid #1a2a3c; }
+.tie .win { background: #1b3a2a; }
+.tie .lose { color: #6f88a3; }
+.tie .me span { color: #4fc3f7; font-weight: 700; }
+.tie.empty > div { color: #3a4f66; justify-content: center; }
+.cl-winner { font-size: 18px; margin-bottom: 12px; background: linear-gradient(90deg, #3d3010, #142130); padding: 10px 14px; border-radius: 10px; }
+
+/* ---------- Лига Европы и кубки после чемпионата ---------- */
+.tbl tr.uel td.pos { box-shadow: inset 3px 0 #ff9800; }
+.lg.uel { background: #ff9800; margin-left: 10px; }
+.champ.el { grid-column: 1 / -1; font-size: 16px; background: linear-gradient(90deg, #4a2c0a, #101b27); }
+.bracket.cup { grid-template-columns: repeat(3, minmax(170px, 1fr)); }
+.byes { background: #101b27; border: 1px dashed #2b4a68; border-radius: 8px; padding: 8px; line-height: 1.9; }
+.me-name { color: #4fc3f7; font-weight: 700; }
+
+/* Статус чемпионата «до 20 очков» */
+.lg-status { background: #101b27; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 14px; }
+.lg-status .bar { margin-top: 8px; }
+.lg-status.done { background: linear-gradient(90deg, #1b3a2a, #101b27); }
+
+/* Регулятор закрутки под полем */
+.curl-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+  background: #142130; border: 1px solid #22364b; border-radius: 12px; padding: 10px 14px; margin-top: 10px;
+  transition: opacity .2s;
+}
+.curl-bar.off { opacity: .35; pointer-events: none; }
+.curl-label { font-weight: 600; color: #9fb3c8; }
+.curl-bar button { background: #22364b; color: #fff; border: 0; border-radius: 8px; padding: 6px 12px; font-size: 18px; cursor: pointer; }
+.curl-bar button:hover { background: #2b4a68; }
+#curl-reset { font-size: 14px; padding: 8px 12px; }
+#curl { width: 260px; accent-color: #4fc3f7; cursor: pointer; }
+.curl-val { min-width: 130px; text-align: center; color: #4fc3f7; font-weight: 600; }
+
+/* ---------- iPad и сенсорные экраны ---------- */
+body { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+button, input[type=range] { touch-action: manipulation; } /* без зума по двойному тапу */
+canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+@media (pointer: coarse) {
+  .curl-bar button { padding: 10px 16px; font-size: 20px; }
+  #curl { width: 300px; height: 32px; }
+  .tabs button, #nav button { padding: 11px 14px; }
+}
+
+/* ---------- Значок и режим «на весь экран» ---------- */
+.fs-btn {
+  position: absolute; top: 10px; right: 10px; z-index: 5;
+  width: 44px; height: 44px; border-radius: 10px; border: 1px solid #ffffff40;
+  background: #0b1119b0; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; transition: background .15s, transform .15s;
+}
+.fs-btn:hover { background: #2b4a68e0; transform: scale(1.06); }
+.fs-btn .fs-close { display: none; }
+body.fs .fs-btn .fs-open { display: none; }
+body.fs .fs-btn .fs-close { display: block; }
+
+/* Полноэкранная раскладка: табло сверху, поле по центру (пропорции сохраняются), закрутка снизу */
+body.fs { overflow: hidden; }
+body.fs header { display: none; }
+body.fs main { max-width: none; padding: 0; }
+body.fs #game-view {
+  position: fixed; inset: 0; z-index: 50; background: #0b1119;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 6px max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+}
+body.fs .board { grid-template-columns: 1fr 1fr; width: min(100%, 1600px); margin: 0; gap: 6px; }
+body.fs .board-row { padding: 4px 10px; }
+body.fs .board-score { font-size: 20px; }
+body.fs .canvas-wrap {
+  width: min(calc(100vw - 12px), calc((100vh - 130px) * 1.6));
+  width: min(calc(100vw - 12px), calc((100dvh - 130px) * 1.6));
+  border-radius: 10px;
+}
+body.fs .curl-bar { margin: 0; padding: 5px 10px; }
+body.fs .status { display: none; }
+@media (max-height: 500px) { /* телефон горизонтально — экономим высоту */
+  body.fs .board-row { padding: 2px 8px; font-size: 13px; }
+  body.fs .dot { width: 12px; height: 12px; }
+  body.fs .canvas-wrap { width: min(calc(100vw - 12px), calc((100vh - 96px) * 1.6)); width: min(calc(100vw - 12px), calc((100dvh - 96px) * 1.6)); }
+  body.fs .curl-bar { padding: 2px 8px; gap: 6px; }
+  body.fs .curl-label { display: none; }
+}
+
+</style>
+</head>
+<body>
+  <header>
+    <h1>⚽ Серия пенальти</h1>
+    <nav id="nav">
+      <button data-view="friendly" class="active">Товарищеский матч</button>
+      <button data-view="season">🏆 Сезон и Лига чемпионов</button>
+      <button data-view="fk">🎯 Тренировка штрафных</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Экран настройки -->
+    <section id="setup" class="panel">
+      <div class="setup-grid">
+        <div>
+          <h2>Ваша команда</h2>
+          <div id="you-list" class="team-list"></div>
+        </div>
+        <div>
+          <h2>Соперник</h2>
+          <div id="cpu-list" class="team-list"></div>
+        </div>
+      </div>
+      <div class="setup-row">
+        <h2>Сложность</h2>
+        <div id="diff" class="seg">
+          <button data-d="easy">Лёгкая</button>
+          <button data-d="normal" class="active">Средняя</button>
+          <button data-d="hard">Сложная</button>
+        </div>
+      </div>
+      <div class="howto">
+        <p><b>Удар:</b> наведите прицел на ворота, зажмите кнопку мыши (или палец), чтобы набрать силу, и отпустите. Сильный удар труднее взять, но легче промахнуться.</p>
+        <p><b>Закрутка:</b> до удара настройте её регулятором под полем (или клавишами <kbd>←</kbd><kbd>→</kbd>) — пунктирная линия покажет, по какой дуге полетит мяч. Закрученный мяч вратарю брать сложнее, но точность чуть падает.</p>
+        <p><b>Вратарь:</b> пока соперник разбегается, кликните в воротах — вратарь прыгнет точно в эту точку (насколько хватит прыжка). Можно и клавишами <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> (верх) / <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> (низ). Мяч, попавший в руки, тело или ноги, отбивается.</p>
+        <p>По 5 ударов, при равенстве — до первого промаха.</p>
+      </div>
+      <button id="start" class="primary">Начать серию</button>
+    </section>
+
+    <!-- Тренировка штрафных -->
+    <section id="fk-view" class="panel hidden">
+      <div class="fk-top">
+        <div>
+          <h2>Кто бьёт штрафные</h2>
+          <div id="fk-list" class="team-list"></div>
+        </div>
+        <div class="fk-side">
+          <h2>Сложность</h2>
+          <div id="fk-diff" class="seg">
+            <button data-d="easy">Лёгкая</button>
+            <button data-d="normal" class="active">Средняя</button>
+            <button data-d="hard">Сложная</button>
+          </div>
+          <div id="fk-best" class="fk-best"></div>
+          <div class="howto">
+            <p><b>10 штрафных</b> с разных точек: от 18 до 28 метров, по центру и сбоку.</p>
+            <p>Между мячом и воротами стоит <b>стенка</b> — в момент удара она подпрыгивает. Обвести её можно двумя способами:</p>
+            <p>• <b>Над стенкой</b> — бейте слабее: мяч летит выше, по дуге, но медленнее.<br>• <b>В обход</b> — закрутите мяч регулятором под полем и бейте сильнее.</p>
+            <p>Пунктир показывает, как полетит мяч. Вратарь из-за стенки видит удар поздно — но в угол, который не закрыт, он успевает.</p>
+          </div>
+          <button id="fk-start" class="primary">Начать тренировку</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Сезон: таблицы лиг и Лига чемпионов -->
+    <section id="season-view" class="hidden">
+      <div id="season-root"></div>
+    </section>
+
+    <!-- Игра -->
+    <section id="game-view" class="hidden">
+      <div id="board" class="board"></div>
+      <div class="canvas-wrap">
+        <canvas id="game" width="960" height="600"></canvas>
+        <!-- Значок «на весь экран» -->
+        <button id="fs-btn" class="fs-btn" title="На весь экран (F)" aria-label="На весь экран">
+          <svg class="fs-open" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          <svg class="fs-close" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+        </button>
+        <div id="over" class="over hidden">
+          <div class="over-card">
+            <div>
+              <h2 id="over-title"></h2>
+              <p id="over-score"></p>
+            </div>
+            <div class="over-btns">
+              <button id="again" class="primary">Ещё серию</button>
+              <button id="back">Сменить команды</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Закрутка: настраивается до удара -->
+      <div id="curl-bar" class="curl-bar">
+        <span class="curl-label">🌀 Закрутка мяча</span>
+        <button id="curl-left" title="Сильнее влево">⟲</button>
+        <input type="range" id="curl" min="-100" max="100" step="5" value="0" aria-label="Закрутка мяча">
+        <button id="curl-right" title="Сильнее вправо">⟳</button>
+        <span id="curl-val" class="curl-val">без закрутки</span>
+        <button id="curl-reset" title="Без закрутки">0</button>
+      </div>
+      <p id="status" class="status"></p>
+    </section>
+  </main>
+
+  <script>
+'use strict';
+
+// ---------- Данные ----------
+// Клубы: цвета основной формы (color — футболка, color2 — второй цвет/полосы)
+const T = (name, league, color, color2, shorts, num, gk, stripes = false) => ({ name, league, color, color2, shorts, num, gk, stripes });
+const TEAMS = [
+  T('Реал Мадрид', 'Ла Лига', '#f5f5f5', '#febe10', '#f5f5f5', '#1a237e', '#2e7d32'),
+  T('Барселона', 'Ла Лига', '#a50044', '#004d98', '#004d98', '#fdd835', '#f57f17', true),
+  T('Атлетико Мадрид', 'Ла Лига', '#cb3524', '#ffffff', '#1c2c5b', '#1c2c5b', '#212121', true),
+  T('Манчестер Сити', 'АПЛ', '#6cabdd', '#ffffff', '#ffffff', '#1c2c5b', '#fdd835'),
+  T('Ливерпуль', 'АПЛ', '#c8102e', '#f6eb61', '#c8102e', '#ffffff', '#00897b'),
+  T('Арсенал', 'АПЛ', '#ef0107', '#ffffff', '#ffffff', '#ffffff', '#fdd835'),
+  T('Манчестер Юнайтед', 'АПЛ', '#da291c', '#000000', '#ffffff', '#ffffff', '#43a047'),
+  T('Челси', 'АПЛ', '#034694', '#ffffff', '#034694', '#ffffff', '#fb8c00'),
+  T('Бавария', 'Бундеслига', '#dc052d', '#ffffff', '#dc052d', '#ffffff', '#212121'),
+  T('Боруссия Дортмунд', 'Бундеслига', '#fde100', '#000000', '#000000', '#000000', '#7b1fa2'),
+  T('ПСЖ', 'Лига 1', '#004170', '#da291c', '#004170', '#ffffff', '#fdd835'),
+  T('Ювентус', 'Серия A', '#ffffff', '#000000', '#ffffff', '#d4af37', '#e65100', true),
+  T('Милан', 'Серия A', '#fb090b', '#000000', '#ffffff', '#ffffff', '#00897b', true),
+  T('Интер', 'Серия A', '#0068a8', '#000000', '#000000', '#ffffff', '#fdd835', true),
+  T('Зенит', 'РПЛ', '#0b6bb5', '#ffffff', '#ffffff', '#ffffff', '#fdd835'),
+  T('Спартак Москва', 'РПЛ', '#d71920', '#ffffff', '#ffffff', '#ffffff', '#212121'),
+  T('ЦСКА', 'РПЛ', '#e2001a', '#00205b', '#00205b', '#ffffff', '#fdd835'),
+  T('Локомотив Москва', 'РПЛ', '#e30613', '#008a3e', '#008a3e', '#ffffff', '#212121'),
+  T('Динамо Москва', 'РПЛ', '#0047ab', '#ffffff', '#ffffff', '#ffffff', '#fb8c00'),
+  T('Краснодар', 'РПЛ', '#000000', '#00843d', '#000000', '#ffffff', '#fdd835', true),
+  T('Тоттенхэм', 'АПЛ', '#ffffff', '#132257', '#132257', '#132257', '#fdd835'),
+  T('Атлетик Бильбао', 'Ла Лига', '#ee2523', '#ffffff', '#000000', '#000000', '#212121', true),
+  T('Вильярреал', 'Ла Лига', '#ffe667', '#005187', '#ffe667', '#005187', '#00897b'),
+  T('Реал Бетис', 'Ла Лига', '#00954c', '#ffffff', '#00954c', '#1b5e20', '#ff7043', true),
+  T('Байер Леверкузен', 'Бундеслига', '#e32221', '#000000', '#000000', '#ffffff', '#00897b'),
+  T('РБ Лейпциг', 'Бундеслига', '#ffffff', '#dd0741', '#ffffff', '#dd0741', '#fdd835'),
+  T('Штутгарт', 'Бундеслига', '#ffffff', '#e32219', '#ffffff', '#e32219', '#212121'),
+  T('Айнтрахт Франкфурт', 'Бундеслига', '#000000', '#e1000f', '#000000', '#ffffff', '#fdd835'),
+  T('Наполи', 'Серия A', '#12a0d7', '#ffffff', '#ffffff', '#ffffff', '#212121'),
+  T('Рома', 'Серия A', '#8e1f2f', '#f0bc42', '#ffffff', '#f0bc42', '#00897b'),
+  T('Аталанта', 'Серия A', '#1e71b8', '#000000', '#000000', '#ffffff', '#fdd835', true),
+  T('Марсель', 'Лига 1', '#ffffff', '#2faee0', '#ffffff', '#2faee0', '#212121'),
+  T('Монако', 'Лига 1', '#e51b22', '#ffffff', '#ffffff', '#ffffff', '#212121'),
+  T('Лион', 'Лига 1', '#ffffff', '#da0812', '#ffffff', '#14387f', '#00897b'),
+  T('Лилль', 'Лига 1', '#e01e13', '#20325f', '#20325f', '#ffffff', '#fdd835'),
+  T('Ницца', 'Лига 1', '#e11b22', '#000000', '#000000', '#ffffff', '#00897b', true),
+];
+const LEAGUE_ORDER = ['АПЛ', 'Ла Лига', 'Бундеслига', 'Серия A', 'Лига 1', 'РПЛ'];
+// Сила клуба (для симуляции чужих матчей в сезоне)
+const RATINGS = {
+  'Манчестер Сити': 90, 'Ливерпуль': 90, 'Арсенал': 89, 'Челси': 86, 'Манчестер Юнайтед': 82, 'Тоттенхэм': 82,
+  'Реал Мадрид': 91, 'Барселона': 90, 'Атлетико Мадрид': 86, 'Атлетик Бильбао': 82, 'Вильярреал': 81, 'Реал Бетис': 80,
+  'Бавария': 90, 'Байер Леверкузен': 85, 'Боруссия Дортмунд': 84, 'РБ Лейпциг': 82, 'Штутгарт': 80, 'Айнтрахт Франкфурт': 80,
+  'Интер': 88, 'Наполи': 85, 'Ювентус': 84, 'Милан': 84, 'Аталанта': 83, 'Рома': 82,
+  'ПСЖ': 91, 'Марсель': 82, 'Монако': 81, 'Лилль': 80, 'Лион': 80, 'Ницца': 78,
+  'Зенит': 78, 'Краснодар': 78, 'Спартак Москва': 76, 'ЦСКА': 76, 'Локомотив Москва': 75, 'Динамо Москва': 75,
+};
+// Составы: вратарь и пенальтисты по порядку ударов.
+// Третий элемент — фирменное празднование игрока (если есть).
+// ВНИМАНИЕ: составы по состоянию знаний автора; трансферы и номера могли измениться — правьте здесь.
+const SQUADS = {
+  'Реал Мадрид': { gk: ['Куртуа', 1], takers: [['Мбаппе', 10, 'crossarms'], ['Винисиус', 7, 'samba'], ['Беллингем', 5, 'heyjude'], ['Вальверде', 8], ['Арда Гюлер', 15]] },
+  'Барселона': { gk: ['Жоан Гарсия', 13], takers: [['Ламин Ямаль', 10, 'yamal304'], ['Левандовски', 9], ['Рафинья', 11], ['Педри', 8], ['Ферран Торрес', 7]] },
+  'Атлетико Мадрид': { gk: ['Облак', 13], takers: [['Хулиан Альварес', 19], ['Гризманн', 7], ['Сёрлот', 9], ['Коке', 6], ['Джулиано Симеоне', 20]] },
+  'Манчестер Сити': { gk: ['Доннарумма', 25], takers: [['Холанд', 9, 'meditate'], ['Фоден', 47], ['Шерки', 10], ['Родри', 16], ['Бернарду Силва', 20]] },
+  'Ливерпуль': { gk: ['Алиссон', 1], takers: [['Салах', 11, 'sajda'], ['Вирц', 7], ['Исак', 9], ['Собослаи', 8], ['Мак Аллистер', 10]] },
+  'Арсенал': { gk: ['Райя', 1], takers: [['Сака', 7], ['Эдегор', 8], ['Дьёкереш', 14], ['Райс', 41], ['Мартинелли', 11]] },
+  'Манчестер Юнайтед': { gk: ['Ламменс', 31], takers: [['Бруну Фернандеш', 8], ['Мбемо', 19], ['Кунья', 10], ['Шешко', 30], ['Маунт', 7]] },
+  'Челси': { gk: ['Роберт Санчес', 1], takers: [['Палмер', 10, 'cold'], ['Энсо Фернандес', 8], ['Жоао Педро', 20], ['Педро Нету', 7], ['Кайседо', 25]] },
+  'Бавария': { gk: ['Нойер', 1], takers: [['Кейн', 9], ['Олисе', 17], ['Мусиала', 10], ['Луис Диас', 14], ['Киммих', 6]] },
+  'Боруссия Дортмунд': { gk: ['Кобель', 1], takers: [['Гирасси', 9], ['Брандт', 10], ['Адейеми', 27], ['Байер', 14], ['Забитцер', 20]] },
+  'ПСЖ': { gk: ['Шевалье', 30], takers: [['Дембеле', 10], ['Кварацхелия', 7], ['Витинья', 17], ['Дуэ', 14], ['Хакими', 2]] },
+  'Ювентус': { gk: ['Ди Грегорио', 29], takers: [['Влахович', 9], ['Йылдыз', 10], ['Джонатан Дэвид', 30], ['Купмейнерс', 8], ['Консейсау', 7]] },
+  'Милан': { gk: ['Меньян', 16], takers: [['Леау', 10], ['Пулишич', 11], ['Модрич', 14], ['Нкунку', 18], ['Хименес', 7]] },
+  'Интер': { gk: ['Зоммер', 1], takers: [['Лаутаро Мартинес', 10], ['Тюрам', 9], ['Чалханоглу', 20], ['Барелла', 23], ['Димарко', 32]] },
+  'Зенит': { gk: ['Латышонок', 1], takers: [['Мостовой', 17], ['Глушенков', 10], ['Венделл', 8], ['Соболев', 7], ['Луис Энрике', 11]] },
+  'Спартак Москва': { gk: ['Максименко', 98], takers: [['Угальде', 9], ['Барко', 5], ['Солари', 14], ['Зобнин', 47], ['Пруцев', 8]] },
+  'ЦСКА': { gk: ['Акинфеев', 35], takers: [['Обляков', 10], ['Мусаев', 9], ['Глебов', 7], ['Кисляк', 31], ['Дивеев', 78]] },
+  'Локомотив Москва': { gk: ['Митрюшкин', 1], takers: [['Батраков', 83], ['Воробьёв', 19], ['Комличенко', 9], ['Баринов', 6], ['Сарвели', 77]] },
+  'Динамо Москва': { gk: ['Лещук', 1], takers: [['Тюкавин', 98], ['Бителло', 10], ['Фомин', 74], ['Скопинцев', 3], ['Гладышев', 11]] },
+  'Краснодар': { gk: ['Агкацев', 39], takers: [['Кордоба', 9], ['Сперцян', 10], ['Олусегун', 7], ['Кривцов', 88], ['Боселли', 4]] },
+  'Тоттенхэм': { gk: ['Викарио', 1], takers: [['Кудус', 20], ['Симонс', 7], ['Соланке', 19], ['Ришарлисон', 9], ['Бентанкур', 30]] },
+  'Атлетик Бильбао': { gk: ['Унаи Симон', 1], takers: [['Нико Уильямс', 10], ['Иньяки Уильямс', 9], ['Санчет', 8], ['Беренгер', 7], ['Гурусета', 12]] },
+  'Вильярреал': { gk: ['Луис Жуниор', 1], takers: [['Жерар Морено', 7], ['Пепе', 19], ['Микаутадзе', 9], ['Парехо', 10], ['Молейро', 20]] },
+  'Реал Бетис': { gk: ['Пау Лопес', 25], takers: [['Антони', 7], ['Иско', 22], ['Абде', 10], ['Ло Сельсо', 20], ['Форнальс', 18]] },
+  'Байер Леверкузен': { gk: ['Флеккен', 1], takers: [['Шик', 14], ['Тиллман', 10], ['Гримальдо', 20], ['Хофманн', 7], ['Андрих', 8]] },
+  'РБ Лейпциг': { gk: ['Гулачи', 1], takers: [['Нуса', 7], ['Шлагер', 24], ['Раум', 22], ['Баку', 17], ['Зайвальд', 13]] },
+  'Штутгарт': { gk: ['Нюбель', 33], takers: [['Ундав', 26], ['Демирович', 9], ['Фюрих', 27], ['Миттельштедт', 7], ['Штиллер', 6]] },
+  'Айнтрахт Франкфурт': { gk: ['Трапп', 1], takers: [['Гётце', 27], ['Буркардт', 21], ['Ларссон', 16], ['Кнауфф', 36], ['Скири', 15]] },
+  'Наполи': { gk: ['Мерет', 1], takers: [['Де Брёйне', 11], ['Лукаку', 9], ['Мактоминей', 8], ['Политано', 21], ['Хёйлунн', 19]] },
+  'Рома': { gk: ['Свилар', 99], takers: [['Дибала', 21], ['Довбик', 11], ['Пеллегрини', 7], ['Соуле', 18], ['Кристанте', 4]] },
+  'Аталанта': { gk: ['Карнезекки', 29], takers: [['Лукман', 11], ['Де Кетеларе', 17], ['Скамакка', 9], ['Эдерсон', 13], ['Самарджич', 10]] },
+  'Марсель': { gk: ['Рулли', 1], takers: [['Гринвуд', 10], ['Обамеянг', 97], ['Хёйбьерг', 23], ['Паишау', 14], ['Кондогбиа', 19]] },
+  'Монако': { gk: ['Кён', 16], takers: [['Головин', 10], ['Минамино', 18], ['Аклиуш', 11], ['Балогун', 29], ['Погба', 8]] },
+  'Лион': { gk: ['Грайф', 1], takers: [['Толиссо', 8], ['Малик Фофана', 11], ['Тессманн', 6], ['Мейтленд-Найлз', 98], ['Карабец', 18]] },
+  'Лилль': { gk: ['Озер', 1], takers: [['Жиру', 9], ['Харальдссон', 10], ['Андре', 21], ['Фернандес-Пардо', 7], ['Буадди', 32]] },
+  'Ницца': { gk: ['Бюлька', 1], takers: [['Мофи', 9], ['Софьян Диоп', 10], ['Сансон', 11], ['Ндайишимийе', 55], ['Клаусс', 7]] },
+};
+for (const t of TEAMS) {
+  t.rating = RATINGS[t.name];
+  const s = SQUADS[t.name];
+  t.keeper = { name: s.gk[0], num: s.gk[1] };
+  t.takers = s.takers.map(([name, num, celeb]) => ({ name, num, celeb }));
+}
+
+const badgeStyle = (t) => t.stripes
+  ? `background:repeating-linear-gradient(90deg,${t.color} 0 5px,${t.color2} 5px 10px);border-color:${t.color2}`
+  : `background:${t.color};border-color:${t.color2}`;
+
+// Фирменные празднования реальных игроков
+const SIGNATURE = {
+  crossarms: 'скрещённые на груди руки',
+  samba: 'танец у углового флажка',
+  heyjude: 'руки широко в стороны',
+  meditate: 'медитация в позе лотоса',
+  cold: '«холодно» — растирает плечи',
+  sajda: 'земной поклон',
+  yamal304: 'жест «304» в честь родного района',
+};
+// Обычные празднования для остальных
+const CELEBS = [
+  { id: 'slide', name: 'Скольжение на коленях' },
+  { id: 'plane', name: 'Самолётик' },
+  { id: 'flip', name: 'Сальто' },
+  { id: 'jump', name: 'Прыжок с кулаком вверх' },
+  { id: 'dance', name: 'Танец у углового флажка' },
+  { id: 'sky', name: 'Руки к небу' },
+];
+const DIFF = {
+  easy: { keeper: 0.25, noise: 0.42 },
+  normal: { keeper: 0.5, noise: 0.3 },
+  hard: { keeper: 0.75, noise: 0.2 },
+};
+// Зоны прыжка вратаря (метры: x — от центра ворот, y — высота)
+const ZONES = [
+  { x: -2.3, y: 1.75, a: -55 }, { x: 0, y: 2.0, a: 0 }, { x: 2.3, y: 1.75, a: 55 },
+  { x: -2.4, y: 0.45, a: -80 }, { x: 0, y: 0.7, a: 0, low: true }, { x: 2.4, y: 0.45, a: 80 },
+];
+const KEYS = { q: 0, w: 1, e: 2, a: 3, s: 4, d: 5 };
+const GW = 3.66, GH = 2.44, POST = 0.12;
+
+// ---------- Проекция (камера за точкой пенальти) ----------
+const VW = 960, VH = 600;
+const CAM_H = 1.6, F = 1040, CX = 480, HORIZON = 226;
+// Камера: CAM_D — расстояние от линии ворот, CAM_X — сдвиг вбок. В пенальти она за точкой (16, 0),
+// на штрафных отъезжает за мяч.
+let CAM_D = 16, CAM_X = 0;
+// x — вбок, y — высота, d — расстояние от линии ворот к камере
+function project(x, y, d) {
+  const z = Math.max(0.3, CAM_D - d);
+  const s = F / z;
+  return { x: CX + (x - CAM_X) * s, y: HORIZON + (CAM_H - y) * s, s };
+}
+function screenToGoal(sx, sy) {
+  const s = F / CAM_D;
+  return { x: (sx - CX) / s + CAM_X, y: CAM_H - (sy - HORIZON) / s };
+}
+
+// ---------- Утилиты ----------
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+const randn = () => {
+  let u = 0, v = 0;
+  while (!u) u = Math.random();
+  while (!v) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+};
+
+// ---------- Состояние ----------
+const G = {
+  you: 0, cpu: 1, diff: 'normal',
+  kicks: { you: [], cpu: [] },
+  shooter: 'you',
+  phase: 'idle', // aim | charge | runup | flight | after | over
+  aim: { x: 1.5, y: 1.2 },
+  power: 0, powerDir: 1,
+  curl: 0, pressX: 0,
+  ball: null, keeper: null,
+  particles: [], shake: 0, ripple: null, rain: 0, rainColors: [],
+  choice: null, runT: 0, afterT: 0,
+  msg: null, msgT: 0, time: 0,
+};
+
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+const $ = (id) => document.getElementById(id);
+
+function setupCanvas() {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = VW * dpr;
+  cv.height = VH * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// Толпа на трибунах — заранее
+const crowd = [];
+for (let i = 0; i < 1400; i++) {
+  crowd.push({
+    x: Math.random() * VW, y: 20 + Math.random() * 190,
+    c: ['#e57373', '#64b5f6', '#fff176', '#f5f5f5', '#81c784', '#ba68c8', '#ffb74d'][i % 7],
+    p: Math.random() * 6.28,
+  });
+}
+
+// ---------- Настройка ----------
+// Список клубов, сгруппированный по лигам. pick(i) вызывается при выборе, isActive/isDisabled — состояние кнопки
+function fillClubList(el, isActive, isDisabled, pick) {
+  el.innerHTML = '';
+  for (const lg of LEAGUE_ORDER) {
+    const h = document.createElement('div');
+    h.className = 'league-head';
+    h.textContent = lg;
+    el.appendChild(h);
+    TEAMS.forEach((t, i) => {
+      if (t.league !== lg) return;
+      const b = document.createElement('button');
+      b.className = 'team-btn' + (isActive(i) ? ' active' : '');
+      b.disabled = isDisabled(i);
+      b.innerHTML = `<span class="badge" style="${badgeStyle(t)}"></span>${t.name}`;
+      b.onclick = () => pick(i);
+      el.appendChild(b);
+    });
+  }
+}
+
+function renderTeamLists() {
+  for (const who of ['you', 'cpu']) {
+    const other = who === 'you' ? 'cpu' : 'you';
+    fillClubList($(who + '-list'), (i) => G[who] === i, (i) => G[other] === i, (i) => { G[who] = i; renderTeamLists(); });
+  }
+}
+document.querySelectorAll('#diff button').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('#diff button').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+    G.diff = b.dataset.d;
+  };
+});
+// Режим: 'friendly' — товарищеский матч, 'season' — матч сезона (результат уходит в G.onFinish)
+G.mode = 'friendly';
+G.onFinish = null;
+function startFriendly() {
+  G.mode = 'friendly';
+  G.matchTitle = 'Товарищеский матч';
+  G.allowDraw = false; // товарищеский матч — до победы
+  G.onFinish = null;
+  startShootout();
+}
+$('start').onclick = startFriendly;
+$('again').onclick = () => (G.mode === 'fk' ? startFreeKicks() : startFriendly());
+$('back').onclick = () => {
+  fsOff(); // выходим из полноэкранного режима вместе с игрой
+  $('game-view').classList.add('hidden');
+  G.phase = 'idle';
+  G.party = null;
+  if (G.mode === 'season') showView('season');
+  else if (G.mode === 'fk') showView('fk');
+  else $('setup').classList.remove('hidden');
+};
+
+function startShootout() {
+  CAM_D = 16; CAM_X = 0;
+  const season = G.mode === 'season';
+  $('again').classList.toggle('hidden', season);
+  $('again').textContent = 'Ещё серию';
+  $('back').textContent = season ? 'Продолжить сезон' : 'Сменить команды';
+  G.kicks = { you: [], cpu: [] };
+  G.shooter = 'you';
+  G.rain = 0;
+  G.particles = [];
+  G.party = null;
+  $('setup').classList.add('hidden');
+  $('season-view').classList.add('hidden');
+  $('over').classList.add('hidden');
+  $('game-view').classList.remove('hidden');
+  startIntro(); // сначала стартовые составы, потом первый удар
+}
+
+// ---------- Табло ----------
+function renderBoard() {
+  const rows = ['you', 'cpu'].map((who) => {
+    const t = TEAMS[G[who]];
+    const k = G.kicks[who];
+    const n = Math.max(5, G.kicks.you.length, G.kicks.cpu.length);
+    let dots = '';
+    for (let i = 0; i < n; i++) {
+      const cls = i < k.length ? (k[i] ? 'goal' : 'miss') : '';
+      dots += `<span class="dot ${cls}"></span>`;
+    }
+    const turn = G.phase !== 'over' && G.shooter === who ? ' turn' : '';
+    const label = who === 'you' ? ' (вы)' : '';
+    return `<div class="board-row${turn}">
+      <div class="board-name"><span class="badge" style="${badgeStyle(t)}"></span><span>${t.name}${label}</span></div>
+      <div class="dots">${dots}</div>
+      <div class="board-score">${k.filter(Boolean).length}</div>
+    </div>`;
+  });
+  $('board').innerHTML = rows.join('');
+}
+
+function setStatus(text) { $('status').textContent = text; }
+
+// ---------- Ход ----------
+function newKick() {
+  G.ball = { x: 0, y: 0.11, d: 11, vis: true };
+  G.keeper = { x: 0, plan: null, t: 0, landed: false };
+  G.choice = null;
+  G.runT = 0;
+  G.power = 0; // закрутка (G.curl) не сбрасывается — это настройка игрока
+  G.msg = null;
+  G.ripple = null;
+  G.celeb = null;
+  // Бьющие идут по очереди, в серии «до первого промаха» список начинается заново
+  const st = TEAMS[G[G.shooter]];
+  const kt = TEAMS[G[G.shooter === 'you' ? 'cpu' : 'you']];
+  G.taker = st.takers[G.kicks[G.shooter].length % st.takers.length];
+  G.gkPlayer = kt.keeper;
+  if (G.shooter === 'you') {
+    G.phase = 'aim';
+    setStatus(`Бьёт ${G.taker.name} (№${G.taker.num}) против ${G.gkPlayer.name}. ${IS_TOUCH ? 'Коснитесь ворот и ведите пальцем — прицел; держите для силы, отпустите — удар.' : 'Наведите прицел, зажмите кнопку для силы и отпустите.'} Закрутка — регулятором под полем.`);
+  } else {
+    G.phase = 'runup';
+    setStatus(`На воротах ${G.gkPlayer.name}! Бьёт ${G.taker.name} (№${G.taker.num}). ${IS_TOUCH ? 'Коснитесь ворот там, куда прыгнуть.' : 'Кликните в воротах, куда прыгнуть (или Q W E / A S D).'}`);
+  }
+  updateCurlUI();
+  renderBoard();
+}
+
+// ---------- Физика вратаря ----------
+// Поза: x, y — таз (м), a — наклон корпуса (рад, + вправо), arms: 1 — руки вверх, -1 — вниз в стороны, spread — ширина ног
+const GRAV = 9.8, SET = 0.1, HAND_REACH = 1.12;
+
+function planDive(x0, zone, target, power, curl, skill, delay, dur, read) {
+  const base = { x0, delay, skill };
+  if (zone == null && !read) return { ...base, mode: 'stay' };
+  // zone — номер зоны (вратарь соперника) или точка {x, y}, куда кликнул игрок
+  const point = typeof zone === 'object' && zone !== null;
+  // Точка, куда вратарь тянет руки
+  let H = point ? { x: zone.x, y: zone.y }
+    : read ? { x: target.x + randn() * 0.25, y: target.y + randn() * 0.2 }
+    : { x: ZONES[zone].x, y: ZONES[zone].y };
+  if (!read && !point) {
+    // В полёте вратарь чуть корректирует прыжок, если угадал сторону
+    const sameSide = Math.sign(H.x) === Math.sign(target.x) || Math.abs(H.x) < 0.5;
+    if (sameSide) {
+      const ad = skill * 0.4 * (1 - power * 0.5) * (1 - Math.abs(curl) * 0.6);
+      H = { x: lerp(H.x, target.x, ad), y: lerp(H.y, target.y, ad) };
+    }
+  }
+  if (H.y < 1.0 && Math.abs(H.x) < 1.1) return { ...base, mode: 'block', bx: x0 + (H.x - x0) * (point ? 1 : 0.6) };
+
+  const theta = clamp(Math.atan2(H.x - x0, H.y - 0.2), -1.48, 1.48);
+  const sx = Math.sign(theta) || 1;
+  const vertical = Math.abs(theta) < 0.3;
+  const P = { x: H.x - HAND_REACH * Math.sin(theta), y: Math.max(0.22, H.y - HAND_REACH * Math.cos(theta)) };
+  const xs = x0 + (vertical ? 0 : sx * 0.1), ys = 0.78; // после приседа и шага
+  // Вратарь старается долететь к моменту прихода мяча, но толчок ограничен его атлетизмом
+  const T = clamp(dur - delay - SET, 0.22, 0.55);
+  const vmax = 4.6 + skill * 3, vymax = 3.6 + skill * 1.4;
+  const vx = clamp((P.x - xs) / T, -vmax, vmax);
+  let vy = clamp((P.y - ys + 0.5 * GRAV * T * T) / T, 0, vymax);
+  if (vertical) vy = Math.max(vy, 2.0);
+  const landY = vertical ? 0.95 : 0.22;
+  const disc = vy * vy + 2 * GRAV * (ys - landY);
+  const tLand = Math.max(0.12, disc > 0 ? (vy + Math.sqrt(disc)) / GRAV : T);
+  const aL = theta * easeOut(Math.min(1, tLand / T));
+  return { ...base, mode: 'dive', theta, sx, xs, ys, vx, vy, T, tLand, landY, aL, xL: xs + vx * tLand };
+}
+
+function keeperPose(k, t) {
+  const p = k.plan;
+  if (!p || t < p.delay) {
+    const hop = p ? 0 : Math.abs(Math.sin(G.time * 5)) * 0.04; // пружинит на носках
+    return { x: p ? p.x0 : k.x, y: 0.95 + hop, a: 0, arms: 0, spread: 0.15 };
+  }
+  const s = t - p.delay;
+  if (p.mode === 'stay') {
+    const e = easeOut(clamp(s / 0.25, 0, 1));
+    return { x: p.x0, y: 0.95 - 0.05 * e, a: 0, arms: 0.5 * e, spread: 0.15 + 0.2 * e };
+  }
+  if (p.mode === 'block') {
+    const e = easeOut(clamp(s / 0.18, 0, 1));
+    return { x: lerp(p.x0, p.bx, e), y: lerp(0.95, 0.62, e), a: 0, arms: -e, spread: 0.15 + 0.85 * e };
+  }
+  if (s < SET) { // присед и толчок
+    const e = s / SET;
+    return { x: lerp(p.x0, p.xs, e), y: 0.95 - 0.17 * Math.sin((e * Math.PI) / 2), a: p.theta * 0.08 * e, arms: 0.15 * e, spread: 0.15 + 0.25 * e };
+  }
+  const tau = s - SET;
+  if (tau < p.tLand) { // баллистический полёт
+    const f = Math.min(1, tau / p.T);
+    return {
+      x: p.xs + p.vx * tau,
+      y: p.ys + p.vy * tau - 0.5 * GRAV * tau * tau,
+      a: p.theta * easeOut(f),
+      arms: Math.min(1, 0.15 + tau / (p.T * 0.6)),
+      spread: 0.4 * (1 - f),
+    };
+  }
+  const g = tau - p.tLand;
+  if (p.landY > 0.5) { // приземление на ноги после прыжка вверх
+    const e = easeOut(Math.min(1, g / 0.3));
+    return { x: p.xL, y: 0.95 - 0.15 * Math.sin(Math.min(1, g / 0.25) * Math.PI), a: p.aL * (1 - e), arms: Math.max(0, 1 - g * 2), spread: 0.2 };
+  }
+  // падение на газон: отскок, скольжение, корпус ложится горизонтально
+  const e = easeOut(Math.min(1, g / 0.25));
+  return {
+    x: p.xL + (p.vx * 0.6 * (1 - Math.exp(-6 * g))) / 6,
+    y: 0.22 + 0.1 * Math.abs(Math.sin(g * 12)) * Math.exp(-g * 8),
+    a: lerp(p.aL, p.sx * 1.5, e),
+    arms: 1, spread: 0,
+  };
+}
+
+// Одинаковая геометрия для отрисовки и для проверки касания (локальные метры, y вниз)
+function handLocal(sx, a) {
+  return a >= 0
+    ? { x: lerp(sx * 0.55, sx * 0.24, a), y: lerp(-0.2, -1.12, a) }
+    : { x: lerp(sx * 0.55, sx * 0.62, -a), y: lerp(-0.2, 0.1, -a) };
+}
+const legX = (pose) => 0.08 + 0.3 * pose.spread;
+function toWorld(pose, lx, ly) {
+  const c = Math.cos(pose.a), s = Math.sin(pose.a);
+  return { x: pose.x + lx * c - ly * s, y: pose.y - (lx * s + ly * c) };
+}
+function keeperSegments(pose, handR) {
+  const w = (lx, ly) => toWorld(pose, lx, ly);
+  const L = legX(pose);
+  const segs = [
+    { a: w(0, 0.05), b: w(0, -0.85), r: 0.24, part: 'body' },
+    // ноги — до бутс включительно
+    { a: w(-0.1, 0.1), b: w(-L * 1.05, 0.98), r: 0.14, part: 'leg' },
+    { a: w(0.1, 0.1), b: w(L * 1.05, 0.98), r: 0.14, part: 'leg' },
+  ];
+  for (const sx of [-1, 1]) {
+    const h = handLocal(sx, pose.arms);
+    segs.push({ a: w(sx * 0.2, -0.52), b: w(h.x, h.y), r: handR, part: 'hand' });
+  }
+  return segs;
+}
+function segDist(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const l2 = dx * dx + dy * dy || 1;
+  const t = clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / l2, 0, 1);
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+// Итог удара: 'goal' | 'save' | 'miss' | 'post'. Сейв — только если вратарь физически касается мяча.
+function resolve(target, power, curl, k, dur, skill) {
+  const ax = Math.abs(target.x);
+  if (ax > GW + POST || target.y > GH + POST) return { res: 'miss' };
+  // Сначала вратарь: если он коснулся мяча раньше, чем мяч долетел до штанги, — это сейв
+  const save = keeperTouch(target, power, curl, k, dur, skill);
+  if (save) return save;
+  // Попадание в штангу или перекладину: мяч отскакивает в ворота или в поле.
+  // Чем ближе к внутренней стороне стойки, тем вероятнее, что отскочит в сетку.
+  const hitPost = ax > GW - POST, hitBar = target.y > GH - POST;
+  if (hitPost || hitBar) {
+    const depthPost = hitPost ? (GW + POST - ax) / (2 * POST) : 1;      // 0 — внешний край, 1 — внутренний
+    const depthBar = hitBar ? (GH + POST - target.y) / (2 * POST) : 1;
+    const inside = Math.min(depthPost, depthBar);
+    const pIn = clamp(0.15 + inside * 0.6, 0.1, 0.75);
+    const part = hitBar && (!hitPost || depthBar < depthPost) ? 'bar' : 'post';
+    return Math.random() < pIn ? { res: 'goal', postIn: part } : { res: 'post', postPart: part };
+  }
+  return { res: 'goal' };
+}
+
+// Касается ли вратарь мяча (руки, тело, ноги) — возвращает сейв или null
+function keeperTouch(target, power, curl, k, dur, skill) {
+  // Сильный и закрученный мяч труднее удержать руками
+  const handR = (0.2 + skill * 0.1) * (1 - power * 0.25) * (1 - Math.abs(curl) * 0.15);
+  // Проверяем касание там, где мяч проходит через вратаря (он стоит в 0.3 м перед линией),
+  // и на самой линии — так мяч не «пролетает сквозь» ногу или руку
+  const arc = 0.15 + (1 - power) * 0.5;
+  const uK = 1 - 0.3 / 11;
+  for (const u of [uK - 0.012, uK, (uK + 1) / 2, 1]) {
+    const ball = { x: target.x * u + curlOffset(curl, u), y: lerp(0.11, target.y, u) + Math.sin(Math.PI * u) * arc };
+    const pose = keeperPose(k, dur * u);
+    for (const sg of keeperSegments(pose, handR)) {
+      if (segDist(ball, sg.a, sg.b) < sg.r + 0.11) {
+        const caught = sg.part !== 'leg' && power < 0.65 && Math.abs(curl) < 0.5 && Math.random() < 0.6;
+        return { res: 'save', caught, part: sg.part };
+      }
+    }
+  }
+  return null;
+}
+
+function launch(target, power, zone, skill, keeperDelay, curl = 0, read = false) {
+  const dur = 0.78 - power * 0.36;
+  const k = G.keeper;
+  k.plan = planDive(k.x, zone, target, power, curl, skill, keeperDelay, dur, read);
+  k.t = 0;
+  k.landed = false;
+  const r = resolve(target, power, curl, k, dur, skill);
+  G.ball = {
+    from: { x: 0, y: 0.11, d: 11 }, target, power, result: r.res, caught: r.caught, part: r.part, curl,
+    postIn: r.postIn || null, postPart: r.postPart || null,
+    x: 0, y: 0.11, d: 11, u: 0, dur,
+    arc: 0.15 + (1 - power) * 0.5,
+    vis: true,
+  };
+  G.phase = 'flight';
+}
+
+function shootYou() {
+  const d = DIFF[G.diff];
+  const p = G.power;
+  const sigma = 0.12 + Math.pow(p, 3) * 0.55 + Math.abs(G.curl) * 0.08;
+  const target = {
+    x: G.aim.x + randn() * sigma,
+    y: Math.max(0.11, G.aim.y + randn() * sigma * 0.8 + Math.max(0, p - 0.85) * 4),
+  };
+  // Компьютерный вратарь: иногда «читает» удар, иначе угадывает
+  const read = Math.random() < 0.12 + d.keeper * 0.25;
+  const zone = read ? nearestZone(target) : weightedZone();
+  launch(target, p, zone, d.keeper, 0.08 + (1 - d.keeper) * 0.08, G.curl, read);
+  updateCurlUI();
+  setStatus('');
+}
+
+function shootCpu() {
+  const d = DIFF[G.diff];
+  const r = Math.random();
+  let aim;
+  if (r < 0.15) aim = { x: (Math.random() - 0.5) * 1.6, y: 0.3 + Math.random() * 1.6 };
+  else {
+    const side = Math.random() < 0.5 ? -1 : 1;
+    aim = { x: side * (1.6 + Math.random() * 1.8), y: 0.2 + Math.random() * 2.0 };
+  }
+  const power = 0.5 + Math.random() * 0.45;
+  const noise = d.noise * (0.6 + power * 0.6);
+  const target = { x: aim.x + randn() * noise, y: Math.max(0.11, aim.y + randn() * noise * 0.7) };
+  // Иногда соперник закручивает мяч
+  const curl = Math.random() < 0.4 ? (Math.random() < 0.5 ? -1 : 1) * (0.3 + Math.random() * 0.6) : 0;
+  launch(target, power, G.choice, 0.55, 0.05, curl);
+  setStatus('');
+}
+
+// Боковое отклонение закрученного мяча: сначала уходит в одну сторону, потом заворачивает к цели
+function curlOffset(curl, u) {
+  return -curl * 1.7 * Math.sin(Math.PI * u);
+}
+
+function nearestZone(t) {
+  let best = 0, bd = 1e9;
+  ZONES.forEach((z, i) => {
+    const d = Math.hypot(z.x - t.x, z.y - t.y);
+    if (d < bd) { bd = d; best = i; }
+  });
+  return best;
+}
+function weightedZone() {
+  const w = [1, 0.5, 1, 1.4, 0.8, 1.4];
+  let r = Math.random() * w.reduce((a, b) => a + b);
+  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; }
+  return 5;
+}
+
+function finishFlight() {
+  const b = G.ball;
+  const res = b.result;
+  const sx = Math.sign(b.target.x) || 1;
+  if (res === 'goal' && b.postIn === 'post') { // от штанги — внутрь ворот
+    b.vx = -sx * (2.5 + Math.random() * 2); b.vy = 0.5 + Math.random(); b.vd = -4;
+    G.shake = Math.max(G.shake, 0.3);
+  } else if (res === 'goal' && b.postIn === 'bar') { // от перекладины — вниз, за линию
+    b.vx = (Math.random() - 0.5) * 2; b.vy = -4; b.vd = -3.5;
+    G.shake = Math.max(G.shake, 0.3);
+  } else if (res === 'goal') { b.vx = (b.target.x - b.from.x) * 0.1; b.vy = 0; b.vd = -7; }
+  else if (res === 'save') {
+    if (b.caught) b.attach = true; // вратарь забирает мяч в руки
+    else {
+      // мяч отскакивает от вратаря в сторону от его тела
+      const pose = keeperPose(G.keeper, G.keeper.t);
+      const away = Math.sign(b.target.x - pose.x) || sx;
+      const soft = b.part === 'body' ? 0.5 : 1;
+      b.vx = away * (1.5 + Math.random() * 3) * soft;
+      b.vy = b.part === 'leg' ? 1 : 2.5 + Math.random() * 2;
+      b.vd = (3 + Math.random() * 4) * soft;
+    }
+  }
+  else if (res === 'post' && b.postPart === 'bar') { b.vx = (Math.random() - 0.5) * 2; b.vy = 3; b.vd = 6; } // от перекладины — вверх и в поле
+  else if (res === 'post') { b.vx = sx * (0.5 + Math.random()); b.vy = 1.5; b.vd = 6; } // от штанги — наружу и в поле
+  else { const k = 1 / b.dur; b.vx = (b.target.x - b.from.x) * k; b.vy = (b.target.y - b.from.y) * k * 0.5; b.vd = -11 * k; }
+  b.phys = true;
+
+  const scored = res === 'goal';
+  G.kicks[G.shooter].push(scored);
+  const youShot = G.shooter === 'you';
+  const texts = { goal: 'ГОЛ!', save: youShot ? 'СЕЙВ!' : 'ВЗЯЛ!', miss: 'МИМО!', post: 'ШТАНГА!' };
+  const good = youShot ? scored : !scored;
+  G.msg = { text: texts[res], color: good ? '#66bb6a' : '#ef5350', sub: subtitle(res, youShot, b) };
+  G.msgT = 0;
+  G.phase = 'after';
+  G.afterT = 0;
+  celebrate(res, youShot, b);
+  renderBoard();
+}
+
+function subtitle(res, youShot, b) {
+  const who = res === 'save' ? G.gkPlayer.name : G.taker.name;
+  return `${who}: ${phrase(res, youShot, b)}`;
+}
+
+function phrase(res, youShot, b) {
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const corner = Math.abs(b.target.x) > 2.5 && b.target.y > 1.6;
+  if (res === 'goal' && b.postIn) return b.postIn === 'bar' ? 'от перекладины — и в ворота!' : 'от штанги — и в сетку!';
+  if (res === 'goal' && youShot) {
+    if (Math.abs(b.curl) > 0.5) return pick(['какая закрутка!', 'мяч обвёл вратаря по дуге!']);
+    if (corner) return 'прямо в девятку!';
+    if (b.power > 0.8) return 'пушечный удар!';
+    return pick(['хладнокровно!', 'без шансов для вратаря!', 'уверенная реализация!']);
+  }
+  if (res === 'goal') return pick(['реализовал удар', 'не оставил шансов', 'точно в угол']);
+  if (res === 'save' && b.caught) return 'забирает мяч намертво!';
+  if (res === 'save' && b.part === 'leg') return 'отбивает ногой!';
+  if (res === 'save' && !youShot) return pick(['отличный прыжок!', 'угадал угол!', 'фантастический сейв!']);
+  if (res === 'save') return 'угадал угол';
+  if (res === 'post') return b.postPart === 'bar' ? 'в перекладину — и мимо!' : 'звон штанги на весь стадион';
+  return youShot ? 'мяч улетел на трибуны' : 'не попал в створ!';
+}
+
+// ---------- Празднование ----------
+function burst(x, y, colors, n, power = 1) {
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6;
+    const sp = (250 + Math.random() * 450) * power;
+    G.particles.push({
+      x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 14,
+      w: 6 + Math.random() * 6, h: 3 + Math.random() * 4,
+      color: colors[i % colors.length], life: 2.2 + Math.random() * 1.2,
+    });
+  }
+}
+
+function celebrate(res, youShot, b) {
+  const team = TEAMS[G[G.shooter]];
+  const p = project(b.target.x, b.target.y, 0);
+  if (res === 'goal') {
+    const pl = G.taker;
+    const type = pl.celeb
+      ? { id: pl.celeb, name: `${pl.name} — ${SIGNATURE[pl.celeb]}` }
+      : { ...CELEBS[Math.floor(Math.random() * CELEBS.length)] };
+    if (!pl.celeb) type.name = `${pl.name} — ${type.name.toLowerCase()}`;
+    G.celeb = { type, t: 0, team, sx: Math.random() < 0.5 ? -1 : 1, num: pl.num, name: pl.name };
+    G.ripple = { x: b.target.x, y: b.target.y, t: 0 };
+    G.shake = youShot ? 0.45 : 0.2;
+    burst(p.x, p.y, [team.color, team.color2, '#ffffff'], youShot ? 140 : 50, youShot ? 1 : 0.6);
+    if (youShot) {
+      burst(60, VH - 40, [team.color, team.color2, '#ffd54f'], 60, 1.2);
+      burst(VW - 60, VH - 40, [team.color, team.color2, '#ffd54f'], 60, 1.2);
+    }
+  } else if (res === 'save' && !youShot) {
+    const you = TEAMS[G.you];
+    G.shake = 0.3;
+    burst(p.x, p.y, [you.gk, you.color, '#ffffff'], 90, 0.8);
+  } else if (res === 'post') {
+    G.shake = 0.25;
+  }
+}
+
+// ---------- Празднующий игрок ----------
+// Поза: x, d — позиция на поле, y — высота таза, rot — наклон/вращение,
+// armL/armR — угол руки от «вниз» (0) через «в сторону» (π/2) до «вверх» (π), legs — фаза шага, kneel — на коленях
+function celebPose(c) {
+  const t = c.t, sx = c.sx;
+  // foreL/foreR — угол предплечья (по той же шкале; null — рука прямая), front — лицом к камере,
+  // sit — сидит по-турецки, bow — поклон вперёд (0..1), eyesClosed, label — надпись над игроком
+  const P = { x: 0, d: 10.3, y: 0.95, rot: 0, armL: 0.35, armR: 0.35, foreL: null, foreR: null, legs: 0, kneel: false, front: false, sit: false, bow: 0, eyesClosed: false, label: null };
+  const runTo = (k, tx, td) => {
+    P.x = sx * lerp(0.3, tx, k); P.d = lerp(10.3, td, k);
+    P.legs = Math.sin(t * 16);
+    P.armL = 0.45 - 0.35 * Math.sin(t * 16); P.armR = 0.45 + 0.35 * Math.sin(t * 16);
+    P.y = 0.95 + Math.abs(Math.sin(t * 16)) * 0.05;
+  };
+  const RUN = 0.9;
+  const k = easeOut(Math.min(1, t / RUN));
+  const s = Math.max(0, t - RUN);
+  switch (c.type.id) {
+    case 'slide': {
+      if (t < 0.7) { runTo(t / 0.7, 2.6, 8.4); break; }
+      const g = t - 0.7, m = 1 - Math.exp(-g * 2.5);
+      P.x = sx * (2.6 + 2.2 * m); P.d = 8.4 - 2.0 * m;
+      P.kneel = true; P.y = 0.5;
+      const up = Math.min(1, g / 0.3);
+      P.armL = P.armR = lerp(0.5, 2.5, up);
+      P.rot = sx * 0.06 * Math.sin(g * 3);
+      break;
+    }
+    case 'plane': {
+      const m = Math.min(1, t / 2.8);
+      const ang = m * Math.PI * 0.9;
+      P.x = sx * (0.3 + Math.sin(ang) * 3.6); P.d = 10.3 - (1 - Math.cos(ang)) * 1.8;
+      P.legs = Math.sin(t * 14);
+      P.y = 0.95 + Math.abs(Math.sin(t * 14)) * 0.04;
+      P.armL = P.armR = Math.PI / 2;
+      P.rot = 0.35 * Math.sin(t * 3.5) + sx * 0.15;
+      break;
+    }
+    case 'flip': {
+      if (t < RUN) { runTo(k, 3.0, 7.8); break; }
+      P.x = sx * 3.0; P.d = 7.8;
+      const J = 0.75;
+      if (s < J) {
+        const f = s / J;
+        P.y = 0.95 + Math.sin(Math.PI * f) * 1.1;
+        P.rot = -sx * Math.PI * 2 * easeOut(f);
+        P.armL = P.armR = 2.6;
+        P.legs = 0;
+      } else {
+        P.armL = P.armR = 2.8;
+        P.y = 0.95 + Math.abs(Math.sin((s - J) * 6)) * 0.12 * Math.exp(-(s - J) * 2);
+      }
+      break;
+    }
+    case 'jump': {
+      if (t < RUN) { runTo(k, 3.4, 7.4); break; }
+      P.x = sx * 3.4; P.d = 7.4;
+      P.y = 0.95 + Math.abs(Math.sin(s * 5)) * 0.55;
+      P.armR = 2.7 + 0.4 * Math.sin(s * 10);
+      P.armL = 0.6;
+      if (sx < 0) { const a = P.armL; P.armL = P.armR; P.armR = a; }
+      P.legs = 0.3;
+      break;
+    }
+    case 'dance': {
+      if (t < RUN) { runTo(k, 4.0, 7.0); break; }
+      P.x = sx * 4.0 + Math.sin(s * 6) * 0.25; P.d = 7.0;
+      P.rot = 0.25 * Math.sin(s * 6);
+      P.armL = 1.6 + 1.2 * Math.sin(s * 6);
+      P.armR = 1.6 - 1.2 * Math.sin(s * 6);
+      P.legs = Math.sin(s * 12) * 0.6;
+      P.y = 0.95 - Math.abs(Math.sin(s * 6)) * 0.08;
+      break;
+    }
+    case 'sky': {
+      if (t < RUN) { runTo(k, 2.8, 7.6); break; }
+      P.x = sx * 2.8; P.d = 7.6;
+      const g = Math.min(1, s / 0.35);
+      P.kneel = g > 0.5;
+      P.y = lerp(0.95, 0.5, g);
+      P.armL = P.armR = lerp(0.4, 2.95, easeOut(Math.min(1, s / 0.6)));
+      break;
+    }
+
+    // ----- Фирменные празднования: игрок добегает и поворачивается к трибуне за камерой -----
+    case 'crossarms': { // Мбаппе: стоит, скрестив руки на груди
+      if (t < RUN) { runTo(k, 2.6, 7.6); break; }
+      P.x = sx * 2.6; P.d = 7.6; P.front = true; P.serious = true;
+      const e = easeOut(Math.min(1, s / 0.35));
+      P.armL = P.armR = lerp(0.3, -0.1, e);
+      P.foreL = P.foreR = lerp(0.3, -2.0, e);
+      P.y = 0.95 + Math.sin(s * 2) * 0.005;
+      break;
+    }
+    case 'heyjude': { // Беллингем: замирает, раскинув руки
+      if (t < RUN) { runTo(k, 2.8, 7.4); break; }
+      P.x = sx * 2.8; P.d = 7.4; P.front = true;
+      const e = easeOut(Math.min(1, s / 0.4));
+      P.armL = P.armR = lerp(0.4, 1.95, e) + Math.sin(s * 2) * 0.03;
+      P.y = 0.95 + 0.02 * e;
+      break;
+    }
+    case 'meditate': { // Холанд: садится в позу лотоса, ладони на коленях, глаза закрыты
+      if (t < RUN) { runTo(k, 2.4, 7.8); break; }
+      P.x = sx * 2.4; P.d = 7.8; P.front = true;
+      const e = easeOut(Math.min(1, s / 0.45));
+      P.sit = e > 0.5;
+      P.y = lerp(0.95, 0.3, e);
+      P.armL = P.armR = lerp(0.3, 0.45, e);
+      P.foreL = P.foreR = 0.3;
+      P.eyesClosed = e > 0.8;
+      P.y += Math.sin(s * 1.5) * 0.008; // ровное дыхание
+      break;
+    }
+    case 'samba': { // Винисиус: танец у углового флажка
+      if (t < RUN) { runTo(k, 4.0, 7.0); break; }
+      P.x = sx * 4.0 + Math.sin(s * 8) * 0.3; P.d = 7.0; P.front = true;
+      P.rot = 0.22 * Math.sin(s * 8);
+      P.armL = 1.2 + 0.9 * Math.sin(s * 8);
+      P.armR = 1.2 - 0.9 * Math.sin(s * 8);
+      P.foreL = P.armL + 0.9; P.foreR = P.armR + 0.9;
+      P.legs = Math.sin(s * 16) * 0.7;
+      P.y = 0.95 - Math.abs(Math.sin(s * 8)) * 0.1;
+      break;
+    }
+    case 'cold': { // Палмер: «холодно» — обхватывает себя и растирает плечи, дрожит
+      if (t < RUN) { runTo(k, 2.6, 7.6); break; }
+      P.x = sx * 2.6 + Math.sin(s * 70) * 0.012; P.d = 7.6; P.front = true;
+      const e = easeOut(Math.min(1, s / 0.3));
+      P.armL = P.armR = lerp(0.3, 0.2, e);
+      P.foreL = lerp(0.3, -2.2, e) + Math.sin(s * 14) * 0.18 * e;
+      P.foreR = lerp(0.3, -2.2, e) - Math.sin(s * 14) * 0.18 * e;
+      P.rot = Math.sin(s * 55) * 0.025;
+      P.label = s > 0.3 ? '🥶' : null;
+      break;
+    }
+    case 'sajda': { // Салах: опускается на колени и делает земной поклон
+      if (t < RUN) { runTo(k, 2.4, 7.8); break; }
+      P.x = sx * 2.4; P.d = 7.8; P.front = true;
+      const down = easeOut(Math.min(1, s / 0.3));
+      P.kneel = down > 0.5;
+      P.y = lerp(0.95, 0.5, down);
+      if (s < 0.9) { P.armL = P.armR = lerp(0.3, 2.6, down); } // руки к небу
+      else {
+        const b = easeOut(Math.min(1, (s - 0.9) / 0.45));
+        P.bow = b;
+        P.armL = P.armR = lerp(2.6, 0.25, b);
+        P.foreL = P.foreR = lerp(2.6, 0.15, b);
+      }
+      break;
+    }
+    case 'yamal304': { // Ламин Ямаль: пальцами показывает «304» — индекс родного района
+      if (t < RUN) { runTo(k, 2.6, 7.6); break; }
+      P.x = sx * 2.6; P.d = 7.6; P.front = true;
+      const e = easeOut(Math.min(1, s / 0.3));
+      P.armL = P.armR = lerp(0.3, 0.55, e);
+      P.foreL = P.foreR = lerp(0.3, 2.85, e);
+      P.label = s > 0.3 ? '3 0 4' : null;
+      break;
+    }
+  }
+  P.x *= 0.55; // камера близко — держим игрока в кадре
+  return P;
+}
+
+function drawCelebrator() {
+  const c = G.celeb;
+  if (!c) return;
+  drawFigure(celebPose(c), c.team, c.num, c.name);
+
+  // подпись празднования
+  const a = clamp(c.t * 2, 0, 1) * clamp((3.6 - c.t) * 2, 0, 1);
+  if (a > 0) {
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.font = 'bold 18px Segoe UI'; ctx.textAlign = 'center';
+    const txt = `🎉 ${c.type.name}`;
+    const w = ctx.measureText(txt).width + 30;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    // справа внизу — слева внизу плашка комментатора
+    const x = Math.max(VW / 2 + 10, VW - 12 - w);
+    ctx.beginPath(); ctx.roundRect(x, VH - 52, w, 34, 17); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillText(txt, x + w / 2, VH - 29, w - 20);
+    ctx.restore();
+  }
+}
+
+// ---------- Командное празднование победы ----------
+// Вся команда сбегается к центру, прыгает в обнимку, потом подбрасывает героя серии.
+const PARTY_BACK = [-0.75, 0.75, -1.5, 1.5, -2.25, 2.25];
+const PARTY_FRONT = [-0.6, 0.6, -1.5, 1.5];
+
+function startParty(who) {
+  const team = TEAMS[G[who]];
+  const lastKickByWinner = G.shooter === who;
+  // Герой: автор решающего гола или вратарь, чей сейв (или промах соперника) решил серию
+  const heroIsKeeper = !lastKickByWinner;
+  const used = new Set(team.takers.map((p) => p.num).concat(team.keeper.num));
+  const extraNums = [2, 3, 4, 5, 6, 8, 12, 14, 15, 18, 21, 22, 23, 24].filter((n) => !used.has(n)).slice(0, 5);
+  const people = [
+    { name: team.keeper.name, num: team.keeper.num, gk: true },
+    ...team.takers.map((p) => ({ name: p.name, num: p.num })),
+    ...extraNums.map((n) => ({ name: '', num: n })),
+  ];
+  const heroIdx = heroIsKeeper ? 0 : 1 + team.takers.indexOf(G.taker);
+  const hero = people[heroIdx];
+  const others = people.filter((p) => p !== hero).sort(() => Math.random() - 0.5);
+  // победители чуть левее центра — справа у ворот стоят проигравшие с тренером
+  const spots = [{ x: 0, d: 7.6 }, ...PARTY_BACK.map((x) => ({ x, d: 7.6 })), ...PARTY_FRONT.map((x) => ({ x, d: 6.5 }))]
+    .map((sp) => ({ x: sp.x + WIN_SHIFT, d: sp.d }));
+  const members = [hero, ...others].map((p, i) => {
+    const sp = spots[i];
+    const side = sp.x === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(sp.x);
+    const fromGoal = p.gk; // вратарь выбегает из ворот
+    return {
+      ...p, hero: i === 0, tx: sp.x, td: sp.d,
+      x0: fromGoal ? 0 : side * (5.5 + Math.random() * 2.5),
+      d0: fromGoal ? 0.5 : sp.d + (Math.random() * 2.5 - 1.5),
+      delay: Math.random() * 0.4,
+      runDur: fromGoal ? 1.8 : 1.1 + Math.random() * 0.6,
+      ph: Math.random() * 6.28,
+    };
+  });
+  const gkKit = { color: team.gk, color2: '#ffffff', stripes: false, shorts: '#222222', num: '#ffffff' };
+  // Проигравшие: пенальтисты у ворот справа — на коленях, сидя или понурившись
+  const loseTeam = TEAMS[G[who === 'you' ? 'cpu' : 'you']];
+  const losers = loseTeam.takers.map((p, i) => ({
+    ...p, x: 2.7 + i * 0.45, d: 2.6 + (i % 2) * 0.6, kind: i % 3, ph: Math.random() * 6.28,
+  }));
+  G.party = {
+    t: 0, team, gkKit, members, heroName: hero.name, huddleUntil: 4.2, shown: false, who,
+    loseTeam, losers, phrase: Math.floor(Math.random() * COACH_LINES.length),
+  };
+}
+
+// ---------- Проигравшие и тренер ----------
+const WIN_SHIFT = -1.4;
+const COACH_ARRIVE = 1.6; // за сколько секунд тренер подходит к игрокам
+const COACH_LINES = ['Что это было?!', 'Позор!', 'Кто так бьёт пенальти?!', 'Завтра — двойная тренировка!', 'Я в вас верил!', 'Смотрите мне в глаза!'];
+const COACH_KIT = { color: '#2b2f36', color2: '#2b2f36', stripes: false, shorts: '#1e2126', num: '#2b2f36' };
+
+function loserPose(m, T) {
+  const P = { x: m.x, d: m.d, y: 0.95, rot: 0, armL: 0.15, armR: 0.15, foreL: null, foreR: null, legs: 0, kneel: false, front: true, sit: false, bow: 0, eyesClosed: false, label: null, serious: true };
+  // когда тренер начинает кричать, головы опускаются ещё ниже
+  const shame = clamp((T - COACH_ARRIVE) / 2, 0, 1);
+  if (m.kind === 0) { // на коленях, голова опущена
+    P.kneel = true; P.y = 0.5;
+    P.bow = 0.3 + 0.25 * shame + 0.04 * Math.sin(T * 1.5 + m.ph);
+    P.armL = P.armR = 0.25; P.foreL = P.foreR = 0.2;
+  } else if (m.kind === 1) { // сидит на газоне, схватившись за голову
+    P.sit = true; P.y = 0.3;
+    P.armL = P.armR = 2.5; P.foreL = P.foreR = -2.0;
+    P.rot = 0.05 * Math.sin(T * 1.2 + m.ph);
+    P.bow = 0.15 * shame;
+  } else { // стоит понурившись
+    P.bow = 0.18 + 0.15 * shame;
+    P.armL = P.armR = 0.1;
+    P.eyesClosed = shame > 0.5;
+  }
+  return P;
+}
+
+function coachPose(T) {
+  const P = { x: 3.7, d: 4.3, y: 0.95, rot: 0, armL: 0.3, armR: 0.3, foreL: null, foreR: null, legs: 0, kneel: false, front: true, sit: false, bow: 0, eyesClosed: false, label: null, serious: true };
+  const k = clamp(T / COACH_ARRIVE, 0, 1);
+  if (k < 1) { // быстрым шагом подходит
+    const e = k * k * (3 - 2 * k);
+    P.x = lerp(7.5, 3.7, e); P.d = lerp(5.2, 4.3, e);
+    P.legs = Math.sin(T * 12);
+    P.armL = 0.3 + 0.3 * Math.sin(T * 12); P.armR = 0.3 - 0.3 * Math.sin(T * 12);
+    return P;
+  }
+  // разнос: размахивает руками, тычет пальцем, топает
+  const s = T - COACH_ARRIVE;
+  P.armL = 1.6 + 1.1 * Math.sin(s * 7);
+  P.armR = 1.6 + 1.1 * Math.sin(s * 7 + Math.PI);
+  P.foreL = P.armL + 0.7; P.foreR = P.armR + 0.7;
+  P.rot = 0.07 * Math.sin(s * 7);
+  P.y = 0.95 + Math.abs(Math.sin(s * 3.5)) * 0.06; // притопывает
+  P.legs = 0.25 * Math.sin(s * 7);
+  return P;
+}
+
+// Облачко с репликой тренера
+function drawBubble(x, y, text) {
+  ctx.save();
+  ctx.font = 'bold 15px Segoe UI';
+  const w = ctx.measureText(text).width + 22, h = 30;
+  const bx = clamp(x - w / 2, 6, VW - w - 6), by = y - h - 14;
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(bx, by, w, h, 12); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 8, by + h - 1); ctx.lineTo(x, y - 2); ctx.lineTo(x + 6, by + h - 1); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#c62828';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, bx + w / 2, by + h / 2 + 1);
+  ctx.restore();
+}
+
+function drawLosers(party) {
+  const T = party.t;
+  const a = clamp(T * 2, 0, 1);
+  ctx.save();
+  ctx.globalAlpha = a;
+  const items = party.losers.map((m) => ({ P: loserPose(m, T), m }));
+  items.sort((x, y) => x.P.d - y.P.d);
+  for (const it of items) drawFigure(it.P, party.loseTeam, it.m.num, it.m.name);
+  const cp = coachPose(T);
+  drawFigure(cp, COACH_KIT, '', '');
+  ctx.restore();
+  if (T > COACH_ARRIVE + 0.2) {
+    const idx = (party.phrase + Math.floor((T - COACH_ARRIVE) / 1.6)) % COACH_LINES.length;
+    const head = project(cp.x, cp.y + 0.95, cp.d);
+    drawBubble(head.x, head.y, COACH_LINES[idx]);
+  }
+}
+
+function partyPose(m, T, party) {
+  const P = { x: m.tx, d: m.td, y: 0.95, rot: 0, armL: 0.35, armR: 0.35, foreL: null, foreR: null, legs: 0, kneel: false, front: true, sit: false, bow: 0, eyesClosed: false, label: null };
+  const k = clamp((T - m.delay) / m.runDur, 0, 1);
+  if (k < 1) { // бегут к партнёрам с поднятыми руками
+    const e = k * k * (3 - 2 * k);
+    P.x = lerp(m.x0, m.tx, e); P.d = lerp(m.d0, m.td, e);
+    P.legs = Math.sin(T * 16 + m.ph);
+    P.y = 0.95 + Math.abs(Math.sin(T * 16 + m.ph)) * 0.05;
+    P.armL = 2.5 + 0.3 * Math.sin(T * 9 + m.ph);
+    P.armR = 2.5 + 0.3 * Math.sin(T * 9 + m.ph + 2);
+    P.front = m.gk; // полевые бегут со стороны — видно спину, вратарь бежит к нам
+    return P;
+  }
+  if (T < party.huddleUntil) { // обнялись за плечи и прыгают в такт
+    P.y = 0.95 + Math.abs(Math.sin(T * 6)) * 0.32;
+    P.armL = P.armR = 1.72;
+    P.legs = 0.2 * Math.sin(T * 12);
+    return P;
+  }
+  const s = T - party.huddleUntil;
+  if (m.hero) { // героя подбрасывают
+    const f = Math.abs(Math.sin(s * 2.6));
+    P.y = 1.35 + f * 0.85;
+    P.rot = Math.sin(s * 2.6) * 0.15;
+    P.armL = P.armR = 2.2 + 0.4 * f;
+    P.legs = 0.9 * f;
+    return P;
+  }
+  const nearHero = Math.abs(m.tx - WIN_SHIFT) < 1 && m.td > 7;
+  if (nearHero) { // ловят и подбрасывают
+    P.armL = P.armR = 2.95;
+    P.y = 0.95 - Math.abs(Math.cos(s * 2.6)) * 0.1;
+    return P;
+  }
+  P.y = 0.95 + Math.abs(Math.sin(s * 5 + m.ph)) * 0.35;
+  P.armL = 2.6 + 0.35 * Math.sin(s * 8 + m.ph);
+  P.armR = 2.6 + 0.35 * Math.sin(s * 8 + m.ph + 1.5);
+  return P;
+}
+
+function drawParty() {
+  const party = G.party;
+  if (!party) return;
+  drawLosers(party); // проигравшие дальше от камеры — рисуем их первыми
+  const items = party.members.map((m) => ({ m, P: partyPose(m, party.t, party) }));
+  items.sort((a, b) => a.P.d - b.P.d || (a.m.hero ? -1 : 1)); // дальние — первыми
+  // герой в воздухе рисуется поверх тех, кто его подбрасывает
+  const heroUp = items.find((it) => it.m.hero && it.P.y > 1.2);
+  for (const it of items) if (it !== heroUp) drawFigure(it.P, it.m.gk ? party.gkKit : party.team, it.m.num, it.m.name);
+  if (heroUp) drawFigure(heroUp.P, heroUp.m.gk ? party.gkKit : party.team, heroUp.m.num, heroUp.m.name);
+
+  // баннер
+  const a = clamp(party.t * 1.5, 0, 1);
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 54px Segoe UI';
+  ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+  const title = `🏆 ${party.team.name.toUpperCase()}`;
+  ctx.strokeText(title, VW / 2, 62);
+  ctx.fillStyle = '#ffd54f';
+  ctx.fillText(title, VW / 2, 62);
+  ctx.font = 'bold 22px Segoe UI'; ctx.lineWidth = 5;
+  const sub = party.t > party.huddleUntil ? `Герой серии — ${party.heroName}!` : 'выигрывает серию пенальти!';
+  ctx.strokeText(sub, VW / 2, 108);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(sub, VW / 2, 108);
+  ctx.restore();
+}
+
+// Рисует игрока в позе P. team — комплект формы: color, color2, stripes, shorts, num
+function drawFigure(P, team, num, name) {
+  const c = { num, name: name || '' };
+  const hip = project(P.x, P.y, P.d);
+  const s = hip.s;
+  const gnd = project(P.x, 0, P.d);
+  ctx.fillStyle = `rgba(0,0,0,${0.3 / (1 + Math.max(0, P.y - 0.95) * 2)})`;
+  ctx.beginPath(); ctx.ellipse(gnd.x, gnd.y, 0.4 * s, 0.09 * s, 0, 0, 7); ctx.fill();
+
+  const SKIN = '#e0ac69', HAIR = '#2b1d16';
+  ctx.save();
+  ctx.translate(hip.x, hip.y);
+  ctx.scale(s, s);
+  ctx.rotate(P.rot);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const limb = (pts, col, w) => {
+    ctx.strokeStyle = col; ctx.lineWidth = w;
+    ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.stroke();
+  };
+  const boot = (x, y) => { ctx.fillStyle = '#111'; ctx.beginPath(); ctx.ellipse(x, y + 0.03, 0.09, 0.05, 0, 0, 7); ctx.fill(); };
+
+  // ноги
+  for (const lx of [-1, 1]) {
+    if (P.sit) { // по-турецки: колени в стороны, голени скрещены
+      limb([[lx * 0.1, 0.08], [lx * 0.4, 0.2]], team.shorts, 0.15);
+      limb([[lx * 0.4, 0.2], [-lx * 0.1, 0.27]], team.color, 0.13);
+      boot(-lx * 0.14, 0.24);
+    } else if (P.kneel) {
+      limb([[lx * 0.1, 0.15], [lx * 0.17, 0.45]], SKIN, 0.13);
+      ctx.fillStyle = team.color; ctx.beginPath(); ctx.arc(lx * 0.17, 0.46, 0.07, 0, 7); ctx.fill();
+    } else {
+      const sw = P.legs * lx;
+      const ex = lx * 0.11 + sw * 0.07, ey = 0.92 - Math.abs(sw) * 0.2;
+      const mx = lerp(lx * 0.1, ex, 0.55), my = lerp(0.15, ey, 0.55);
+      limb([[lx * 0.1, 0.15], [mx, my]], SKIN, 0.13);
+      limb([[mx, my], [ex, ey]], team.color, 0.14);
+      boot(ex, ey);
+    }
+  }
+  // шорты
+  ctx.fillStyle = team.shorts;
+  ctx.beginPath(); ctx.roundRect(-0.23, -0.06, 0.46, 0.3, 0.05); ctx.fill();
+
+  // поклон: корпус «укорачивается» (наклон к камере), голова опускается
+  const th = 0.62 * (1 - 0.6 * P.bow);
+  const shY = -th + 0.1;
+
+  const drawArms = () => {
+    for (const lx of [-1, 1]) {
+      const up = lx < 0 ? P.armL : P.armR;
+      const fo = (lx < 0 ? P.foreL : P.foreR) ?? up;
+      const sh = [lx * 0.22, shY];
+      const el = [sh[0] + lx * Math.sin(up) * 0.3, sh[1] + Math.cos(up) * 0.3];
+      const hd = [el[0] + lx * Math.sin(fo) * 0.32, el[1] + Math.cos(fo) * 0.32];
+      limb([sh, el, hd], 'rgba(0,0,0,0.3)', 0.15); // контур, чтобы рука не сливалась с футболкой
+      limb([sh, el], team.color, 0.13);
+      limb([el, hd], SKIN, 0.1);
+      ctx.fillStyle = SKIN; ctx.beginPath(); ctx.arc(hd[0], hd[1], 0.055, 0, 7); ctx.fill();
+    }
+  };
+
+  const drawShirt = () => {
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(-0.26, -th, 0.52, th, 0.08); ctx.clip();
+    ctx.fillStyle = team.color; ctx.fillRect(-0.3, -0.7, 0.6, 0.8);
+    if (team.stripes) {
+      ctx.fillStyle = team.color2;
+      for (let x = -0.26; x < 0.3; x += 0.2) ctx.fillRect(x + 0.1, -0.7, 0.1, 0.8);
+    } else {
+      ctx.fillStyle = team.color2; ctx.fillRect(-0.3, -th - 0.02, 0.6, 0.05); // воротник
+    }
+    ctx.restore();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (P.front) { // спереди — маленький номер на груди
+      ctx.font = 'bold 0.12px Segoe UI'; ctx.fillStyle = team.num;
+      ctx.fillText(String(c.num), 0.12, -th + 0.18);
+    } else { // со спины — фамилия и большой номер
+      ctx.font = 'bold 0.075px Segoe UI'; ctx.fillStyle = team.num;
+      ctx.fillText(c.name.toUpperCase(), 0, -th + 0.12, 0.46);
+      ctx.font = 'bold 0.28px Segoe UI';
+      ctx.lineWidth = 0.03; ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.strokeText(String(c.num), 0, -th + 0.34);
+      ctx.fillText(String(c.num), 0, -th + 0.34);
+    }
+  };
+
+  const drawHead = () => {
+    const headY = lerp(-th - 0.14, -0.12, P.bow);
+    ctx.fillStyle = SKIN;
+    ctx.beginPath(); ctx.arc(0, headY, 0.13, 0, 7); ctx.fill();
+    ctx.fillStyle = HAIR;
+    if (!P.front || P.bow > 0.6) { // затылок или макушка при поклоне
+      ctx.beginPath(); ctx.arc(0, headY - 0.02, 0.13, Math.PI * 0.9, Math.PI * 2.1); ctx.fill();
+      return;
+    }
+    ctx.beginPath(); ctx.arc(0, headY - 0.03, 0.13, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+    ctx.fillStyle = '#1a1a1a'; ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 0.014;
+    for (const ex of [-0.045, 0.045]) {
+      if (P.eyesClosed) { ctx.beginPath(); ctx.moveTo(ex - 0.022, headY + 0.005); ctx.lineTo(ex + 0.022, headY + 0.005); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.arc(ex, headY, 0.016, 0, 7); ctx.fill(); }
+    }
+    ctx.beginPath(); // рот
+    if (P.eyesClosed || P.serious) { ctx.moveTo(-0.03, headY + 0.06); ctx.lineTo(0.03, headY + 0.06); ctx.stroke(); }
+    else { ctx.arc(0, headY + 0.05, 0.035, 0, Math.PI); ctx.fill(); }
+  };
+
+  if (P.front) { drawShirt(); drawHead(); drawArms(); } // спереди руки поверх корпуса
+  else { drawArms(); drawShirt(); drawHead(); }
+  ctx.restore();
+
+  // надпись над игроком («304», 🥶)
+  if (P.label) {
+    const lp = project(P.x, P.y + 1.15, P.d);
+    ctx.save();
+    ctx.font = `bold ${Math.round(0.28 * lp.s)}px Segoe UI`;
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.strokeText(P.label, lp.x, lp.y);
+    ctx.fillStyle = '#ffd54f';
+    ctx.fillText(P.label, lp.x, lp.y);
+    ctx.restore();
+  }
+}
+
+function updateParticles(dt) {
+  if (G.rain > 0) {
+    G.rain -= dt;
+    for (let i = 0; i < 6; i++) {
+      G.particles.push({
+        x: Math.random() * VW, y: -10, vx: (Math.random() - 0.5) * 60, vy: 80 + Math.random() * 120,
+        rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 10,
+        w: 7 + Math.random() * 6, h: 4 + Math.random() * 4,
+        color: G.rainColors[i % G.rainColors.length], life: 6,
+      });
+    }
+  }
+  for (const q of G.particles) {
+    q.vy += 520 * dt;
+    q.vx *= Math.exp(-1.6 * dt);
+    q.vy *= Math.exp(-1.6 * dt);
+    q.x += q.vx * dt; q.y += q.vy * dt;
+    q.rot += q.vr * dt;
+    q.life -= dt;
+  }
+  G.particles = G.particles.filter((q) => q.life > 0 && q.y < VH + 20);
+  if (G.shake > 0) G.shake = Math.max(0, G.shake - dt);
+  if (G.ripple) G.ripple.t += dt;
+  if (G.celeb) G.celeb.t += dt;
+  if (G.party) {
+    G.party.t += dt;
+    if (!G.party.shown && G.party.t > 3) {
+      G.party.shown = true;
+      $('over').classList.remove('hidden');
+    }
+  }
+}
+
+function drawParticles() {
+  for (const q of G.particles) {
+    ctx.save();
+    ctx.globalAlpha = clamp(q.life, 0, 1);
+    ctx.translate(q.x, q.y);
+    ctx.rotate(q.rot);
+    ctx.scale(1, Math.abs(Math.cos(q.rot * 1.3)) + 0.2); // «переворачивание» конфетти
+    ctx.fillStyle = q.color;
+    ctx.fillRect(-q.w / 2, -q.h / 2, q.w, q.h);
+    ctx.restore();
+  }
+}
+
+function winner() {
+  const a = G.kicks.you, b = G.kicks.cpu;
+  const ga = a.filter(Boolean).length, gb = b.filter(Boolean).length;
+  if (a.length <= 5 && b.length <= 5) {
+    if (ga + (5 - a.length) < gb) return 'cpu';
+    if (gb + (5 - b.length) < ga) return 'you';
+    // Матч чемпионата: после 5 ударов при равенстве — ничья, без серии до первого промаха
+    if (G.allowDraw && a.length === 5 && b.length === 5 && ga === gb) return 'draw';
+    return null;
+  }
+  if (a.length === b.length && ga !== gb) return ga > gb ? 'you' : 'cpu';
+  return null;
+}
+
+function nextTurn() {
+  const w = winner();
+  if (w === 'draw') {
+    G.phase = 'over';
+    renderBoard();
+    const ga = G.kicks.you.filter(Boolean).length, gb = G.kicks.cpu.filter(Boolean).length;
+    $('over-title').textContent = '🤝 Ничья';
+    $('over-score').textContent = `${TEAMS[G.you].name} ${ga} : ${gb} ${TEAMS[G.cpu].name} · по 1 очку`;
+    G.celeb = null;
+    G.msg = { text: 'НИЧЬЯ', color: '#ffd54f', sub: 'После пяти ударов счёт равный — по очку каждой команде' };
+    G.msgT = 0;
+    $('over').classList.remove('hidden');
+    if (G.onFinish) { const f = G.onFinish; G.onFinish = null; f(ga, gb); }
+    setStatus('Ничья: каждая команда получает 1 очко.');
+    return;
+  }
+  if (w) {
+    G.phase = 'over';
+    renderBoard();
+    const ga = G.kicks.you.filter(Boolean).length, gb = G.kicks.cpu.filter(Boolean).length;
+    $('over-title').textContent = w === 'you' ? '🏆 Победа!' : 'Поражение';
+    if (w === 'you') {
+      const t = TEAMS[G.you];
+      G.rain = 6;
+      G.rainColors = [t.color, t.color2, '#ffd54f', '#ffffff'];
+      burst(VW / 2, VH * 0.6, G.rainColors, 160, 1.3);
+    }
+    $('over-score').textContent = `${TEAMS[G.you].name} ${ga} : ${gb} ${TEAMS[G.cpu].name}`;
+    // Победившая команда выбегает праздновать; окно итога появится чуть позже, внизу
+    G.celeb = null;
+    G.msg = null;
+    startParty(w);
+    if (G.onFinish) { const f = G.onFinish; G.onFinish = null; f(ga, gb); } // результат — в сезон
+    setStatus(w === 'you' ? 'Победа! Команда празднует.' : `${TEAMS[G.cpu].name} празднует победу.`);
+    return;
+  }
+  G.shooter = G.shooter === 'you' ? 'cpu' : 'you';
+  newKick();
+}
+
+// ---------- Ввод ----------
+function canvasPoint(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: ((e.clientX - r.left) / r.width) * VW, y: ((e.clientY - r.top) / r.height) * VH };
+}
+function updateAim(e) {
+  const p = screenToGoal(...Object.values(canvasPoint(e)));
+  G.aim = { x: clamp(p.x, -5, 5), y: clamp(p.y, 0.11, 3.6) };
+}
+// Прицел следует за мышью или пальцем — и до нажатия, и пока набирается сила.
+// На планшете нет «наведения», поэтому прицел ведут пальцем, удерживая его на экране.
+cv.addEventListener('pointermove', (e) => {
+  if (G.phase === 'aim' || G.phase === 'charge') updateAim(e);
+});
+cv.addEventListener('pointerdown', (e) => {
+  if (G.phase === 'intro') { introTap(canvasPoint(e)); return; }
+  if (G.phase === 'aim') {
+    updateAim(e);
+    G.phase = 'charge';
+    G.power = 0; G.powerDir = 1;
+    updateCurlUI();
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* без захвата — удар всё равно сработает по отпусканию */ }
+  } else if (G.phase === 'runup' && G.choice == null) {
+    // вратарь прыгает ровно в точку клика (в пределах ворот и чуть за ними)
+    const p = screenToGoal(...Object.values(canvasPoint(e)));
+    pickDive({ x: clamp(p.x, -GW - 0.3, GW + 0.3), y: clamp(p.y, 0.15, GH + 0.2) });
+  }
+});
+cv.addEventListener('pointerup', () => {
+  if (G.phase === 'charge') (G.mode === 'fk' ? fkShoot() : shootYou());
+});
+// iPad: если система прервала касание (жест, уведомление) — не зависаем в наборе силы
+cv.addEventListener('pointercancel', () => {
+  if (G.phase === 'charge') { G.phase = 'aim'; G.power = 0; updateCurlUI(); }
+});
+// без контекстного меню и лупы при долгом нажатии
+cv.addEventListener('contextmenu', (e) => e.preventDefault());
+// iPad: пока палец на поле, страница не прокручивается и не масштабируется
+// (обработка самого касания — в pointer-событиях выше)
+for (const type of ['touchstart', 'touchmove', 'touchend']) {
+  cv.addEventListener(type, (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+}
+const IS_TOUCH = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+// ---------- Режим «на весь экран» ----------
+// Настоящий полноэкранный режим браузера (компьютер, iPad). Где его нет (iPhone) или он запрещён —
+// игра просто растягивается на всё окно браузера через CSS-класс body.fs.
+let fsReal = false;
+const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+async function fsOn() {
+  document.body.classList.add('fs');
+  fsUpdateBtn(); // сразу, не дожидаясь ответа браузера на запрос полноэкранного режима
+  const el = document.documentElement;
+  try {
+    if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' });
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  } catch (e) { /* остаёмся в режиме «на всё окно» */ }
+  fsUpdateBtn();
+}
+function fsOff() {
+  if (!document.body.classList.contains('fs')) return;
+  document.body.classList.remove('fs');
+  try {
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+  } catch (e) { /* ничего */ }
+  fsUpdateBtn();
+}
+function fsUpdateBtn() {
+  const on = document.body.classList.contains('fs');
+  const b = $('fs-btn');
+  b.title = on ? 'Свернуть (Esc)' : 'На весь экран (F)';
+  b.setAttribute('aria-label', on ? 'Свернуть' : 'На весь экран');
+}
+function fsChanged() {
+  // вышли из настоящего полноэкранного режима (Esc, жест) — возвращаем обычную раскладку
+  if (fsElement()) fsReal = true;
+  else if (fsReal) { fsReal = false; document.body.classList.remove('fs'); fsUpdateBtn(); }
+}
+document.addEventListener('fullscreenchange', fsChanged);
+document.addEventListener('webkitfullscreenchange', fsChanged);
+$('fs-btn').addEventListener('click', () => (document.body.classList.contains('fs') ? fsOff() : fsOn()));
+window.addEventListener('keydown', (e) => {
+  if ($('game-view').classList.contains('hidden') || e.target.tagName === 'INPUT') return;
+  if (e.key === 'f' || e.key === 'F' || e.key === 'а' || e.key === 'А') { document.body.classList.contains('fs') ? fsOff() : fsOn(); }
+  else if (e.key === 'Escape') fsOff(); // для режима «на всё окно», где браузер сам Esc не ловит
+});
+window.addEventListener('keydown', (e) => {
+  if (G.phase === 'aim' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    setCurl(G.curl + (e.key === 'ArrowLeft' ? -0.1 : 0.1));
+    e.preventDefault();
+    return;
+  }
+  const k = KEYS[e.key.toLowerCase()] ?? KEYS[{ 'й': 'q', 'ц': 'w', 'у': 'e', 'ф': 'a', 'ы': 's', 'в': 'd' }[e.key.toLowerCase()]];
+  if (G.phase === 'runup' && G.choice == null && k != null) pickDive({ x: ZONES[k].x, y: ZONES[k].y });
+});
+
+// ---------- Регулятор закрутки (настраивается до удара) ----------
+function setCurl(v) {
+  G.curl = clamp(Math.round(v * 20) / 20, -1, 1);
+  updateCurlUI();
+}
+function updateCurlUI() {
+  $('curl').value = Math.round(G.curl * 100);
+  const pct = Math.round(Math.abs(G.curl) * 100);
+  $('curl-val').textContent = pct === 0 ? 'без закрутки' : G.curl < 0 ? `⟲ влево ${pct}%` : `вправо ⟳ ${pct}%`;
+  // крутить можно только когда вы целитесь
+  $('curl-bar').classList.toggle('off', G.phase !== 'aim');
+}
+$('curl').addEventListener('input', (e) => setCurl(+e.target.value / 100));
+$('curl-left').onclick = () => setCurl(G.curl - 0.2);
+$('curl-right').onclick = () => setCurl(G.curl + 0.2);
+$('curl-reset').onclick = () => setCurl(0);
+
+// Игрок выбрал, куда прыгнет вратарь: запоминаем точку и запускаем эффекты
+function pickDive(pt) {
+  G.choice = pt;
+  G.choiceT = 0;
+}
+
+// ---------- Обновление ----------
+const RUNUP = 3.0; // секунды разбега соперника — время на выбор угла
+function update(dt) {
+  G.time += dt;
+  if (G.phase === 'intro') { updateIntro(dt); return; }
+  if (G.mode === 'fk') { fkUpdate(dt); return; }
+  if (G.msg) G.msgT += dt;
+  updateParticles(dt);
+
+  if (G.phase === 'charge') {
+    G.power += G.powerDir * dt * 0.95;
+    if (G.power >= 1) { G.power = 1; G.powerDir = -1; }
+    if (G.power <= 0) { G.power = 0; G.powerDir = 1; }
+  }
+  if (G.phase === 'runup') {
+    G.runT += dt;
+    if (G.runT >= RUNUP) shootCpu();
+  }
+
+  const k = G.keeper;
+  if (k.plan) {
+    k.t += dt;
+    // Пыль и комья газона при падении
+    const p = k.plan;
+    if (p.mode === 'dive' && !k.landed && k.t >= p.delay + SET + p.tLand) {
+      k.landed = true;
+      const pose = keeperPose(k, k.t);
+      const gp = project(pose.x, 0, 0.3);
+      const n = p.landY > 0.5 ? 8 : 22;
+      for (let i = 0; i < n; i++) {
+        G.particles.push({
+          x: gp.x + (Math.random() - 0.5) * 80, y: gp.y,
+          vx: (Math.random() - 0.5) * 160 + p.vx * 20, vy: -60 - Math.random() * 140,
+          rot: Math.random() * 6, vr: (Math.random() - 0.5) * 8,
+          w: 3 + Math.random() * 4, h: 2 + Math.random() * 3,
+          color: ['#7cb342', '#558b2f', '#8d6e63'][i % 3], life: 0.5 + Math.random() * 0.4,
+        });
+      }
+      G.shake = Math.max(G.shake, 0.12);
+    }
+  } else if (G.phase === 'runup' && G.choice) {
+    // выбрал угол — вратарь смещается и наклоняется в эту сторону, готовясь к прыжку
+    const tx = clamp(G.choice.x * 0.08, -0.3, 0.3);
+    k.x += (tx - k.x) * Math.min(1, dt * 6);
+  } else if (G.phase === 'aim' || G.phase === 'charge' || G.phase === 'runup') {
+    k.x = Math.sin(G.time * 2.2) * 0.25; // покачивается на линии
+  }
+  if (G.choice) G.choiceT = (G.choiceT || 0) + dt;
+
+  const b = G.ball;
+  if (G.phase === 'flight') {
+    b.u += dt / b.dur;
+    const u = Math.min(1, b.u);
+    b.x = lerp(b.from.x, b.target.x, u) + curlOffset(b.curl, u);
+    b.d = lerp(b.from.d, 0, u);
+    b.y = lerp(b.from.y, b.target.y, u) + Math.sin(Math.PI * u) * b.arc;
+    if (b.u >= 1) finishFlight();
+  } else if (G.phase === 'after') {
+    G.afterT += dt;
+    if (b.phys) {
+      b.x += b.vx * dt; b.y += b.vy * dt; b.d += b.vd * dt;
+      b.vy -= 9.8 * dt;
+    if (b.attach) { // мяч в руках вратаря
+      const pose = keeperPose(k, k.t);
+      const l = handLocal(-1, pose.arms), r = handLocal(1, pose.arms);
+      const h = toWorld(pose, (l.x + r.x) / 2, (l.y + r.y) / 2);
+      b.x = h.x; b.y = Math.max(0.11, h.y); b.d = 0.4;
+      b.vx = b.vy = b.vd = 0;
+    }
+      if (b.y < 0.11) { b.y = 0.11; b.vy = -b.vy * 0.45; b.vx *= 0.8; b.vd *= 0.8; }
+      if (b.result === 'goal' && b.d < -1.7) { b.d = -1.7; b.vd = 0; b.vx *= 0.5; }
+      // боковая сетка: останавливает только мяч, летящий наружу (отскок от штанги внутрь не трогаем)
+      if (b.result === 'goal' && Math.abs(b.x) > GW - 0.2 && Math.sign(b.vx) === Math.sign(b.x)) { b.x = Math.sign(b.x) * (GW - 0.2); b.vx = 0; }
+      if (b.d < -8) b.vis = false;
+    }
+    if (G.afterT > (b.result === 'goal' ? 3.8 : 1.9)) nextTurn();
+  }
+}
+
+// ---------- Отрисовка ----------
+function poly(pts, fill) {
+  ctx.beginPath();
+  pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+function line3(a, b, w, col) {
+  const p = project(...a), q = project(...b);
+  ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y);
+  ctx.lineWidth = w; ctx.strokeStyle = col; ctx.stroke();
+}
+
+function drawBackground() {
+  // Трибуны
+  const g = ctx.createLinearGradient(0, 0, 0, HORIZON);
+  g.addColorStop(0, '#0a0f18'); g.addColorStop(1, '#1d2735');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VW, HORIZON);
+  for (const c of crowd) {
+    const jump = (G.msg && G.msgT < 1.5) || G.party ?Math.abs(Math.sin(G.time * 9 + c.p)) * 3 : 0;
+    ctx.fillStyle = c.c;
+    ctx.globalAlpha = 0.25 + (c.y / 210) * 0.45;
+    ctx.fillRect(c.x, c.y - jump, 3, 3);
+  }
+  ctx.globalAlpha = 1;
+  // Рекламный борт
+  ctx.fillStyle = '#123'; ctx.fillRect(0, HORIZON - 16, VW, 16);
+  ctx.fillStyle = '#4fc3f7'; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'center';
+  for (let x = 60; x < VW; x += 220) ctx.fillText('СЕРИЯ ПЕНАЛЬТИ • ФИНАЛ', x, HORIZON - 4);
+
+  // Газон полосами
+  const bands = [-40, -20, -12, -7, -3.5, 0, 2.75, 5.5, 8.25, 11, 13, 15.6, 18.5, 21.5, 24.5, 27.5, 31, 36, 60]; // дальние полосы — для штрафных
+  for (let i = 0; i < bands.length - 1; i++) {
+    const a = bands[i], b = bands[i + 1];
+    const p1 = project(-80, 0, a), p2 = project(80, 0, a), p3 = project(80, 0, b), p4 = project(-80, 0, b);
+    poly([p1, p2, p3, p4], i % 2 ? '#2e7d32' : '#388e3c');
+  }
+  // Разметка
+  const W2 = 'rgba(255,255,255,0.85)';
+  line3([-60, 0, 0], [60, 0, 0], 2, W2);
+  line3([-9.16, 0, 0], [-9.16, 0, 5.5], 2, W2);
+  line3([9.16, 0, 0], [9.16, 0, 5.5], 2, W2);
+  line3([-9.16, 0, 5.5], [9.16, 0, 5.5], 2, W2);
+  line3([-20.16, 0, 0], [-20.16, 0, 15.5], 3, W2);
+  line3([20.16, 0, 0], [20.16, 0, 15.5], 3, W2);
+  if (CAM_D > 18) { // на штрафных камера дальше — видна передняя линия штрафной и дуга
+    line3([-20.16, 0, 15.5], [-20.16, 0, 16.5], 3, W2);
+    line3([20.16, 0, 15.5], [20.16, 0, 16.5], 3, W2);
+    line3([-20.16, 0, 16.5], [20.16, 0, 16.5], 3, W2);
+    ctx.strokeStyle = W2; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i <= 24; i++) {
+      const a = -0.93 + (i / 24) * 1.86, q = project(Math.sin(a) * 9.15, 0, 11 + Math.cos(a) * 9.15);
+      i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y);
+    }
+    ctx.stroke();
+  }
+  const spot = project(0, 0, 11);
+  ctx.fillStyle = W2;
+  ctx.beginPath(); ctx.ellipse(spot.x, spot.y, 9, 3, 0, 0, 7); ctx.fill();
+}
+
+function drawNet() {
+  const back = -2, topBack = 1.9;
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  poly([project(-GW, GH, 0), project(GW, GH, 0), project(GW, topBack, back), project(-GW, topBack, back)], 'rgba(255,255,255,0.06)');
+  poly([project(-GW, 0, back), project(GW, 0, back), project(GW, topBack, back), project(-GW, topBack, back)], 'rgba(255,255,255,0.08)');
+  const nc = 'rgba(255,255,255,0.28)';
+  for (let x = -GW; x <= GW + 0.01; x += 0.3) {
+    line3([x, 0, back], [x, topBack, back], 1, nc);
+    line3([x, topBack, back], [x, GH, 0], 1, nc);
+  }
+  for (let y = 0; y <= topBack + 0.01; y += 0.3) line3([-GW, y, back], [GW, y, back], 1, nc);
+  // Сетка «вздрагивает» от гола: расходящиеся круги в точке попадания
+  const rp = G.ripple;
+  if (rp && rp.t < 1.2) {
+    const c = project(rp.x, Math.min(rp.y, topBack), back * 0.8);
+    for (let i = 0; i < 3; i++) {
+      const r = (rp.t * 1.6 - i * 0.2) * c.s;
+      if (r <= 0) continue;
+      ctx.strokeStyle = `rgba(255,255,255,${0.6 * (1 - rp.t / 1.2)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(c.x, c.y, r, r * 0.8, 0, 0, 7); ctx.stroke();
+    }
+  }
+  for (const s of [-1, 1]) {
+    for (let t = 0; t <= 1.001; t += 0.15) {
+      line3([s * GW, 0, back * t], [s * GW, lerp(GH, topBack, t), back * t], 1, nc);
+    }
+    for (let y = 0; y <= GH; y += 0.3) line3([s * GW, y, 0], [s * GW, Math.min(y, topBack), back], 1, nc);
+  }
+}
+
+function drawFrame() {
+  const s = project(0, 0, 0).s;
+  const w = POST * s;
+  const l = project(-GW, 0, 0), r = project(GW, 0, 0), t = project(0, GH, 0);
+  ctx.fillStyle = '#f5f5f5';
+  ctx.shadowColor = '#0006'; ctx.shadowBlur = 6;
+  ctx.fillRect(l.x - w, t.y - w, w, l.y - t.y + w);
+  ctx.fillRect(r.x, t.y - w, w, r.y - t.y + w);
+  ctx.fillRect(l.x - w, t.y - w, r.x - l.x + 2 * w, w);
+  ctx.shadowBlur = 0;
+}
+
+function drawKeeper(team) {
+  const k = G.keeper;
+  const pose = keeperPose(k, k.t);
+  const p = project(pose.x, pose.y, 0.3);
+  const s = p.s;
+  // тень: шире, когда вратарь лежит, бледнее и меньше, когда он в воздухе
+  const sh = project(pose.x, 0, 0.3);
+  const lift = Math.max(0, pose.y - 0.95 * Math.cos(pose.a));
+  const lying = Math.abs(Math.sin(pose.a));
+  ctx.fillStyle = `rgba(0,0,0,${0.32 / (1 + lift * 1.5)})`;
+  ctx.beginPath(); ctx.ellipse(sh.x, sh.y, (0.45 + lying * 0.6) * s / (1 + lift * 0.4), 0.1 * s, 0, 0, 7); ctx.fill();
+
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.scale(s, s);
+  ctx.rotate(pose.a);
+  ctx.lineCap = 'round';
+  // ноги
+  ctx.strokeStyle = '#1b1b1b'; ctx.lineWidth = 0.14;
+  const L = legX(pose);
+  ctx.beginPath(); ctx.moveTo(-0.1, 0.1); ctx.lineTo(-L, 0.92); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0.1, 0.1); ctx.lineTo(L, 0.92); ctx.stroke();
+  ctx.fillStyle = '#0a0a0a'; // бутсы
+  for (const sx of [-1, 1]) { ctx.beginPath(); ctx.ellipse(sx * L * 1.05, 0.95, 0.1, 0.06, 0, 0, 7); ctx.fill(); }
+  // шорты
+  ctx.fillStyle = '#111'; ctx.fillRect(-0.21, -0.05, 0.42, 0.3);
+  // руки (та же геометрия, по которой считается сейв)
+  const hand = (sx) => {
+    const h = handLocal(sx, pose.arms);
+    ctx.strokeStyle = team.gk; ctx.lineWidth = 0.11;
+    ctx.beginPath(); ctx.moveTo(sx * 0.2, -0.52); ctx.lineTo(h.x, h.y); ctx.stroke();
+    ctx.fillStyle = '#eeeeee';
+    ctx.beginPath(); ctx.arc(h.x, h.y, 0.085, 0, 7); ctx.fill();
+  };
+  hand(-1); hand(1);
+  // торс
+  ctx.fillStyle = team.gk;
+  ctx.beginPath(); ctx.roundRect(-0.25, -0.62, 0.5, 0.62, 0.08); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.font = 'bold 0.28px Segoe UI'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(team.keeper.num), 0, -0.32);
+  // голова
+  ctx.fillStyle = '#e0ac69';
+  ctx.beginPath(); ctx.arc(0, -0.77, 0.13, 0, 7); ctx.fill();
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath(); ctx.arc(0, -0.81, 0.13, Math.PI, 0); ctx.fill();
+  ctx.restore();
+}
+
+function drawBall() {
+  const b = G.ball;
+  if (!b || !b.vis) return;
+  const p = project(b.x, b.y, b.d);
+  const g = project(b.x, 0, b.d);
+  const r = 0.11 * p.s;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(g.x, g.y, r * 1.1, r * 0.35, 0, 0, 7); ctx.fill();
+  const gr = ctx.createRadialGradient(p.x - r * 0.35, p.y - r * 0.35, r * 0.1, p.x, p.y, r);
+  gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#bdbdbd');
+  ctx.fillStyle = gr;
+  ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
+  // пятна
+  ctx.fillStyle = '#263238';
+  // Закрученный мяч вращается заметно быстрее
+  const rot = (b.u || 0) * (14 + (b.curl || 0) * 40);
+  for (let i = 0; i < 3; i++) {
+    const a = rot + i * 2.1;
+    ctx.beginPath(); ctx.arc(p.x + Math.cos(a) * r * 0.5, p.y + Math.sin(a) * r * 0.5, r * 0.22, 0, 7); ctx.fill();
+  }
+}
+
+function drawAim() {
+  if (G.phase !== 'aim' && G.phase !== 'charge') return;
+  const p = project(G.aim.x, G.aim.y, 0);
+  const col = G.phase === 'charge' ? `hsl(${120 - G.power * 120},90%,55%)` : '#ffffff';
+
+  // Линия полёта мяча: учитывает закрутку с регулятора (без учёта неточности удара)
+  ctx.save();
+  const arc = 0.15 + (1 - G.power) * 0.5;
+  const at = G.mode === 'fk' ? (u) => fkPoint(u, G.aim, G.power, G.curl)
+    : (u) => ({ x: lerp(0, G.aim.x, u) + curlOffset(G.curl, u), y: lerp(0.11, G.aim.y, u) + Math.sin(Math.PI * u) * arc, d: lerp(11, 0, u) });
+  const path = () => {
+    ctx.beginPath();
+    for (let i = 0; i <= 40; i++) {
+      const w = at(i / 40);
+      const q = project(w.x, w.y, w.d);
+      i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y);
+    }
+  };
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 6; // подложка для контраста
+  path(); ctx.stroke();
+  ctx.setLineDash([8, 8]);
+  ctx.lineDashOffset = -G.time * 25; // пунктир «бежит» к воротам
+  ctx.strokeStyle = Math.abs(G.curl) > 0.02 ? '#4fc3f7' : '#ffffff';
+  ctx.lineWidth = 3;
+  path(); ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle = col; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, 7); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(p.x - 22, p.y); ctx.lineTo(p.x - 7, p.y);
+  ctx.moveTo(p.x + 7, p.y); ctx.lineTo(p.x + 22, p.y);
+  ctx.moveTo(p.x, p.y - 22); ctx.lineTo(p.x, p.y - 7);
+  ctx.moveTo(p.x, p.y + 7); ctx.lineTo(p.x, p.y + 22);
+  ctx.stroke();
+
+  // Шкала силы
+  const x = VW - 50, y = 360, h = 200, w = 22;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x - 4, y - 4, w + 8, h + 8);
+  const gr = ctx.createLinearGradient(0, y + h, 0, y);
+  gr.addColorStop(0, '#43a047'); gr.addColorStop(0.7, '#fdd835'); gr.addColorStop(1, '#e53935');
+  ctx.fillStyle = gr;
+  const ph = h * G.power;
+  ctx.fillRect(x, y + h - ph, w, ph);
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+  ctx.beginPath(); ctx.moveTo(x - 4, y + h * 0.15); ctx.lineTo(x + w + 4, y + h * 0.15); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = '12px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('СИЛА', x + w / 2, y + h + 20);
+}
+
+// Место, куда нажал игрок, мягко светится — видно, что клик засчитан
+function drawChoice() {
+  if (!G.choice) return;
+  let alpha = 1;
+  if (G.phase === 'flight') alpha = clamp(1 - G.ball.u * 2.5, 0, 1); // после удара свечение гаснет
+  else if (G.phase !== 'runup') return;
+  if (alpha <= 0) return;
+  const t = G.choiceT || 0;
+  const p = project(G.choice.x, G.choice.y, 0.3);
+  // в момент клика чуть ярче и шире, потом ровное слабое свечение с лёгким «дыханием»
+  const flash = t < 0.35 ? 1 - t / 0.35 : 0;
+  const glow = (0.6 + 0.1 * Math.sin(t * 5) + 0.4 * flash) * alpha;
+  const R = 42 + 18 * flash;
+  const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R);
+  g.addColorStop(0, `rgba(255,244,190,${glow})`);
+  g.addColorStop(0.5, `rgba(255,210,100,${glow * 0.6})`);
+  g.addColorStop(1, 'rgba(255,220,120,0)');
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, 7); ctx.fill();
+  ctx.restore();
+}
+
+// Пока соперник разбегается: ворота пустые, внизу только полоска разбега
+function drawZones() {
+  if (G.phase !== 'runup') return;
+  ctx.textAlign = 'center';
+  // таймер разбега
+  const left = 1 - G.runT / RUNUP;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(330, 560, 300, 14);
+  ctx.fillStyle = left > 0.35 ? '#4fc3f7' : '#ef5350';
+  ctx.fillRect(330, 560, 300 * left, 14);
+  ctx.fillStyle = '#fff'; ctx.font = '13px Segoe UI';
+  ctx.fillText(G.choice == null ? 'Соперник разбегается — кликните, куда прыгнуть!' : 'Прыжок выбран', 480, 550);
+}
+
+// Табличка «кто бьёт / кто в воротах»
+function drawNames() {
+  if (!G.taker || G.phase === 'over' || G.celeb) return;
+  const st = TEAMS[G[G.shooter]], kt = TEAMS[G[G.shooter === 'you' ? 'cpu' : 'you']];
+  const rows = [
+    { icon: '⚽', text: `${G.taker.name}  №${G.taker.num}`, col: st.color, col2: st.color2 },
+    { icon: '🧤', text: `${G.gkPlayer.name}  №${G.gkPlayer.num}`, col: kt.gk, col2: '#ffffff' },
+  ];
+  ctx.save();
+  ctx.font = 'bold 15px Segoe UI';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  const w = Math.max(...rows.map((r) => ctx.measureText(r.text).width)) + 58;
+  rows.forEach((r, i) => {
+    const y = 14 + i * 32;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath(); ctx.roundRect(12, y, w, 26, 6); ctx.fill();
+    ctx.fillStyle = r.col; ctx.fillRect(12, y, 6, 26);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(r.icon, 24, y + 13);
+    ctx.fillText(r.text, 48, y + 14);
+  });
+  ctx.restore();
+}
+
+function drawMessage() {
+  if (!G.msg) return;
+  const t = G.msgT;
+  const sc = 1 + Math.max(0, 0.4 - t) * 1.5;
+  ctx.save();
+  ctx.globalAlpha = clamp(2.2 - t, 0, 1);
+  ctx.translate(VW / 2, 85);
+  ctx.scale(sc, sc);
+  ctx.font = 'bold 72px Segoe UI';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+  ctx.strokeText(G.msg.text, 0, 0);
+  ctx.fillStyle = G.msg.color;
+  ctx.fillText(G.msg.text, 0, 0);
+  if (G.msg.sub) {
+    ctx.font = 'bold 22px Segoe UI';
+    ctx.lineWidth = 5;
+    ctx.strokeText(G.msg.sub, 0, 58);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(G.msg.sub, 0, 58);
+  }
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, VW, VH);
+  if (G.phase === 'intro') { drawIntro(); return; }
+  if (G.mode === 'fk' && G.phase !== 'idle') { fkDraw(); return; }
+  ctx.save();
+  if (G.shake > 0) {
+    const m = G.shake * 14;
+    ctx.translate((Math.random() - 0.5) * m, (Math.random() - 0.5) * m);
+  }
+  drawBackground();
+  drawNet();
+  if (G.phase !== 'idle') {
+    const keeperTeam = TEAMS[G.shooter === 'you' ? G.cpu : G.you];
+    const behind = G.ball && G.ball.d < -0.05;
+    // Вратарь победителей убегает из ворот праздновать вместе со всеми
+    const keeperLeft = G.party && G.party.team === keeperTeam;
+    if (keeperLeft && G.ball && G.ball.attach) G.ball.vis = false;
+    if (behind) drawBall();
+    if (!keeperLeft) drawKeeper(keeperTeam);
+    drawFrame();
+    if (!behind) drawBall();
+    drawCelebrator();
+    drawParty();
+    drawZones();
+    drawChoice();
+    drawAim();
+    drawNames();
+  }
+  ctx.restore();
+  drawMessage();
+  drawParticles();
+}
+
+// ---------- Цикл ----------
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (G.phase !== 'idle') update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+setupCanvas();
+renderTeamLists();
+requestAnimationFrame(loop);
+
+</script>
+  <script>
+'use strict';
+// Перед матчем: стартовые составы обеих команд с позициями.
+// Подключается после game.js и пользуется его функциями (project, drawFigure, burst, TEAMS, G…).
+
+// ---------- Стартовые составы ----------
+// Ряды через «/»: вратарь / защитники / полузащитники (может быть два ряда) / нападающие.
+// ВНИМАНИЕ: составы по состоянию знаний автора; трансферы и номера могли измениться — правьте здесь.
+const LINEUPS = {
+  'Реал Мадрид': 'Куртуа 1 / Александер-Арнольд 12, Хёйсен 24, Рюдигер 22, Каррерас 18 / Вальверде 8, Чуамени 14, Беллингем 5 / Арда Гюлер 15, Мбаппе 10, Винисиус 7',
+  'Барселона': 'Жоан Гарсия 13 / Кунде 23, Кубарси 5, Араухо 4, Бальде 3 / Педри 8, Де Йонг 21 / Ламин Ямаль 10, Ферран Торрес 7, Рафинья 11 / Левандовски 9',
+  'Атлетико Мадрид': 'Облак 13 / Льоренте 14, Ле Норман 24, Хименес 2, Ганцко 17 / Джулиано Симеоне 20, Коке 6, Барриос 8 / Гризманн 7 / Хулиан Альварес 19, Сёрлот 9',
+  'Манчестер Сити': 'Доннарумма 25 / Нунеш 27, Диаш 3, Гвардиол 24, О\'Райли 33 / Родри 16, Бернарду Силва 20 / Фоден 47, Шерки 10, Доку 11 / Холанд 9',
+  'Ливерпуль': 'Алиссон 1 / Фримпонг 30, Конате 5, Ван Дейк 4, Керкез 6 / Гравенберх 38, Мак Аллистер 10 / Салах 11, Собослаи 8, Вирц 7 / Исак 9',
+  'Арсенал': 'Райя 1 / Тимбер 12, Салиба 2, Габриэл 6, Калафьори 33 / Райс 41, Субименди 36, Эдегор 8 / Сака 7, Дьёкереш 14, Мартинелли 11',
+  'Манчестер Юнайтед': 'Ламменс 31 / Йоро 15, Де Лихт 4, Шоу 23 / Мазрауи 3, Каземиро 18, Бруну Фернандеш 8, Дорги 13 / Мбемо 19, Кунья 10 / Шешко 30',
+  'Челси': 'Роберт Санчес 1 / Джеймс 24, Фофана 29, Колуилл 6, Кукурелья 3 / Кайседо 25, Энсо Фернандес 8 / Педро Нету 7, Палмер 10, Гарначо 49 / Жоао Педро 20',
+  'Бавария': 'Нойер 1 / Лаймер 27, Упамекано 2, Та 4, Станишич 44 / Киммих 6, Горецка 8 / Олисе 17, Мусиала 10, Луис Диас 14 / Кейн 9',
+  'Боруссия Дортмунд': 'Кобель 1 / Рюэрсон 26, Антон 3, Шлоттербек 4, Свенссон 24 / Забитцер 20, Нмеча 8 / Байер 14, Брандт 10, Адейеми 27 / Гирасси 9',
+  'ПСЖ': 'Шевалье 30 / Хакими 2, Маркиньос 5, Пачо 51, Нуну Мендеш 25 / Витинья 17, Жоау Невеш 87, Фабиан Руис 8 / Дуэ 14, Дембеле 10, Кварацхелия 7',
+  'Ювентус': 'Ди Грегорио 29 / Калулу 15, Бремер 3, Келли 6, Камбьясо 27 / Локателли 5, Тюрам 19, Купмейнерс 8 / Консейсау 7, Йылдыз 10 / Влахович 9',
+  'Милан': 'Меньян 16 / Томори 23, Габбия 46, Павлович 31 / Салемакерс 56, Модрич 14, Фофана 19, Рабьо 12, Эступиньян 2 / Пулишич 11, Леау 10',
+  'Интер': 'Зоммер 1 / Павар 28, Ачерби 15, Бастони 95 / Дамфрис 2, Барелла 23, Чалханоглу 20, Мхитарян 22, Димарко 32 / Тюрам 9, Лаутаро Мартинес 10',
+  'Зенит': 'Латышонок 1 / Караваев 15, Нино 4, Алип 28, Дуглас Сантос 3 / Барриос 5, Венделл 8 / Мостовой 17, Глушенков 10, Луис Энрике 11 / Соболев 7',
+  'Спартак Москва': 'Максименко 98 / Денисов 92, Бабич 3, Джику 6, Гапонов 33 / Зобнин 47, Пруцев 8 / Солари 14, Барко 5, Маркиньос 10 / Угальде 9',
+  'ЦСКА': 'Акинфеев 35 / Гайич 22, Дивеев 78, Лукин 4, Мойзес 66 / Кисляк 31, Обляков 10, Кругловой 15 / Глебов 7, Мусаев 9, Алерруза 19',
+  'Локомотив Москва': 'Митрюшкин 1 / Силянов 3, Морозов 30, Ненахов 92, Руденко 26 / Баринов 6, Карпукас 91 / Сарвели 77, Батраков 83, Пиняев 21 / Воробьёв 19',
+  'Динамо Москва': 'Лещук 1 / Касерес 2, Маричаль 4, Осипенко 55, Скопинцев 3 / Фомин 74, Нгаму 77 / Гладышев 11, Бителло 10, Кутицкий 23 / Тюкавин 98',
+  'Краснодар': 'Агкацев 39 / Петров 98, Диего Коста 22, Боселли 4, Кривцов 88 / Сперцян 10, Пина 5, Кайо 17 / Олусегун 7, Кордоба 9, Батчи 77',
+  'Тоттенхэм': 'Викарио 1 / Порро 23, Ромеро 17, Ван де Вен 37, Удоджи 13 / Бентанкур 30, Палинья 6 / Кудус 20, Симонс 7, Ришарлисон 9 / Соланке 19',
+  'Атлетик Бильбао': 'Унаи Симон 1 / Горосабель 2, Виван 3, Паредес 4, Берчиче 17 / Галаррета 16, Санчет 8 / Иньяки Уильямс 9, Беренгер 7, Нико Уильямс 10 / Гурусета 12',
+  'Вильярреал': 'Луис Жуниор 1 / Мурино 22, Рафа Марин 4, Ренато Вейга 12, Кардона 23 / Парехо 10, Комесанья 14 / Пепе 19, Молейро 20 / Жерар Морено 7, Микаутадзе 9',
+  'Реал Бетис': 'Пау Лопес 25 / Бельерин 2, Натан 6, Льоренте 3, Рикардо Родригес 12 / Ло Сельсо 20, Форнальс 18 / Антони 7, Иско 22, Абде 10 / Бакамбу 11',
+  'Байер Леверкузен': 'Флеккен 1 / Артур 13, Тапсоба 12, Квансах 4, Гримальдо 20 / Андрих 8, Паласиос 25 / Хофманн 7, Тиллман 10, Поку 19 / Шик 14',
+  'РБ Лейпциг': 'Гулачи 1 / Баку 17, Орбан 4, Лукеба 23, Раум 22 / Зайвальд 13, Шлагер 24 / Нуса 7, Диоманде 49, Баумгартнер 14 / Ромулу 40',
+  'Штутгарт': 'Нюбель 33 / Хендрикс 3, Шабо 24, Ельтш 29, Миттельштедт 7 / Штиллер 6, Карацор 16 / Фюрих 27, Ундав 26, Нартей 28 / Демирович 9',
+  'Айнтрахт Франкфурт': 'Трапп 1 / Кнауфф 36, Коч 4, Теате 3, Кристенсен 13 / Скири 15, Ларссон 16 / Бахоя 19, Гётце 27 / Буркардт 21, Ваи 9',
+  'Наполи': 'Мерет 1 / Ди Лоренцо 22, Буонджорно 4, Ррахмани 13, Оливера 17 / Лоботка 68, Ангисса 99, Мактоминей 8 / Политано 21, Де Брёйне 11 / Хёйлунн 19',
+  'Рома': 'Свилар 99 / Манчини 23, Ндика 5, Челик 19, Анхелиньо 3 / Кристанте 4, Коне 17 / Соуле 18, Пеллегрини 7, Дибала 21 / Довбик 11',
+  'Аталанта': 'Карнезекки 29 / Джимсити 19, Хиен 4, Колашинац 23 / Белланова 16, Эдерсон 13, Де Рон 15, Заппакоста 77 / Де Кетеларе 17, Лукман 11 / Скамакка 9',
+  'Марсель': 'Рулли 1 / Мурильо 62, Бальерди 5, Агерд 21, Эмерсон 33 / Хёйбьерг 23, Кондогбиа 19 / Гринвуд 10, Гуири 9, Паишау 14 / Обамеянг 97',
+  'Монако': 'Кён 16 / Вандерсон 2, Керер 5, Салису 22, Кайо Энрике 12 / Погба 8, Камара 15, Головин 10 / Аклиуш 11, Минамино 18 / Балогун 29',
+  'Лион': 'Грайф 1 / Мейтленд-Найлз 98, Мата 22, Ниакате 19, Абнер 16 / Тессманн 6, Толиссо 8 / Малик Фофана 11, Шульц 10, Карабец 18 / Сатриано 9',
+  'Лилль': 'Озер 1 / Мейр 2, Нгой 3, Алешандро 4, Мандьи 23 / Андре 21, Буадди 32 / Фернандес-Пардо 7, Харальдссон 10, Мукау 17 / Жиру 9',
+  'Ницца': 'Бюлька 1 / Клаусс 7, Ндайишимийе 55, Дант 31, Бард 26 / Сансон 11, Буланже 6, Ндиайе 15 / Софьян Диоп 10, Мофи 9, Гессан 29',
+};
+const POS_NAME = { ВРТ: 'вратарь', ЗАЩ: 'защитник', ПЗ: 'полузащитник', НАП: 'нападающий' };
+for (const t of TEAMS) {
+  const rows = LINEUPS[t.name].split('/').map((r) => r.split(',').map((x) => {
+    const m = x.trim().match(/^(.*\S)\s+(\d+)$/);
+    return { name: m[1], num: +m[2] };
+  }));
+  rows.forEach((r, i) => r.forEach((p) => { p.pos = i === 0 ? 'ВРТ' : i === 1 ? 'ЗАЩ' : i === rows.length - 1 ? 'НАП' : 'ПЗ'; }));
+  t.lineup = rows;
+  t.formation = rows.slice(1).map((r) => r.length).join('-');
+  const inXI = new Set(rows.flat().map((p) => p.name));
+  t.bench = t.takers.filter((p) => !inXI.has(p.name)); // пенальтисты, вышедшие на замену к серии
+}
+
+function wrapLines(text, maxW) {
+  const words = text.split(' '), out = [];
+  let line = '';
+  for (const w of words) {
+    const tryL = line ? line + ' ' + w : w;
+    if (ctx.measureText(tryL).width > maxW && line) { out.push(line); line = w; } else line = tryL;
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+// ---------- Заставка перед матчем ----------
+const INTRO_SCENES = [
+  { id: 'lineA', dur: 7 },
+  { id: 'lineB', dur: 7 },
+];
+const SKIP = { x: VW - 196, y: VH - 54, w: 182, h: 40 };
+const I = { scene: 0, t: 0 };
+
+function startIntro() {
+  G.phase = 'intro';
+  G.ball = null; G.celeb = null; G.msg = null; G.taker = null;
+  I.scene = -1;
+  updateCurlUI();
+  renderBoard();
+  setStatus(`Стартовые составы. ${IS_TOUCH ? 'Коснитесь поля' : 'Кликните по полю или нажмите пробел'}, чтобы листать дальше, или «Пропустить».`);
+  introNext();
+}
+function introNext() {
+  I.scene++;
+  I.t = 0;
+  if (I.scene >= INTRO_SCENES.length) finishIntro();
+}
+function finishIntro() {
+  G.particles = [];
+  G.phase = 'idle'; // newKick выставит нужную фазу
+  newKick();
+}
+function introTap(pt) {
+  if (pt.x >= SKIP.x && pt.x <= SKIP.x + SKIP.w && pt.y >= SKIP.y && pt.y <= SKIP.y + SKIP.h) { finishIntro(); return; }
+  introNext();
+}
+window.addEventListener('keydown', (e) => {
+  if (G.phase !== 'intro' || e.target.tagName === 'INPUT') return;
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); introNext(); }
+});
+
+function updateIntro(dt) {
+  I.t += dt;
+  const sc = INTRO_SCENES[I.scene];
+  if (sc && I.t >= sc.dur) introNext();
+}
+
+const ease = (k) => { k = clamp(k, 0, 1); return 1 - Math.pow(1 - k, 3); };
+
+// Щит-эмблема клуба в цветах формы
+function drawCrest(x, y, s, t) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.beginPath();
+  ctx.moveTo(-s, -s); ctx.lineTo(s, -s); ctx.lineTo(s, 0.1 * s);
+  ctx.quadraticCurveTo(s, 0.85 * s, 0, 1.25 * s);
+  ctx.quadraticCurveTo(-s, 0.85 * s, -s, 0.1 * s);
+  ctx.closePath();
+  ctx.save(); ctx.clip();
+  ctx.fillStyle = t.color; ctx.fillRect(-s, -s, 2 * s, 2.4 * s);
+  ctx.fillStyle = t.color2;
+  if (t.stripes) for (let i = -2; i <= 2; i += 2) ctx.fillRect(i * s * 0.3 - s * 0.15, -s, s * 0.3, 2.4 * s);
+  else ctx.fillRect(-s, -s, 2 * s, s * 0.32);
+  ctx.restore();
+  ctx.lineWidth = Math.max(2, s * 0.1); ctx.strokeStyle = t.color2 === '#ffffff' && t.color === '#ffffff' ? '#999' : t.color2;
+  ctx.stroke();
+  const ini = t.name.split(/[\s-]+/).map((w) => w[0]).join('').slice(0, 3).toUpperCase();
+  ctx.font = `bold ${Math.round(s * (ini.length > 2 ? 0.62 : 0.8))}px Segoe UI`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = s * 0.12; ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+  ctx.strokeText(ini, 0, 0.18 * s);
+  ctx.fillStyle = '#fff'; ctx.fillText(ini, 0, 0.18 * s);
+  ctx.restore();
+}
+
+
+
+
+
+function drawLineup(t, tm) {
+  // фон студии в цветах клуба
+  const g = ctx.createLinearGradient(0, 0, VW, VH);
+  g.addColorStop(0, '#0b1119'); g.addColorStop(1, '#16263a');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+  ctx.save();
+  ctx.globalAlpha = 0.25; ctx.fillStyle = tm.color === '#ffffff' ? tm.color2 : tm.color;
+  ctx.beginPath(); ctx.moveTo(VW * 0.55, 0); ctx.lineTo(VW, 0); ctx.lineTo(VW, VH); ctx.lineTo(VW * 0.4, VH); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // мини-поле со схемой
+  const px = 36, py = 30, pw = 380, ph = 530;
+  const slide = ease(t / 0.5);
+  ctx.save();
+  ctx.translate(lerp(-460, 0, slide), 0);
+  for (let i = 0; i < 8; i++) { ctx.fillStyle = i % 2 ? '#2e7d32' : '#388e3c'; ctx.fillRect(px, py + i * ph / 8, pw, ph / 8); }
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 2;
+  ctx.strokeRect(px, py, pw, ph);
+  ctx.beginPath(); ctx.moveTo(px, py + ph / 2); ctx.lineTo(px + pw, py + ph / 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(px + pw / 2, py + ph / 2, 50, 0, 7); ctx.stroke();
+  ctx.strokeRect(px + pw / 2 - 90, py + ph - 66, 180, 66);
+  ctx.strokeRect(px + pw / 2 - 90, py, 180, 66);
+  const rows = tm.lineup;
+  rows.forEach((r, i) => {
+    const y = py + ph - 40 - i * (ph - 100) / (rows.length - 1);
+    r.forEach((p, j) => {
+      const x = px + (j + 1) * pw / (r.length + 1);
+      const idx = rows.slice(0, i).reduce((s, rr) => s + rr.length, 0) + j;
+      const k = ease((t - 0.4 - idx * 0.12) / 0.35);
+      if (k <= 0) return;
+      ctx.save();
+      ctx.translate(x, y); ctx.scale(k, k);
+      const gk = p.pos === 'ВРТ';
+      ctx.beginPath(); ctx.arc(0, 0, 17, 0, 7);
+      ctx.fillStyle = gk ? tm.gk : tm.color; ctx.fill();
+      if (tm.stripes && !gk) { ctx.save(); ctx.clip(); ctx.fillStyle = tm.color2; for (const sx of [-10, 2]) ctx.fillRect(sx, -17, 7, 34); ctx.restore(); }
+      ctx.lineWidth = 3; ctx.strokeStyle = gk ? '#fff' : tm.color2; ctx.stroke();
+      ctx.font = 'bold 15px Segoe UI'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(String(p.num), 0, 1);
+      ctx.fillStyle = '#fff'; ctx.fillText(String(p.num), 0, 1);
+      ctx.font = 'bold 12px Segoe UI'; ctx.lineWidth = 3;
+      ctx.strokeText(p.name, 0, 29, pw / (r.length + 0.6)); ctx.fillText(p.name, 0, 29, pw / (r.length + 0.6));
+      ctx.restore();
+    });
+  });
+  ctx.restore();
+
+  // заголовок и список
+  const lx = 460;
+  ctx.save();
+  ctx.globalAlpha = ease((t - 0.2) / 0.4);
+  drawCrest(lx + 34, 62, 30, tm);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+  ctx.font = 'bold 30px Segoe UI'; ctx.fillText(tm.name, lx + 80, 52, 400);
+  ctx.font = 'bold 16px Segoe UI'; ctx.fillStyle = '#9fb3c8';
+  ctx.fillText(`СТАРТОВЫЙ СОСТАВ · СХЕМА ${tm.formation}${tm === TEAMS[G.you] ? ' · ВАША КОМАНДА' : ''}`, lx + 80, 82, 420);
+  ctx.restore();
+  const all = rows.flat();
+  all.forEach((p, i) => {
+    const k = ease((t - 0.5 - i * 0.07) / 0.3);
+    if (k <= 0) return;
+    const y = 120 + i * 30;
+    ctx.save();
+    ctx.globalAlpha = k; ctx.translate((1 - k) * 60, 0);
+    ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)';
+    ctx.fillRect(lx, y - 14, 460, 28);
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 17px Segoe UI'; ctx.textAlign = 'right'; ctx.fillStyle = '#ffd54f';
+    ctx.fillText(String(p.num), lx + 40, y);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#fff';
+    ctx.fillText(p.name, lx + 56, y, 230);
+    ctx.font = '15px Segoe UI'; ctx.fillStyle = '#9fb3c8';
+    ctx.fillText(POS_NAME[p.pos], lx + 300, y);
+    ctx.restore();
+  });
+  // пенальтисты по порядку (и кто выйдет на замену)
+  const k = ease((t - 1.6) / 0.4);
+  if (k > 0) {
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.font = 'bold 14px Segoe UI'; ctx.fillStyle = '#ffd54f'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('БЬЮТ ПЕНАЛЬТИ:', lx, 466);
+    ctx.font = '15px Segoe UI'; ctx.fillStyle = '#fff';
+    const lines = wrapLines(tm.takers.map((p, i) => `${i + 1}. ${p.name}`).join('  '), 460);
+    lines.slice(0, 2).forEach((l, i) => ctx.fillText(l, lx, 488 + i * 20));
+    if (tm.bench.length) {
+      ctx.font = '13px Segoe UI'; ctx.fillStyle = '#9fb3c8';
+      ctx.fillText(`Вышли на замену к серии: ${tm.bench.map((p) => p.name).join(', ')}`, lx, 488 + Math.min(2, lines.length) * 20, 460);
+    }
+    ctx.restore();
+  }
+}
+
+
+function drawIntro() {
+  const sc = INTRO_SCENES[I.scene];
+  if (!sc) return;
+  const t = I.t;
+  drawLineup(t, sc.id === 'lineA' ? TEAMS[G.you] : TEAMS[G.cpu]);
+  if (t < 0.25) { ctx.fillStyle = `rgba(0,0,0,${1 - t / 0.25})`; ctx.fillRect(0, 0, VW, VH); } // плавная склейка
+  ctx.save();
+  // кнопка «Пропустить»
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.beginPath(); ctx.roundRect(SKIP.x, SKIP.y, SKIP.w, SKIP.h, 20); ctx.fill();
+  ctx.fillStyle = '#10161f'; ctx.font = 'bold 18px Segoe UI'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('Пропустить ⏭', SKIP.x + SKIP.w / 2, SKIP.y + SKIP.h / 2 + 1);
+  // точки: какая команда сейчас
+  INTRO_SCENES.forEach((_, i) => {
+    ctx.fillStyle = i === I.scene ? '#ffd54f' : 'rgba(255,255,255,0.35)';
+    ctx.beginPath(); ctx.arc(VW / 2 - (INTRO_SCENES.length - 1) * 9 + i * 18, VH - 16, 4, 0, 7); ctx.fill();
+  });
+  ctx.restore();
+}
+
+</script>
+  <script>
+'use strict';
+// ---------- Тренировка штрафных ----------
+// 10 ударов с разных точек. Между мячом и воротами — стенка из игроков соперника, в воротах — вратарь.
+// Над стенкой — слабым ударом по высокой дуге, в обход — закруткой. Пользуется функциями game.js.
+
+const FK_DIFF = {
+  // sig — насколько вратарь ошибается в оценке полёта (м), delay — когда замечает мяч из-за стенки (с)
+  easy: { wall: -1, keeper: 0.3, sig: 0.85, delay: 0.44, name: 'лёгкая' },
+  normal: { wall: 0, keeper: 0.5, sig: 0.6, delay: 0.38, name: 'средняя' },
+  hard: { wall: 1, keeper: 0.75, sig: 0.35, delay: 0.3, name: 'сложная' },
+};
+const FK_TOTAL = 10;
+const FK_BEST_KEY = 'penalty-fk-best';
+const WALL_DIST = 9.15;
+const FK = { team: 0, diff: 'normal', n: 0, goals: 0, log: [], pos: null, wall: [], side: 1, opp: 1, jumpT: -1, best: {} };
+try { FK.best = JSON.parse(localStorage.getItem(FK_BEST_KEY) || '{}'); } catch (e) { FK.best = {}; }
+
+// ---------- Экран выбора ----------
+function renderFk() {
+  fillClubList($('fk-list'), (i) => FK.team === i, () => false, (i) => { FK.team = i; renderFk(); });
+  const b = FK.best[FK.diff];
+  $('fk-best').textContent = b != null ? `🏅 Рекорд (${FK_DIFF[FK.diff].name}): ${b} из ${FK_TOTAL}` : `Рекорда пока нет — установите первый!`;
+}
+document.querySelectorAll('#fk-diff button').forEach((btn) => {
+  btn.onclick = () => {
+    document.querySelectorAll('#fk-diff button').forEach((x) => x.classList.remove('active'));
+    btn.classList.add('active');
+    FK.diff = btn.dataset.d;
+    renderFk();
+  };
+});
+$('fk-start').onclick = startFreeKicks;
+
+function startFreeKicks() {
+  G.mode = 'fk';
+  G.onFinish = null;
+  FK.n = 0; FK.goals = 0; FK.log = [];
+  do FK.opp = Math.floor(Math.random() * TEAMS.length); while (FK.opp === FK.team);
+  if (!FK.prev) FK.prev = [G.you, G.cpu]; // выбор команд товарищеского матча вернём при выходе
+  G.you = FK.team; G.cpu = FK.opp; G.shooter = 'you';
+  G.particles = []; G.rain = 0; G.party = null; G.celeb = null; G.msg = null;
+  $('again').classList.remove('hidden');
+  $('again').textContent = 'Ещё 10 штрафных';
+  $('back').textContent = 'В меню';
+  ['setup', 'season-view', 'fk-view'].forEach((id) => $(id).classList.add('hidden'));
+  $('over').classList.add('hidden');
+  $('game-view').classList.remove('hidden');
+  fkNewKick();
+}
+
+// Выход из тренировки: возвращаем команды, выбранные для товарищеского матча
+function fkLeave() {
+  if (!FK.prev) return;
+  [G.you, G.cpu] = FK.prev;
+  FK.prev = null;
+  renderTeamLists();
+}
+
+// ---------- Новый штрафной ----------
+function fkNewKick() {
+  // точка удара: 18–28 м от ворот, по центру или сбоку (вне штрафной площади)
+  const d = 18 + Math.random() * 10;
+  const x = (Math.random() * 2 - 1) * (d < 21 ? 7 : 12);
+  FK.pos = { x, d };
+  FK.dist = Math.hypot(x, d);
+  // камера — за мячом, чуть сдвинута к центру, чтобы видеть и мяч, и ворота
+  CAM_D = d + 6; CAM_X = x * 0.85;
+  FK.side = Math.sign(x) || (Math.random() < 0.5 ? -1 : 1); // со стороны какой штанги бьём
+  fkBuildWall();
+  G.ball = { x, y: 0.11, d, vis: true, u: 0, curl: 0 };
+  // вратарь стоит ближе к дальней штанге — ближнюю закрывает стенка
+  G.keeper = { x: -FK.side * (Math.abs(x) > 3 ? 0.4 : 0.25), plan: null, t: 0, landed: false };
+  G.choice = null; G.msg = null; G.ripple = null; G.celeb = null;
+  G.power = 0; G.powerDir = 1;
+  FK.jumpT = -1;
+  const st = TEAMS[FK.team];
+  G.taker = st.takers[FK.n % st.takers.length];
+  G.gkPlayer = TEAMS[FK.opp].keeper;
+  G.aim = { x: -FK.side * 2.4, y: 1.9 };
+  G.phase = 'aim';
+  fkBoard();
+  updateCurlUI();
+  setStatus(`Штрафной ${FK.n + 1} из ${FK_TOTAL}: ${Math.round(FK.dist)} м. Бьёт ${G.taker.name}. В стенке ${FK.wall.length} игрок${FK.wall.length > 4 ? 'ов' : 'а'}. Слабый удар — выше над стенкой, закрутка — в обход.`);
+}
+
+// Стенка в 9,15 м от мяча закрывает ближнюю к мячу половину ворот
+function fkBuildWall() {
+  const { x, d } = FK.pos, dist = FK.dist;
+  const ux = -x / dist, ud = -d / dist;              // направление на центр ворот
+  const c = { x: x + ux * WALL_DIST, d: d + ud * WALL_DIST };
+  const px = -ud, pd = ux;                           // поперёк линии удара
+  // куда в створе «проецируется» точка стенки (луч от мяча через неё до линии ворот)
+  const toGoal = (o) => { const wx = c.x + px * o, wd = c.d + pd * o; return x + (wx - x) * d / (d - wd); };
+  const g0 = toGoal(0), g1 = toGoal(1) - g0;
+  const n = clamp((dist < 22 ? 4 : 3) + FK_DIFF[FK.diff].wall + (Math.abs(x) > 8 ? -1 : 0), 2, 5);
+  const oOut = (FK.side * (GW + 0.25) - g0) / g1;   // крайний игрок закрывает ближнюю штангу
+  const step = -FK.side * Math.sign(g1) * 0.56;      // остальные — к центру ворот
+  const opp = TEAMS[FK.opp];
+  const field = opp.lineup.flat().filter((p) => p.pos !== 'ВРТ');
+  FK.wall = [];
+  for (let k = 0; k < n; k++) {
+    const o = oOut + step * (k + 0.5);
+    const pl = field[(k * 3 + FK.n) % field.length];
+    FK.wall.push({ x: c.x + px * o, d: c.d + pd * o, num: pl.num, name: pl.name, ph: Math.random() * 6 });
+  }
+}
+const wallJump = () => (FK.jumpT < 0 ? 0 : Math.max(0, Math.sin(Math.min(1, FK.jumpT / 0.62) * Math.PI)) * 0.38);
+
+// ---------- Траектория ----------
+// Слабый удар летит по высокой дуге, сильный — низом. Закрутка на большой дистанции заметнее.
+function fkPoint(u, aim, power, curl) {
+  const f = FK.pos, k = (FK.dist / 11) * 0.7;
+  const arc = 0.4 + (1 - power) * 2.0;
+  return {
+    x: lerp(f.x, aim.x, u) + curlOffset(curl, u) * k,
+    y: lerp(0.11, aim.y, u) + Math.sin(Math.PI * u) * arc,
+    d: lerp(f.d, 0, u),
+  };
+}
+
+function fkShoot() {
+  const p = G.power, curl = G.curl, cfg = FK_DIFF[FK.diff];
+  const sigma = (0.24 + Math.pow(p, 3) * 0.55 + Math.abs(curl) * 0.1) * (FK.dist / 20);
+  const target = {
+    x: G.aim.x + randn() * sigma,
+    y: Math.max(0.11, G.aim.y + randn() * sigma * 0.8 + Math.max(0, p - 0.85) * 4),
+  };
+  const dur = FK.dist / (14 + p * 16);
+  const at = (u) => fkPoint(u, target, p, curl);
+  const b = {
+    from: { x: FK.pos.x, y: 0.11, d: FK.pos.d }, target, power: p, curl, dur, u: 0,
+    x: FK.pos.x, y: 0.11, d: FK.pos.d, vis: true, result: 'goal', wallU: null,
+  };
+  // 1) стенка (она подпрыгивает в момент удара)
+  let wallHit = null;
+  for (const w of FK.wall) {
+    const u = (b.from.d - w.d) / b.from.d;
+    const pt = at(u);
+    const jumpAt = Math.max(0, Math.sin(Math.min(1, (u * dur) / 0.62) * Math.PI)) * 0.38;
+    if (Math.abs(pt.x - w.x) < 0.34 && pt.y < 1.88 + jumpAt && (!wallHit || u < wallHit)) wallHit = u;
+  }
+  // 2) вратарь: из-за стенки видит мяч поздно, но реагирует на полёт — медленный мяч он успевает достать.
+  //    Закрутка и сила мешают точно оценить, куда летит мяч.
+  const k = G.keeper;
+  const sig = cfg.sig * (1 + Math.abs(curl) * 0.5);
+  const H = { x: target.x + randn() * sig, y: clamp(target.y + randn() * sig * 0.7, 0.2, 2.4) };
+  // на медленный мяч вратарь не прыгает сразу, а выжидает, чтобы долететь в момент его прихода
+  const delay = Math.max(cfg.delay, dur - SET - 0.5);
+  k.plan = planDive(k.x, H, target, p, curl, cfg.keeper, delay, dur, false);
+  k.t = 0; k.landed = false;
+  if (wallHit != null) { b.result = 'wall'; b.wallU = wallHit; }
+  else if (Math.abs(target.x) > GW + POST || target.y > GH + POST) b.result = 'miss';
+  else {
+    const save = fkKeeperTouch(at, k, dur, p, curl, cfg.keeper);
+    if (save) Object.assign(b, { result: 'save', caught: save.caught, part: save.part });
+    else {
+      const ax = Math.abs(target.x);
+      const hitPost = ax > GW - POST, hitBar = target.y > GH - POST;
+      if (hitPost || hitBar) {
+        const inside = Math.min(hitPost ? (GW + POST - ax) / (2 * POST) : 1, hitBar ? (GH + POST - target.y) / (2 * POST) : 1);
+        const part = hitBar && !hitPost ? 'bar' : 'post';
+        if (Math.random() < clamp(0.15 + inside * 0.6, 0.1, 0.75)) b.postIn = part;
+        else { b.result = 'post'; b.postPart = part; }
+      }
+    }
+  }
+  G.ball = b;
+  FK.jumpT = 0;
+  G.phase = 'flight';
+  updateCurlUI();
+  setStatus('');
+}
+
+function fkKeeperTouch(at, k, dur, power, curl, skill) {
+  const handR = (0.2 + skill * 0.1) * (1 - power * 0.25) * (1 - Math.abs(curl) * 0.15);
+  const uK = 1 - 0.3 / FK.pos.d;
+  for (const u of [uK - 0.006, uK, (uK + 1) / 2, 1]) {
+    const ball = at(u);
+    const pose = keeperPose(k, dur * u);
+    for (const sg of keeperSegments(pose, handR)) {
+      if (segDist(ball, sg.a, sg.b) < sg.r + 0.11) {
+        return { caught: sg.part !== 'leg' && power < 0.6 && Math.abs(curl) < 0.5 && Math.random() < 0.55, part: sg.part };
+      }
+    }
+  }
+  return null;
+}
+
+// ---------- Обновление ----------
+function fkUpdate(dt) {
+  if (G.msg) G.msgT += dt;
+  updateParticles(dt);
+  if (FK.jumpT >= 0) FK.jumpT += dt;
+  if (G.phase === 'charge') {
+    G.power += G.powerDir * dt * 0.95;
+    if (G.power >= 1) { G.power = 1; G.powerDir = -1; }
+    if (G.power <= 0) { G.power = 0; G.powerDir = 1; }
+  }
+  const k = G.keeper;
+  if (k.plan) k.t += dt;
+  else if (G.phase === 'aim' || G.phase === 'charge') k.x += (-FK.side * (Math.abs(FK.pos.x) > 3 ? 0.4 : 0.25) + Math.sin(G.time * 2) * 0.15 - k.x) * Math.min(1, dt * 3);
+
+  const b = G.ball;
+  if (G.phase === 'flight') {
+    b.u += dt / b.dur;
+    const u = Math.min(1, b.u);
+    if (b.result === 'wall' && u >= b.wallU) { fkFinish(); return; }
+    Object.assign(b, fkPoint(u, b.target, b.power, b.curl));
+    if (b.u >= 1) fkFinish();
+  } else if (G.phase === 'after') {
+    G.afterT += dt;
+    if (b.attach) { // мяч в руках вратаря
+      const pose = keeperPose(k, k.t);
+      const l = handLocal(-1, pose.arms), r = handLocal(1, pose.arms);
+      const h = toWorld(pose, (l.x + r.x) / 2, (l.y + r.y) / 2);
+      b.x = h.x; b.y = Math.max(0.11, h.y); b.d = 0.4;
+    } else {
+      b.x += b.vx * dt; b.y += b.vy * dt; b.d += b.vd * dt;
+      b.vy -= 9.8 * dt;
+      if (b.y < 0.11) { b.y = 0.11; b.vy = -b.vy * 0.45; b.vx *= 0.8; b.vd *= 0.8; }
+      if (b.result === 'goal' && b.d < -1.7) { b.d = -1.7; b.vd = 0; b.vx *= 0.5; }
+      if (b.result === 'goal' && Math.abs(b.x) > GW - 0.2 && Math.sign(b.vx) === Math.sign(b.x)) { b.x = Math.sign(b.x) * (GW - 0.2); b.vx = 0; }
+      if (b.d < -8) b.vis = false;
+    }
+    if (G.afterT > (b.result === 'goal' ? 2.8 : 1.9)) fkNext();
+  }
+}
+
+function fkFinish() {
+  const b = G.ball, res = b.result;
+  const sx = Math.sign(b.target.x) || 1;
+  if (res === 'wall') { b.vx = (Math.random() - 0.5) * 4; b.vy = 2 + Math.random() * 2; b.vd = 5 + Math.random() * 3; G.shake = 0.15; }
+  else if (res === 'goal' && b.postIn === 'post') { b.vx = -sx * (2.5 + Math.random() * 2); b.vy = 0.5 + Math.random(); b.vd = -4; G.shake = 0.3; }
+  else if (res === 'goal' && b.postIn === 'bar') { b.vx = (Math.random() - 0.5) * 2; b.vy = -4; b.vd = -3.5; G.shake = 0.3; }
+  else if (res === 'goal') { b.vx = (b.target.x - b.from.x) / b.dur * 0.15; b.vy = 0; b.vd = -7; }
+  else if (res === 'save') {
+    if (b.caught) b.attach = true;
+    else {
+      const pose = keeperPose(G.keeper, G.keeper.t);
+      b.vx = (Math.sign(b.target.x - pose.x) || sx) * (1.5 + Math.random() * 3);
+      b.vy = b.part === 'leg' ? 1 : 2.5 + Math.random() * 2;
+      b.vd = 3 + Math.random() * 4;
+    }
+  } else if (res === 'post' && b.postPart === 'bar') { b.vx = (Math.random() - 0.5) * 2; b.vy = 3; b.vd = 6; G.shake = 0.25; }
+  else if (res === 'post') { b.vx = sx * (0.5 + Math.random()); b.vy = 1.5; b.vd = 6; G.shake = 0.25; }
+  else { b.vx = (b.target.x - b.from.x) / b.dur; b.vy = 0; b.vd = -b.from.d / b.dur; }
+  b.vx = b.vx || 0; b.vy = b.vy || 0; b.vd = b.vd || 0;
+
+  const scored = res === 'goal';
+  if (scored) FK.goals++;
+  FK.log.push(scored);
+  const curlTxt = Math.abs(b.curl) > 0.5;
+  const sub = {
+    goal: b.postIn ? `${G.taker.name}: от ${b.postIn === 'bar' ? 'перекладины' : 'штанги'} — в сетку!`
+      : curlTxt ? `${G.taker.name}: мяч обогнул стенку!` : b.power < 0.55 ? `${G.taker.name}: над стенкой — в ворота!` : `${G.taker.name}: какой удар!`,
+    wall: 'Мяч попал в стенку',
+    save: `${G.gkPlayer.name} ${b.caught ? 'забирает мяч' : 'отбивает'}!`,
+    post: b.postPart === 'bar' ? 'Перекладина!' : 'Штанга!',
+    miss: 'Мимо ворот',
+  }[res];
+  const text = { goal: 'ГОЛ!', wall: 'СТЕНКА!', save: 'СЕЙВ!', post: 'ШТАНГА!', miss: 'МИМО!' }[res];
+  G.msg = { text, color: scored ? '#66bb6a' : '#ef5350', sub };
+  G.msgT = 0;
+  if (scored) {
+    const t = TEAMS[FK.team], pt = project(b.target.x, b.target.y, 0);
+    G.ripple = { x: b.target.x, y: b.target.y, t: 0 };
+    G.shake = Math.max(G.shake, 0.35);
+    burst(pt.x, pt.y, [t.color, t.color2, '#ffffff'], 120, 1);
+  }
+  G.phase = 'after';
+  G.afterT = 0;
+  fkBoard();
+}
+
+function fkNext() {
+  FK.n++;
+  if (FK.n < FK_TOTAL) { fkNewKick(); return; }
+  G.phase = 'over';
+  const prev = FK.best[FK.diff];
+  const record = prev == null || FK.goals > prev;
+  if (record) {
+    FK.best[FK.diff] = FK.goals;
+    try { localStorage.setItem(FK_BEST_KEY, JSON.stringify(FK.best)); } catch (e) { /* без сохранения */ }
+  }
+  const verdict = FK.goals >= 7 ? 'Мастер штрафных! 🏆' : FK.goals >= 4 ? 'Хорошая тренировка! 👍' : 'Есть над чем поработать 💪';
+  $('over-title').textContent = record && FK.goals > 0 ? `🏅 Новый рекорд: ${FK.goals} из ${FK_TOTAL}!` : `Забито ${FK.goals} из ${FK_TOTAL}`;
+  $('over-score').textContent = `${verdict}${!record ? ` Рекорд: ${prev} из ${FK_TOTAL}.` : ''} Сложность: ${FK_DIFF[FK.diff].name}.`;
+  $('over').classList.remove('hidden');
+  if (FK.goals >= 5) {
+    const t = TEAMS[FK.team];
+    G.rain = 4; G.rainColors = [t.color, t.color2, '#ffd54f', '#ffffff'];
+  }
+  G.msg = null;
+  fkBoard();
+  setStatus(`Тренировка окончена: ${FK.goals} из ${FK_TOTAL}.`);
+}
+
+// ---------- Табло ----------
+function fkBoard() {
+  const t = TEAMS[FK.team];
+  let dots = '';
+  for (let i = 0; i < FK_TOTAL; i++) dots += `<span class="dot ${i < FK.log.length ? (FK.log[i] ? 'goal' : 'miss') : ''}"></span>`;
+  const best = FK.best[FK.diff];
+  $('board').innerHTML = `<div class="board-row turn">
+      <div class="board-name"><span class="badge" style="${badgeStyle(t)}"></span><span>${t.name} · штрафные${best != null ? ` · рекорд ${best}` : ''}</span></div>
+      <div class="dots">${dots}</div>
+      <div class="board-score">${FK.goals}</div>
+    </div>`;
+}
+
+// ---------- Отрисовка ----------
+function fkDraw() {
+  ctx.clearRect(0, 0, VW, VH);
+  ctx.save();
+  if (G.shake > 0) { const m = G.shake * 14; ctx.translate((Math.random() - 0.5) * m, (Math.random() - 0.5) * m); }
+  drawBackground();
+  drawNet();
+  const b = G.ball;
+  const behind = b && b.d < -0.05;
+  if (behind) drawBall();
+  drawKeeper(TEAMS[FK.opp]);
+  drawFrame();
+  // стенка и мяч — по глубине: что дальше от камеры, рисуется раньше
+  const wallD = FK.wall.length ? Math.min(...FK.wall.map((w) => w.d)) : 0;
+  const ballFirst = b && !behind && b.d < wallD;
+  if (ballFirst) drawBall();
+  fkDrawWall();
+  if (b && !behind && !ballFirst) drawBall();
+  drawAim();
+  drawNames();
+  fkDrawInfo();
+  ctx.restore();
+  drawMessage();
+  drawParticles();
+}
+
+function fkDrawWall() {
+  const opp = TEAMS[FK.opp];
+  const j = wallJump();
+  const list = [...FK.wall].sort((a, c) => a.d - c.d);
+  for (const w of list) {
+    const P = {
+      x: w.x, d: w.d, y: 0.95 + j, rot: 0,
+      armL: 0.35, armR: 0.35, foreL: -0.9, foreR: -0.9, // руки прикрывают корпус
+      legs: j > 0.05 ? 0.25 : 0, kneel: false, sit: false, bow: 0, front: true, eyesClosed: false, label: null, serious: true,
+    };
+    drawFigure(P, opp, w.num, w.name);
+  }
+}
+
+function fkDrawInfo() {
+  const txt = `Штрафной ${Math.min(FK.n + 1, FK_TOTAL)}/${FK_TOTAL} · ${Math.round(FK.dist)} м`;
+  ctx.save();
+  ctx.font = 'bold 16px Segoe UI';
+  const w = ctx.measureText(txt).width + 24;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.beginPath(); ctx.roundRect(VW / 2 - w / 2, VH - 44, w, 30, 15); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(txt, VW / 2, VH - 29);
+  ctx.restore();
+}
+
+</script>
+  <script>
+'use strict';
+// ---------- Сезон: чемпионаты, Лига чемпионов и Лига Европы ----------
+// Сначала все шесть чемпионатов (10 туров). После них стартуют еврокубки:
+//   1-е места лиг → Лига чемпионов, 2-е места → Лига Европы.
+// Все матчи решаются серией пенальти. Чемпионат: строго 5 ударов, при равенстве ничья
+// (победа 3, ничья 1, поражение 0). Кубки: при равенстве — до первого промаха.
+
+const SKEY = 'penalty-season-v1';
+const LEAGUE_ROUNDS = 10;   // туров в одном круге календаря (дальше календарь повторяется)
+const TARGET_POINTS = 20;   // чемпионат лиги заканчивается, когда кто-то набирает 20 очков
+const CUPS = {
+  CL: { name: 'Лига чемпионов', acc: 'Лигу чемпионов', short: 'ЛЧ', icon: '⭐', place: 1 },
+  EL: { name: 'Лига Европы', acc: 'Лигу Европы', short: 'ЛЕ', icon: '🟠', place: 2 },
+};
+// 6 участников: двое лучших сразу в полуфинале, остальные играют 1/4 финала
+const CUP_STAGES = ['1/4 финала', '1/2 финала', 'Финал'];
+const CUP_TIES = [2, 2, 1];
+
+let S = null;          // состояние сезона
+let seasonTab = null;  // открытая вкладка (лига / 'CL' / 'EL' / 'История')
+let seasonPick = null; // выбранный клуб на экране старта
+
+const tIdx = (name) => TEAMS.findIndex((t) => t.name === name);
+const tObj = (name) => TEAMS[tIdx(name)];
+const badge = (name) => `<span class="badge sm" style="${badgeStyle(tObj(name))}"></span>`;
+
+function shuffle(a) {
+  a = a.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Двухкруговой турнир (метод «карусели»): 6 клубов → 10 туров по 3 матча
+function roundRobin(names) {
+  const n = names.length, arr = names.slice(), rounds = [];
+  for (let r = 0; r < n - 1; r++) {
+    const pairs = [];
+    for (let i = 0; i < n / 2; i++) {
+      const a = arr[i], b = arr[n - 1 - i];
+      pairs.push(r % 2 ? [b, a] : [a, b]);
+    }
+    rounds.push(pairs);
+    arr.splice(1, 0, arr.pop());
+  }
+  return rounds.concat(rounds.map((rd) => rd.map(([a, b]) => [b, a])));
+}
+
+// Быстрая серия пенальти по рейтингам клубов.
+// allowDraw — матч чемпионата: строго 5 ударов, при равенстве ничья. Иначе (кубок) — до победы.
+function simShootout(a, b, allowDraw = false) {
+  const ra = tObj(a).rating, rb = tObj(b).rating;
+  const pa = clamp(0.74 + (ra - rb) * 0.006, 0.55, 0.9);
+  const pb = clamp(0.74 + (rb - ra) * 0.006, 0.55, 0.9);
+  let ga = 0, gb = 0, ka = 0, kb = 0;
+  const done = () => ga + (5 - ka) < gb || gb + (5 - kb) < ga;
+  while (ka < 5) {
+    ga += Math.random() < pa ? 1 : 0; ka++;
+    if (done()) break;
+    gb += Math.random() < pb ? 1 : 0; kb++;
+    if (done()) break;
+  }
+  while (!allowDraw && ga === gb) { ga += Math.random() < pa ? 1 : 0; gb += Math.random() < pb ? 1 : 0; }
+  return { ga, gb };
+}
+
+// Победа — 3 очка, ничья — 1, поражение — 0
+const emptyRow = () => ({ p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 });
+function applyResult(table, a, b, ga, gb) {
+  const A = table[a], B = table[b];
+  A.p++; B.p++;
+  A.gf += ga; A.ga += gb; B.gf += gb; B.ga += ga;
+  if (ga > gb) { A.w++; A.pts += 3; B.l++; }
+  else if (gb > ga) { B.w++; B.pts += 3; A.l++; }
+  else { A.d = (A.d || 0) + 1; B.d = (B.d || 0) + 1; A.pts += 1; B.pts += 1; }
+}
+const byStanding = (x, y) => y.pts - x.pts || (y.gf - y.ga) - (x.gf - x.ga) || y.gf - x.gf;
+function sortedTable(season, lg) {
+  const tb = season.tables[lg];
+  return Object.keys(tb)
+    .map((name) => ({ name, ...tb[name] }))
+    .sort((x, y) => byStanding(x, y) || x.name.localeCompare(y.name));
+}
+
+function newSeason(my, prev) {
+  const schedule = {}, tables = {}, results = {};
+  for (const lg of LEAGUE_ORDER) {
+    const names = shuffle(TEAMS.filter((t) => t.league === lg).map((t) => t.name));
+    schedule[lg] = roundRobin(names);
+    tables[lg] = Object.fromEntries(names.map((n) => [n, emptyRow()]));
+    results[lg] = [];
+  }
+  S = {
+    year: prev ? prev.year + 1 : 2026,
+    my, lstep: 0, schedule, tables, results,
+    ended: {}, // лига → после какого тура закончилась (кто-то набрал 20 очков)
+    cups: null, // появятся после окончания чемпионатов
+    lastStep: null, finished: false,
+    history: prev ? prev.history : [],
+  };
+  seasonTab = tObj(my).league;
+  save();
+}
+
+// Сохранение в браузере может быть недоступно (например, во встроенном окне) — тогда игра просто не запоминает сезон
+function save() { try { localStorage.setItem(SKEY, JSON.stringify(S)); } catch (e) { /* без сохранения */ } }
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SKEY));
+    // если состав клубов поменялся — старое сохранение не подходит
+    if (s && tIdx(s.my) >= 0 && LEAGUE_ORDER.every((lg) => s.tables[lg] && Object.keys(s.tables[lg]).every((n) => tIdx(n) >= 0))) S = s;
+  } catch (e) { S = null; }
+  migrate();
+  migrateTarget();
+}
+
+// Сохранения до правила «до 20 очков»
+function migrateTarget() {
+  if (!S || S.ended) return;
+  S.ended = {};
+  for (const lg of LEAGUE_ORDER) {
+    if (S.cups || sortedTable(S, lg)[0].pts >= TARGET_POINTS) S.ended[lg] = S.lstep;
+  }
+  if (leagueDone() && !S.cups) createCups();
+  save();
+}
+
+// Старые сохранения: еврокубки шли параллельно с чемпионатом — теперь только после него
+function migrate() {
+  if (!S || 'cups' in S) return;
+  if (S.lstep === undefined) {
+    const old = ['L0', 'L1', 'C0', 'L2', 'L3', 'C1', 'L4', 'L5', 'C2', 'L6', 'L7', 'L8', 'C3', 'L9'];
+    S.lstep = old.slice(0, S.step || 0).filter((c) => c[0] === 'L').length;
+  }
+  delete S.step; delete S.cstage; delete S.cl;
+  S.cups = null;
+  S.finished = false;
+  if (S.lastStep && S.lastStep.mine && S.lastStep.mine.comp === 'ЛЧ') S.lastStep = null;
+  save();
+}
+
+// ---------- Ход сезона ----------
+const leagueEnded = (lg) => !!S.ended && S.ended[lg] !== undefined;
+const leagueDone = () => LEAGUE_ORDER.every(leagueEnded);
+const leader = (lg) => sortedTable(S, lg)[0];
+const cupDone = (key) => !!S.cups && S.cups[key].stage >= CUP_STAGES.length;
+
+// Участники кубка, отсортированные по выступлению в чемпионате (для посева)
+function cupEntrants(place) {
+  return LEAGUE_ORDER.map((lg) => ({ ...sortedTable(S, lg)[place - 1], league: lg }))
+    .sort((x, y) => byStanding(x, y) || tObj(y.name).rating - tObj(x.name).rating);
+}
+function makeCup(place) {
+  const seeds = cupEntrants(place).map((r) => r.name);
+  return {
+    seeds, byes: [seeds[0], seeds[1]],
+    stages: [[[seeds[2], seeds[5]], [seeds[3], seeds[4]]]],
+    results: [], stage: 0,
+  };
+}
+function createCups() {
+  S.cups = { CL: makeCup(CUPS.CL.place), EL: makeCup(CUPS.EL.place) };
+}
+const myCup = () => (!S.cups ? null : S.cups.CL.seeds.includes(S.my) ? 'CL' : S.cups.EL.seeds.includes(S.my) ? 'EL' : null);
+
+function stepFixtures(kind) {
+  if (kind === 'L') {
+    // играют только лиги, где ещё никто не набрал 20 очков; после 10-го тура календарь идёт по новому кругу
+    const idx = S.lstep, fixtures = [];
+    for (const lg of LEAGUE_ORDER) {
+      if (leagueEnded(lg)) continue;
+      for (const [a, b] of S.schedule[lg][idx % LEAGUE_ROUNDS]) fixtures.push({ comp: lg, a, b });
+    }
+    return { kind, idx, title: `${idx + 1}-й тур чемпионатов`, fixtures };
+  }
+  const cup = S.cups[kind], idx = cup.stage;
+  return {
+    kind, idx, title: `${CUPS[kind].name} — ${CUP_STAGES[idx]}`,
+    fixtures: cup.stages[idx].map(([a, b]) => ({ comp: CUPS[kind].short, a, b })),
+  };
+}
+const myFixture = (st) => st.fixtures.find((f) => f.a === S.my || f.b === S.my);
+
+// Проводит текущий тур турнира kind ('L', 'CL' или 'EL'). myRes — результат матча игрока, если он играл сам
+function playStep(kind, myRes) {
+  const st = stepFixtures(kind);
+  const mine = myFixture(st);
+  const out = st.fixtures.map((f) => {
+    const r = f === mine && myRes ? myRes : simShootout(f.a, f.b, kind === 'L');
+    return { ...f, ga: r.ga, gb: r.gb, mine: f === mine };
+  });
+  if (kind === 'L') {
+    for (const r of out) applyResult(S.tables[r.comp], r.a, r.b, r.ga, r.gb);
+    for (const lg of LEAGUE_ORDER) {
+      if (leagueEnded(lg)) continue;
+      S.results[lg].push(out.filter((r) => r.comp === lg));
+      if (leader(lg).pts >= TARGET_POINTS) S.ended[lg] = S.lstep + 1; // лига завершена после этого тура
+    }
+    S.lstep++;
+    if (leagueDone()) createCups(); // чемпионаты закончились — определились участники еврокубков
+  } else {
+    const cup = S.cups[kind];
+    const res = out.map((r) => ({ ...r, w: r.ga > r.gb ? r.a : r.b }));
+    cup.results[st.idx] = res;
+    if (st.idx === 0) cup.stages[1] = [[cup.byes[0], res[1].w], [cup.byes[1], res[0].w]];
+    if (st.idx === 1) cup.stages[2] = [[res[0].w, res[1].w]];
+    cup.stage++;
+  }
+  const myRow = out.find((r) => r.mine);
+  if (myRow) S.lastStep = { title: st.title, mine: myRow }; // «прошлый матч» — последний сыгранный вами
+  if (leagueDone() && cupDone('CL') && cupDone('EL') && !S.finished) {
+    S.finished = true;
+    const champs = Object.fromEntries(LEAGUE_ORDER.map((lg) => [lg, sortedTable(S, lg)[0].name]));
+    S.history.unshift({ year: S.year, champs, cl: S.cups.CL.results[2][0].w, el: S.cups.EL.results[2][0].w });
+  }
+  save();
+}
+
+// Играет ваш следующий матч в турнире kind
+function playMyMatch(kind) {
+  const st = stepFixtures(kind);
+  const f = myFixture(st);
+  const opp = f.a === S.my ? f.b : f.a;
+  G.you = tIdx(S.my);
+  G.cpu = tIdx(opp);
+  G.mode = 'season';
+  G.allowDraw = kind === 'L'; // в чемпионате ничья возможна, в кубках — нет
+  G.matchTitle = kind === 'L' ? `${TEAMS[G.you].league} · ${(st.idx % LEAGUE_ROUNDS) + 1}-й тур` : `${CUPS[kind].name} · ${CUP_STAGES[st.idx]}`;
+  G.onFinish = (you, cpu) => {
+    playStep(kind, f.a === S.my ? { ga: you, gb: cpu } : { ga: cpu, gb: you });
+    autoAdvance();
+  };
+  startShootout();
+}
+
+// После чемпионата: стадии кубков без вашего матча проходят сами (если вас нет в кубке,
+// вы выбыли или у вас «пропуск» в 1/4 финала)
+function autoAdvance() {
+  // ваша лига уже закончилась — остальные лиги доигрываются сами, до своих 20 очков
+  let guard = 0;
+  while (!leagueDone() && leagueEnded(tObj(S.my).league) && guard++ < 100) playStep('L', null);
+  if (!leagueDone()) return;
+  for (const key of ['CL', 'EL']) {
+    while (!cupDone(key) && !myFixture(stepFixtures(key))) playStep(key, null);
+  }
+}
+
+// ---------- Экран сезона ----------
+const seasonLabel = (y) => `${y}/${String((y + 1) % 100).padStart(2, '0')}`;
+const scoreLine = (r, bold = true) => {
+  const aw = r.ga > r.gb, bw = r.gb > r.ga;
+  return `<span class="${aw && bold ? 'win' : ''}">${badge(r.a)}${r.a}</span>
+    <b class="sc">${r.ga}:${r.gb}</b>
+    <span class="${bw && bold ? 'win' : ''}">${r.b}${badge(r.b)}</span>${r.ga === r.gb ? ' <span class="muted">ничья</span>' : ''}`;
+};
+const cupWinner = (key) => (cupDone(key) ? S.cups[key].results[2][0].w : null);
+
+function cupState(key) {
+  if (!leagueDone()) return '🔒 после чемпионата';
+  if (cupDone(key)) return 'завершена';
+  return CUP_STAGES[S.cups[key].stage];
+}
+
+function renderSeason() {
+  const root = $('season-root');
+  if (!S) {
+    root.innerHTML = `
+      <div class="panel">
+        <h2>Новый сезон — выберите клуб</h2>
+        <p class="muted">Шесть чемпионатов по 6 клубов. Чемпионат лиги идёт, пока какой-нибудь клуб не наберёт <b>${TARGET_POINTS} очков</b> —
+        после этого тура лига завершается. Все матчи решаются серией пенальти:
+        победа — 3 очка, ничья — 1, поражение — 0 (в чемпионате бьют строго по 5 ударов, при равенстве — ничья).</p>
+        <p class="muted">Когда чемпионаты закончатся, начнутся еврокубки: <b>1-е место</b> каждой лиги попадает в
+        <b>Лигу чемпионов</b>, <b>2-е место</b> — в <b>Лигу Европы</b>. В кубках при равенстве бьют до первого промаха.</p>
+        <div id="season-clubs" class="team-list tall"></div>
+        <button id="season-start" class="primary" ${seasonPick ? '' : 'disabled'}>Начать сезон${seasonPick ? ' за «' + seasonPick + '»' : ''}</button>
+      </div>`;
+    fillClubList($('season-clubs'), (i) => TEAMS[i].name === seasonPick, () => false, (i) => { seasonPick = TEAMS[i].name; renderSeason(); });
+    $('season-start').onclick = () => { newSeason(seasonPick); renderSeason(); };
+    return;
+  }
+
+  autoAdvance();
+  const me = tObj(S.my);
+  if (!seasonTab) seasonTab = me.league; // после перезагрузки страницы — лига своего клуба
+  const kind = seasonTab === 'CL' || seasonTab === 'EL' ? seasonTab : 'L';
+  const myPos = sortedTable(S, me.league).findIndex((r) => r.name === S.my) + 1;
+  const qual = myCup();
+  let next = '';
+
+  if (S.finished) {
+    const h = S.history[0];
+    next = `
+      <h3>🏁 Сезон ${seasonLabel(S.year)} завершён</h3>
+      <p>Ваш клуб занял <b>${myPos}-е место</b> в лиге «${me.league}».</p>
+      <div class="champs">
+        <div class="champ cl">⭐ Лига чемпионов: ${badge(h.cl)}<b>${h.cl}</b></div>
+        <div class="champ el">🟠 Лига Европы: ${badge(h.el)}<b>${h.el}</b></div>
+        ${LEAGUE_ORDER.map((lg) => `<div class="champ">${lg}: ${badge(h.champs[lg])}${h.champs[lg]}</div>`).join('')}
+      </div>
+      <button id="season-next" class="primary">Начать сезон ${seasonLabel(S.year + 1)}</button>`;
+  } else if (kind === 'L') {
+    if (leagueDone()) {
+      const where = qual ? `и играет в <b>${CUPS[qual].acc}</b> — откройте вкладку «${CUPS[qual].icon} ${CUPS[qual].name}».`
+        : 'и не попал в еврокубки.';
+      next = `<h3>Чемпионат завершён</h3><p>Ваш клуб занял <b>${myPos}-е место</b> ${where}</p>`;
+    } else {
+      const st = stepFixtures('L');
+      const f = myFixture(st);
+      next = `<h3>${st.title}</h3>
+        <div class="my-match">${badge(f.a)}<b>${f.a}</b> <span class="vs">—</span> <b>${f.b}</b>${badge(f.b)}<span class="comp">${f.comp}</span></div>
+        <div class="btn-row"><button id="season-play" class="primary">▶ Играть серию пенальти</button></div>
+        <p class="muted small">Очки во всех лигах начисляются, когда вы сыграете этот матч: вместе с ним проходят все матчи тура.</p>`;
+    }
+  } else {
+    const C = CUPS[kind];
+    if (!leagueDone()) {
+      const ld = leader(me.league);
+      next = `<h3>🔒 ${C.name} ещё не началась</h3>
+        <p>Еврокубки стартуют, когда закончатся все чемпионаты — в каждой лиге кто-то должен набрать ${TARGET_POINTS} очков.
+        В ${C.acc} попадают клубы, занявшие <b>${C.place}-е место</b> в своих лигах.</p>
+        <p class="muted small">Лидер лиги «${me.league}»: ${ld.name} — ${ld.pts} из ${TARGET_POINTS} очков. Ваш клуб — ${myPos}-й.</p>`;
+    } else if (qual !== kind) {
+      next = `<h3>${C.icon} ${C.name}</h3><p class="muted">Ваш клуб не играет в этом турнире
+        ${qual ? `— он в турнире «${CUPS[qual].name}».` : `(${myPos}-е место в чемпионате).`}</p>
+        ${cupWinner(kind) ? `<p>Победитель: ${badge(cupWinner(kind))}<b>${cupWinner(kind)}</b></p>` : ''}`;
+    } else if (cupDone(kind)) {
+      const w = cupWinner(kind);
+      next = `<h3>${C.icon} ${C.name} завершена</h3><p>Победитель: ${badge(w)}<b>${w}</b>${w === S.my ? ' — это ваш клуб! 🏆' : ''}</p>`;
+    } else {
+      const st = stepFixtures(kind);
+      const f = myFixture(st);
+      next = `<h3>${st.title}</h3>
+        <div class="my-match">${badge(f.a)}<b>${f.a}</b> <span class="vs">—</span> <b>${f.b}</b>${badge(f.b)}<span class="comp">${f.comp}</span></div>
+        <div class="btn-row"><button id="season-play" class="primary">▶ Играть серию пенальти — ${C.name}</button></div>
+        <p class="muted small">Кубковый матч: при равенстве после 5 ударов — до первого промаха. Вместе с ним проходят все матчи стадии.</p>`;
+    }
+  }
+
+  const last = S.lastStep && S.lastStep.mine
+    ? `<div class="last">Прошлый матч (${S.lastStep.title}): ${scoreLine(S.lastStep.mine)}${S.lastStep.mine.ga !== S.lastStep.mine.gb ? ' <span class="muted">по пенальти</span>' : ''}</div>` : '';
+  // прогресс: чемпионат — по очкам лидера вашей лиги (до 20), затем стадии кубков
+  const leagueFrac = leagueDone() ? 1 : Math.min(1, leader(me.league).pts / TARGET_POINTS);
+  const progress = leagueFrac * LEAGUE_ROUNDS + (S.cups ? S.cups.CL.stage + S.cups.EL.stage : 0);
+
+  const tabs = [...LEAGUE_ORDER.map((l) => [l, l]), ['CL', '⭐ Лига чемпионов'], ['EL', '🟠 Лига Европы'], ['История', 'История']];
+  root.innerHTML = `
+    <div class="panel season-head">
+      <div class="sh-top">
+        <div class="sh-club">${badge(S.my)}<div><b>${S.my}</b><div class="muted">${me.league} · сезон ${seasonLabel(S.year)}</div></div></div>
+        <div class="sh-progress"><div class="muted">Чемпионат: ${leagueDone() ? 'завершён' : `тур ${S.lstep + 1}, до ${TARGET_POINTS} очков`} · ЛЧ: ${cupState('CL')} · ЛЕ: ${cupState('EL')}</div>
+          <div class="bar"><div style="width:${(progress / (LEAGUE_ROUNDS + 2 * CUP_STAGES.length)) * 100}%"></div></div></div>
+      </div>
+      <div class="next">${next}</div>
+      ${last}
+    </div>
+    <div class="tabs">${tabs.map(([id, label]) => `<button data-tab="${id}" class="${id === seasonTab ? 'active' : ''}">${label}</button>`).join('')}</div>
+    <div class="panel" id="season-tab"></div>
+    <button id="season-reset" class="link">Начать заново с выбора клуба</button>`;
+
+  root.querySelectorAll('.tabs button').forEach((b) => { b.onclick = () => { seasonTab = b.dataset.tab; renderSeason(); }; });
+  const play = $('season-play'), nx = $('season-next');
+  if (play) play.onclick = () => playMyMatch(kind);
+  if (nx) nx.onclick = () => { newSeason(S.my, S); renderSeason(); };
+  // Подтверждение прямо на кнопке (системные окна confirm на iPad/во встроенном окне могут не работать)
+  const reset = $('season-reset');
+  reset.onclick = () => {
+    if (!reset.dataset.armed) {
+      reset.dataset.armed = '1';
+      reset.textContent = 'Точно удалить сезон? Нажмите ещё раз';
+      setTimeout(() => { if (reset.isConnected) { delete reset.dataset.armed; reset.textContent = 'Начать заново с выбора клуба'; } }, 4000);
+      return;
+    }
+    try { localStorage.removeItem(SKEY); } catch (e) { /* без сохранения */ }
+    S = null; seasonPick = null;
+    renderSeason();
+  };
+
+  const box = $('season-tab');
+  if (kind !== 'L') box.innerHTML = cupHtml(kind);
+  else if (seasonTab === 'История') box.innerHTML = historyHtml();
+  else box.innerHTML = leagueHtml(seasonTab);
+}
+
+function leagueHtml(lg) {
+  const rows = sortedTable(S, lg);
+  const body = rows.map((r, i) => `<tr class="${r.name === S.my ? 'me' : ''} ${i === 0 ? 'ucl' : i === 1 ? 'uel' : ''}">
+      <td class="pos">${i + 1}</td>
+      <td class="club">${badge(r.name)}${r.name}</td>
+      <td>${r.p}</td><td>${r.w}</td><td>${r.d || 0}</td><td>${r.l}</td>
+      <td>${r.gf}–${r.ga}</td><td>${r.gf - r.ga > 0 ? '+' : ''}${r.gf - r.ga}</td>
+      <td class="pts">${r.pts}</td></tr>`).join('');
+  const lastRound = S.results[lg][S.results[lg].length - 1];
+  const res = lastRound
+    ? `<h4>Результаты ${S.results[lg].length}-го тура</h4><div class="results">${lastRound.map((r) => `<div class="res ${r.mine ? 'me' : ''}">${scoreLine(r)}</div>`).join('')}</div>`
+    : '<p class="muted">Чемпионат ещё не начался.</p>';
+  const ld = rows[0];
+  const status = leagueEnded(lg)
+    ? `<div class="lg-status done">🏁 Чемпионат завершён после ${S.ended[lg]}-го тура: ${badge(ld.name)}<b>${ld.name}</b> набрал ${ld.pts} очков.</div>`
+    : `<div class="lg-status">Играется до ${TARGET_POINTS} очков · лидер: ${badge(ld.name)}${ld.name} — <b>${ld.pts}</b>
+       <div class="bar"><div style="width:${Math.min(100, (ld.pts / TARGET_POINTS) * 100)}%"></div></div></div>`;
+  return `
+    ${status}
+    <table class="tbl">
+      <thead><tr><th>#</th><th class="club">Клуб</th><th title="Игры">И</th><th title="Победы">В</th><th title="Ничьи">Н</th><th title="Поражения">П</th><th title="Забитые–пропущенные пенальти">Пен.</th><th title="Разница">±</th><th title="Очки">О</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+    <div class="legend"><span class="lg ucl"></span>1-е место — Лига чемпионов <span class="lg uel"></span>2-е место — Лига Европы</div>
+    ${res}`;
+}
+
+function cupHtml(key) {
+  const C = CUPS[key];
+  if (!S.cups) {
+    // До конца чемпионата — кто сейчас идёт на нужном месте
+    const now = cupEntrants(C.place);
+    return `<p class="muted">${C.icon} ${C.name} начнётся после окончания чемпионатов. Участники — клубы, занявшие
+      ${C.place}-е место в своих лигах. Двое лучших по очкам сразу выходят в 1/2 финала.</p>
+      <h4>Сейчас на ${C.place}-м месте</h4>
+      <div class="results">${now.map((r) => `<div class="res ${r.name === S.my ? 'me' : ''}">${badge(r.name)}${r.name} <span class="muted">· ${r.league}, ${r.pts} очк.</span></div>`).join('')}</div>`;
+  }
+  const cup = S.cups[key];
+  const cols = CUP_STAGES.map((name, i) => {
+    const pairs = cup.stages[i] || [], results = cup.results[i] || [];
+    let boxes = '';
+    for (let k = 0; k < CUP_TIES[i]; k++) {
+      const p = pairs[k], r = results[k];
+      if (!p) { boxes += '<div class="tie empty"><div>—</div><div>—</div></div>'; continue; }
+      const row = (n, g, win) => `<div class="${win ? 'win' : r ? 'lose' : ''} ${n === S.my ? 'me' : ''}">${badge(n)}<span>${n}</span><b>${r ? g : ''}</b></div>`;
+      boxes += `<div class="tie">${row(p[0], r && r.ga, r && r.w === p[0])}${row(p[1], r && r.gb, r && r.w === p[1])}</div>`;
+    }
+    if (i === 0) boxes += `<div class="byes muted small">Сразу в 1/2 финала:<br>${cup.byes.map((n) => `${badge(n)}<span class="${n === S.my ? 'me-name' : ''}">${n}</span>`).join('<br>')}</div>`;
+    return `<div class="col"><h4>${name}</h4><div class="col-ties">${boxes}</div></div>`;
+  }).join('');
+  const w = cupWinner(key);
+  return `${w ? `<div class="cl-winner">🏆 Победитель: ${badge(w)}<b>${w}</b></div>` : ''}
+    <div class="bracket cup">${cols}</div>
+    <p class="muted small">Участники — ${C.place}-е места всех шести лиг; двое лучших по очкам получили пропуск в 1/2 финала. Все стадии — один матч, серия пенальти.</p>`;
+}
+
+function historyHtml() {
+  if (!S.history.length) return '<p class="muted">Здесь появятся чемпионы завершённых сезонов.</p>';
+  return `<table class="tbl hist"><thead><tr><th>Сезон</th><th>Лига чемпионов</th><th>Лига Европы</th>${LEAGUE_ORDER.map((l) => `<th>${l}</th>`).join('')}</tr></thead><tbody>
+    ${S.history.map((h) => `<tr><td>${seasonLabel(h.year)}</td><td class="club">${badge(h.cl)}${h.cl}</td><td class="club">${h.el ? badge(h.el) + h.el : '—'}</td>${LEAGUE_ORDER.map((l) => `<td class="club">${badge(h.champs[l])}${h.champs[l]}</td>`).join('')}</tr>`).join('')}
+  </tbody></table>`;
+}
+
+// ---------- Навигация ----------
+function showView(v) {
+  fsOff();
+  fkLeave();
+  document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
+  $('game-view').classList.add('hidden');
+  G.phase = 'idle';
+  G.party = null;
+  $('setup').classList.toggle('hidden', v !== 'friendly');
+  $('season-view').classList.toggle('hidden', v !== 'season');
+  $('fk-view').classList.toggle('hidden', v !== 'fk');
+  if (v === 'season') renderSeason();
+  if (v === 'fk') renderFk();
+}
+document.querySelectorAll('#nav button').forEach((b) => { b.onclick = () => showView(b.dataset.view); });
+
+load();
+
+</script>
+</body>
+</html>

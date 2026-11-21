@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Barabu — игры в браузере</title>
+<meta name="description" content="Barabu — бесплатные игры в браузере: футбольный симулятор «Серия пенальти» и 3D-игра «Машинки». Без скачивания, на компьютере, телефоне и планшете.">
+<meta name="theme-color" content="#0f1522">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Barabu — игры в браузере">
+<meta property="og:description" content="Футбольный симулятор и Машинки — играй бесплатно, без скачивания.">
+<meta property="og:image" content="https://barabu.ru/img/cars.png">
+<meta property="og:locale" content="ru_RU">
+<link rel="icon" type="image/png" href="cars/icon-180.png">
+<style>
+  /* Mobile-first: базовые стили для телефона, ниже — планшет, десктоп, телефон в альбомной ориентации */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh; min-height: 100dvh;
+    background: #0f1522 radial-gradient(ellipse at top, #1d2a44 0%, #0f1522 60%) no-repeat;
+    color: #f1f3f5;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    display: flex; flex-direction: column;
+    -webkit-tap-highlight-color: transparent;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  header { text-align: center; padding: 28px 16px 4px; }
+  .logo {
+    margin: 0; font-size: 48px; font-weight: 900; letter-spacing: -0.03em; line-height: 1.05;
+    background: linear-gradient(90deg, #ffd23f, #ff6b6b 50%, #4dabf7);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  header p { margin: 8px 0 0; font-size: 15px; color: #adb5bd; }
+
+  main {
+    flex: 1; width: 100%; max-width: 560px; margin: 0 auto;
+    padding: 20px 16px;
+    display: grid; grid-template-columns: 1fr; gap: 18px;
+    align-content: center;
+  }
+
+  .game {
+    position: relative; display: flex; flex-direction: column;
+    border-radius: 20px; overflow: hidden;
+    text-decoration: none; color: inherit; background: #1a2233;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    transition: transform .25s ease, box-shadow .25s ease;
+    outline-offset: 4px;
+    touch-action: manipulation;
+  }
+  .game:active { transform: scale(.98); }
+  .game:focus-visible { outline: 3px solid #ffd23f; }
+  .game img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; transition: transform .4s ease; }
+
+  /* На телефоне подпись под картинкой, чтобы не закрывать иллюстрацию */
+  .caption {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 16px 16px;
+  }
+  .caption h2 { margin: 0; font-size: 20px; font-weight: 800; line-height: 1.2; }
+  .caption span { display: block; margin-top: 4px; font-size: 13px; color: #ced4da; }
+  .play {
+    flex: none; min-height: 44px; padding: 0 20px; border-radius: 999px;
+    display: inline-flex; align-items: center;
+    background: #ffd23f; color: #1a1a1a; font-weight: 800; font-size: 15px;
+    transition: background .2s;
+  }
+
+  footer { text-align: center; padding: 16px; color: #6c757d; font-size: 13px; }
+
+  /* Очень узкие телефоны */
+  @media (max-width: 359px) {
+    .caption { flex-direction: column; align-items: stretch; }
+    .play { justify-content: center; }
+  }
+
+  /* Планшет: две карточки в ряд, подпись под картинкой */
+  @media (min-width: 640px) {
+    header { padding-top: 48px; }
+    .logo { font-size: 68px; }
+    header p { font-size: 18px; }
+    main { max-width: 1280px; grid-template-columns: repeat(2, 1fr); gap: 24px; padding: 32px 24px; }
+    .game { border-radius: 22px; }
+    .caption { flex-direction: column; align-items: flex-start; padding: 16px 18px 18px; }
+    .caption h2 { font-size: 22px; }
+    .caption span { font-size: 14px; }
+  }
+
+  /* Десктоп: подпись поверх картинки */
+  @media (min-width: 1024px) {
+    header { padding-top: clamp(40px, 7vh, 72px); }
+    .logo { font-size: 88px; }
+    header p { font-size: 20px; }
+    main { gap: 36px; padding: clamp(28px, 5vh, 56px) 32px; }
+    .game { display: block; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .caption {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      flex-direction: row; align-items: flex-end;
+      padding: 56px 24px 22px;
+      background: linear-gradient(transparent, rgba(8,12,20,.9));
+    }
+    .caption h2 { font-size: clamp(26px, 2.4vw, 34px); }
+    .caption span { font-size: 16px; }
+    .play { font-size: 18px; min-height: 48px; padding: 0 24px; }
+  }
+
+  /* Наведение мышью — только на устройствах с курсором */
+  @media (hover: hover) and (pointer: fine) {
+    .game:hover { transform: translateY(-6px) scale(1.015); box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+    .game:hover img { transform: scale(1.04); }
+    .game:hover .play { background: #ffe066; }
+  }
+
+  /* Телефон в альбомной ориентации: компактная шапка, две карточки в ряд */
+  @media (orientation: landscape) and (max-height: 520px) {
+    header { padding: 12px 16px 0; }
+    .logo { font-size: 34px; }
+    header p { display: none; }
+    main { max-width: 900px; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 12px 16px; }
+    .game { display: flex; }
+    .game img { aspect-ratio: 16 / 9; }
+    .caption { position: static; flex-direction: row; align-items: center; padding: 10px 12px; background: none; }
+    .caption h2 { font-size: 17px; }
+    .caption span { display: none; }
+    .play { min-height: 38px; padding: 0 14px; font-size: 14px; }
+    footer { padding: 8px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .game, .game img { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1 class="logo">Barabu</h1>
+    <p>Игры прямо в браузере — без скачивания</p>
+  </header>
+
+  <main>
+    <a class="game" href="football/">
+      <img src="img/football.svg" width="1200" height="750" alt="Футбольный симулятор: удар по воротам, вратарь в прыжке">
+      <div class="caption">
+        <div>
+          <h2>⚽ Футбольный симулятор</h2>
+          <span>Серия пенальти, сезон и штрафные</span>
+        </div>
+        <div class="play">Играть</div>
+      </div>
+    </a>
+
+    <a class="game" href="cars/">
+      <img src="img/cars.png" width="1200" height="630" alt="Машинки: красная машина едет по городу">
+      <div class="caption">
+        <div>
+          <h2>🚗 Машинки</h2>
+          <span>Город, трюки и погони с полицией</span>
+        </div>
+        <div class="play">Играть</div>
+      </div>
+    </a>
+  </main>
+
+  <footer>© <span id="y">2026</span> barabu.ru</footer>
+  <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+</html>

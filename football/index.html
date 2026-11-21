@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Пенальти">
+  <meta name="theme-color" content="#0b1119">
+  <title>Серия пенальти — футбольный симулятор</title>
+  <link rel="stylesheet" href="style.css?v=32">
+</head>
+<body>
+  <header>
+    <h1>⚽ Серия пенальти</h1>
+    <nav id="nav">
+      <button data-view="friendly" class="active">Товарищеский матч</button>
+      <button data-view="season">🏆 Сезон и Лига чемпионов</button>
+      <button data-view="fk">🎯 Тренировка штрафных</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Экран настройки -->
+    <section id="setup" class="panel">
+      <div class="setup-grid">
+        <div>
+          <h2>Ваша команда</h2>
+          <div id="you-list" class="team-list"></div>
+        </div>
+        <div>
+          <h2>Соперник</h2>
+          <div id="cpu-list" class="team-list"></div>
+        </div>
+      </div>
+      <div class="setup-row">
+        <h2>Сложность</h2>
+        <div id="diff" class="seg">
+          <button data-d="easy">Лёгкая</button>
+          <button data-d="normal" class="active">Средняя</button>
+          <button data-d="hard">Сложная</button>
+        </div>
+      </div>
+      <div class="howto">
+        <p><b>Удар:</b> наведите прицел на ворота, зажмите кнопку мыши (или палец), чтобы набрать силу, и отпустите. Сильный удар труднее взять, но легче промахнуться.</p>
+        <p><b>Закрутка:</b> до удара настройте её регулятором под полем (или клавишами <kbd>←</kbd><kbd>→</kbd>) — пунктирная линия покажет, по какой дуге полетит мяч. Закрученный мяч вратарю брать сложнее, но точность чуть падает.</p>
+        <p><b>Вратарь:</b> пока соперник разбегается, кликните в воротах — вратарь прыгнет точно в эту точку (насколько хватит прыжка). Можно и клавишами <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> (верх) / <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> (низ). Мяч, попавший в руки, тело или ноги, отбивается.</p>
+        <p>По 5 ударов, при равенстве — до первого промаха.</p>
+      </div>
+      <button id="start" class="primary">Начать серию</button>
+    </section>
+
+    <!-- Тренировка штрафных -->
+    <section id="fk-view" class="panel hidden">
+      <div class="fk-top">
+        <div>
+          <h2>Кто бьёт штрафные</h2>
+          <div id="fk-list" class="team-list"></div>
+        </div>
+        <div class="fk-side">
+          <h2>Сложность</h2>
+          <div id="fk-diff" class="seg">
+            <button data-d="easy">Лёгкая</button>
+            <button data-d="normal" class="active">Средняя</button>
+            <button data-d="hard">Сложная</button>
+          </div>
+          <div id="fk-best" class="fk-best"></div>
+          <div class="howto">
+            <p><b>10 штрафных</b> с разных точек: от 18 до 28 метров, по центру и сбоку.</p>
+            <p>Между мячом и воротами стоит <b>стенка</b> — в момент удара она подпрыгивает. Обвести её можно двумя способами:</p>
+            <p>• <b>Над стенкой</b> — бейте слабее: мяч летит выше, по дуге, но медленнее.<br>• <b>В обход</b> — закрутите мяч регулятором под полем и бейте сильнее.</p>
+            <p>Пунктир показывает, как полетит мяч. Вратарь из-за стенки видит удар поздно — но в угол, который не закрыт, он успевает.</p>
+          </div>
+          <button id="fk-start" class="primary">Начать тренировку</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Сезон: таблицы лиг и Лига чемпионов -->
+    <section id="season-view" class="hidden">
+      <div id="season-root"></div>
+    </section>
+
+    <!-- Игра -->
+    <section id="game-view" class="hidden">
+      <div id="board" class="board"></div>
+      <div class="canvas-wrap">
+        <canvas id="game" width="960" height="600"></canvas>
+        <!-- Значок «на весь экран» -->
+        <button id="fs-btn" class="fs-btn" title="На весь экран (F)" aria-label="На весь экран">
+          <svg class="fs-open" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          <svg class="fs-close" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+        </button>
+        <div id="over" class="over hidden">
+          <div class="over-card">
+            <div>
+              <h2 id="over-title"></h2>
+              <p id="over-score"></p>
+            </div>
+            <div class="over-btns">
+              <button id="again" class="primary">Ещё серию</button>
+              <button id="back">Сменить команды</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Закрутка: настраивается до удара -->
+      <div id="curl-bar" class="curl-bar">
+        <span class="curl-label">🌀 Закрутка мяча</span>
+        <button id="curl-left" title="Сильнее влево">⟲</button>
+        <input type="range" id="curl" min="-100" max="100" step="5" value="0" aria-label="Закрутка мяча">
+        <button id="curl-right" title="Сильнее вправо">⟳</button>
+        <span id="curl-val" class="curl-val">без закрутки</span>
+        <button id="curl-reset" title="Без закрутки">0</button>
+      </div>
+      <p id="status" class="status"></p>
+    </section>
+  </main>
+
+  <script src="game.js?v=32"></script>
+  <script src="intro.js?v=32"></script>
+  <script src="freekick.js?v=32"></script>
+  <script src="season.js?v=32"></script>
+</body>
+</html>
