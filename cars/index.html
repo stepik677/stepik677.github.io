@@ -1035,6 +1035,7 @@
     else if (d === 2) type = r < .4 ? 'office' : r < .6 ? 'parking' : r < .8 ? 'park' : 'downtown';
     else type = r < .55 ? 'residential' : r < .72 ? 'lake' : r < .88 ? 'park' : 'parking';
     if (i === 0 && j === 0) type = 'residential';
+    if ((type === 'office' || type === 'parking') && (i + 2 * j) % 3 === 0) type = 'roofpark';   // дом с заездом на крышу
     const b = { x, y, lx, ly, type, ops: [] };
     const op = f => b.ops.push(f);
 
@@ -1077,6 +1078,15 @@
         drawLines(lines);
       });
       addTree(lx + 14, ly + 14, 14); addTree(lx + LS - 14, ly + LS - 14, 14);
+    }
+
+    else if (type === 'roofpark') {
+      // невысокий дом с плоской крышей; с западной улицы на крышу ведёт пандус
+      const H = 52, bx0 = lx + 150, by0 = ly + 30, bw = LS - 170, bh = LS - 60;
+      op(() => { ctx.fillStyle = PAT.paving; ctx.fillRect(lx, ly, LS, LS); });
+      addObs({ t: 'r', x: bx0, y: by0, w: bw, h: bh, top: H - 14 });   // стена, пока ты внизу; с пандуса заезжаешь на крышу
+      b.roof = { x: bx0, y: by0, w: bw, h: bh, H, cx: bx0 + bw / 2, cy: by0 + bh / 2, rampX0: x, rampW: 120 };
+      addTree(lx + 60, ly + 34, 14); addTree(lx + 60, ly + LS - 34, 14);
     }
 
     else if (type === 'parking') {
@@ -1245,7 +1255,7 @@
     for (const t of [125, BS / 2, BS - 125]) {
       addLamp(x + t, y + 7, 0, -1);
       addLamp(x + t, y + BS - 7, 0, 1);
-      addLamp(x + 7, y + t, -1, 0);
+      if (!(type === 'roofpark' && t === BS / 2)) addLamp(x + 7, y + t, -1, 0);   // фонарь не стоит на пандусе
       addLamp(x + BS - 7, y + t, 1, 0);
     }
     blocks.push(b);
@@ -2125,6 +2135,12 @@
   PLATS.push({ cx: roadPos(6) + ROAD_W / 2, cy: (roadPos(1) + ROAD_W + roadPos(2)) / 2, ux: 0, uy: 1, L: roadPos(2) - roadPos(1) - ROAD_W, Wd: ROAD_W, h0: ROOF, h1: ROOF, bot: ROOF - 8 }); // крыша второго тоннеля
   // трамплины-«кикеры» в конце моста и на краю крыши
   RAMPS.push({ kick: true, base: DECK, cx: BX[2] - 40, cy: CY, d: 0, ux: 1, uy: 0, L: 80, H: 16, Wd: ROAD_W - 20, vzCap: 150, minVz: 130, boost: 590 });
+  for (const b of blocks) if (b.roof) {
+    const Rf = b.roof;
+    PLATS.push({ cx: (Rf.rampX0 + Rf.x) / 2, cy: Rf.cy, ux: 1, uy: 0, L: Rf.x - Rf.rampX0, Wd: Rf.rampW, h0: 0, h1: Rf.H, bot: 0, roof: true });   // пандус
+    PLATS.push({ cx: Rf.cx, cy: Rf.cy, ux: 1, uy: 0, L: Rf.w, Wd: Rf.h, h0: Rf.H, h1: Rf.H, bot: 0, roof: true });                                  // крыша
+    RAMPS.push({ kick: true, base: Rf.H, cx: Rf.x + Rf.w - 40, cy: Rf.cy, d: 0, ux: 1, uy: 0, L: 80, H: 16, Wd: 120, vzCap: 160, minVz: 120 });   // трамплин с крыши
+  }
   RAMPS.push({ kick: true, base: ROOF, cx: BX[4] - 45, cy: CY, d: 0, ux: 1, uy: 0, L: 90, H: 18, Wd: ROAD_W - 20, vzCap: 150, minVz: 130, boost: 540 });
   // перила на мосту и стены тоннелей (bot/top — по какой высоте они твёрдые)
   addObs({ t: 'r', x: BX[1], y: roadPos(5), w: BX[2] - BX[1], h: 5, bot: DECK, top: DECK + 14 });
@@ -2250,6 +2266,33 @@
         for (const side of [-1, 1]) { const lip = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, r.Wd), rubberMat); lip.position.set(side * (half - 1.5), .6, 0); grp.add(lip); }
         const crest = new THREE.Mesh(new THREE.BoxGeometry(3, 1.4, r.Wd + .5), trimMat); crest.position.set(0, r.H + .3, 0); grp.add(crest);
       }
+      scene.add(grp);
+    }
+    // дома с заездом на крышу
+    function roofTex() {
+      const c = document.createElement('canvas'); c.width = c.height = 512;
+      const g = c.getContext('2d');
+      g.fillStyle = '#596068'; g.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 3000; i++) { g.fillStyle = ['#50565e', '#646b73', '#6c737b'][i % 3]; g.fillRect(Math.random() * 512, Math.random() * 512, 2, 2); }
+      g.strokeStyle = '#ffffff'; g.lineWidth = 14; g.strokeRect(10, 10, 492, 492);
+      g.strokeStyle = '#ffd54f'; g.lineWidth = 10; g.beginPath(); g.arc(256, 256, 110, 0, 7); g.stroke();
+      g.fillStyle = '#ffd54f'; g.font = 'bold 150px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('★', 256, 262);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; return t;
+    }
+    const roofMatTop = new THREE.MeshStandardMaterial({ map: roofTex(), roughness: .9 });
+    for (const b of blocks) if (b.roof) {
+      const Rf = b.roof;
+      const fac = new THREE.MeshStandardMaterial({ map: facadeTex('grid', '#b8c4cc'), roughness: .85 });
+      const geo = new THREE.BoxGeometry(Rf.w, Rf.H, Rf.h); scaleBoxUV(geo, Rf.w, Rf.H, Rf.h, 22, 26);
+      const bld = new THREE.Mesh(geo, [fac, fac, roofMatTop, fac, fac, fac]);
+      bld.position.set(Rf.cx, Rf.H / 2, Rf.cy); bld.castShadow = bld.receiveShadow = true; scene.add(bld);
+      const L = Rf.x - Rf.rampX0, grp = new THREE.Group();
+      grp.position.set(Rf.rampX0 + L / 2, 0, Rf.cy);
+      const wedge = new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-L / 2, 0), new THREE.Vector2(L / 2, 0), new THREE.Vector2(L / 2, Rf.H)]), { depth: Rf.rampW, bevelEnabled: false });
+      wedge.translate(0, 0, -Rf.rampW / 2);
+      const wm = new THREE.Mesh(wedge, sideMat); wm.castShadow = wm.receiveShadow = true; grp.add(wm);
+      slope(grp, 0, Rf.H / 2, Math.hypot(L, Rf.H), Rf.rampW, Math.atan2(Rf.H, L), true);
+      const lip = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, Rf.rampW), rubberMat); lip.position.set(-L / 2 + 1.5, .6, 0); grp.add(lip);
       scene.add(grp);
     }
   }
@@ -2413,6 +2456,7 @@
       [BX[2] + ROAD_W / 2, CY, 100, 2], [BX[3] + 140, CY, ROOF + 14, 1], [BX[3] + 300, CY, ROOF + 14, 1],
       [BX[4] + ROAD_W / 2, CY, 88, 2], [(BX[3] + BX[4]) / 2, CY, 14, 1], [roadPos(6) + ROAD_W / 2, (roadPos(1) + ROAD_W + roadPos(2)) / 2, 14, 1],
     ];
+    for (const b of blocks) if (b.roof) course.push([b.roof.cx - 40, b.roof.cy, b.roof.H + 14, 2]);
     for (const [x, y, z, ti] of course) {
       const c = { x, y, z, taken: false, ph: Math.random() * 6, type: COIN_TYPES[ti] };
       c.mesh = new THREE.Mesh(coinGeo, c.type.mat);
@@ -3855,9 +3899,9 @@
     // мост, тоннели, трамплины
     for (const pl of PLATS) {
       const w = pl.ux ? pl.L : pl.Wd, h = pl.ux ? pl.Wd : pl.L, x0 = pl.cx - w / 2, y0 = pl.cy - h / 2;
-      g.fillStyle = pl.h0 !== pl.h1 ? '#b39ddb' : pl.bot >= 50 ? '#7e57c2' : '#37474f';
+      g.fillStyle = pl.roof ? (pl.h0 !== pl.h1 ? '#ff5252' : '#90a4ae') : pl.h0 !== pl.h1 ? '#b39ddb' : pl.bot >= 50 ? '#7e57c2' : '#37474f';
       g.fillRect(x0, y0, w, h);
-      g.strokeStyle = pl.bot >= 50 || pl.h0 !== pl.h1 ? '#ffffff' : '#ffd54f'; g.lineWidth = 12; g.strokeRect(x0, y0, w, h);
+      g.strokeStyle = pl.roof || pl.bot >= 50 || pl.h0 !== pl.h1 ? '#ffffff' : '#ffd54f'; g.lineWidth = 12; g.strokeRect(x0, y0, w, h);
     }
     for (const r of RAMPS) {
       const along = Math.abs(r.ux) > .5, w = along ? r.L : r.Wd, h = along ? r.Wd : r.L;
