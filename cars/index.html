@@ -2185,16 +2185,18 @@
     return c;
   }
   // Твёрдо ли в точке с учётом высоты машины (в полёте можно перелететь деревья и фонари, под мостом — проехать)
+  let climbTol = 12;                                       // на сколько машина может «шагнуть» вверх за кадр (растёт со скоростью)
   function solidAtZ(px, py, zz) {
+    const tol = zz === undefined ? climbTol : 12;
     if (px < 2 || py < 2 || px > WORLD - 2 || py > WORLD - 2) return true;
     const z = zz ?? (car.z || 0);
     for (const r of RAMPS) {
       const [u, v] = rampLocal(r, px, py);
-      if (inside(r, u, v) && rampH(r, u) > z + 12 && r.base < z + 18) return true;
+      if (inside(r, u, v) && rampH(r, u) > z + tol && r.base < z + 18) return true;
     }
     for (const p of PLATS) {
       const [u, v] = rampLocal(p, px, py);
-      if (inside(p, u, v) && platH(p, u) > z + 12 && p.bot < z + 18) return true;
+      if (inside(p, u, v) && platH(p, u) > z + tol && p.bot < z + 18) return true;
     }
     for (const o of grid[((py / CELL) | 0) * GN + ((px / CELL) | 0)]) {
       const top = o.top ?? (o.tall ? 1e9 : 28), bot = o.bot ?? 0;
@@ -2663,8 +2665,12 @@
     car.vx = nfx * fwd - nfy * lat;
     car.vy = nfy * fwd + nfx * lat;
 
+    // на большой скорости за кадр машина проезжает далеко — разрешаем заезжать на склон выше
+    climbTol = 12 + Math.hypot(car.vx, car.vy) * dt * .5;
     const nx = car.x + car.vx * dt, ny = car.y + car.vy * dt;
-    if (!collides(nx, ny, car.angle)) { car.x = nx; car.y = ny; }
+    const blocked = collides(nx, ny, car.angle);
+    climbTol = 12;
+    if (!blocked) { car.x = nx; car.y = ny; }
     else {
       const impact = Math.hypot(car.vx, car.vy);
       if (impact > 90) {
