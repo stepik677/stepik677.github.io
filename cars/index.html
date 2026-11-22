@@ -947,6 +947,7 @@
 
   // ================== Генерация города ==================
   const blocks = [];
+  const homeDoors = [];  // двери дома и гаража (анимация)
   let HOME = null;       // твой огромный дом с гаражом (квартал у старта)
   const tall = [];       // объекты с высотой (здания, деревья, фонари)
   const parked = [];     // припаркованные машины
@@ -2167,7 +2168,6 @@
 
   // ================== Трюк-трасса: мост с дыркой → крыша дома → прыжок ==================
   // Платформы — поверхности, по которым можно ездить: h0→h1 — высота в начале и в конце, bot — низ (под мостом можно проехать)
-  const PLATS = [];
   const CY = roadPos(5) + ROAD_W / 2;              // центр дороги, вдоль которой идёт трасса (по оси X)
   const BX = [roadPos(1) + ROAD_W, roadPos(2), roadPos(3), roadPos(3) + ROAD_W, roadPos(4), roadPos(4) + ROAD_W]; // 704, 1152, 1728, 1856, 2304, 2432
   const DECK = 64, ROOF = 50;
@@ -2447,10 +2447,20 @@
     const ceilM = inner('#fffaf0', .45);
     for (const r of [HOME.house, HOME.gar]) {
       box(8, r.H - r.doorH, r.d1 - r.d0, r === HOME.house ? wallFac : garFac, r.x0 + 4, (r.H + r.doorH) / 2, (r.d0 + r.d1) / 2);   // над дверью
-      box(r.w + 6, 6, r.h + 6, roofM, r.x0 + r.w / 2, r.H + 3, r.y0 + r.h / 2);                                                      // крыша
+      box(r.w + 6, 6, r.h + 6, roofM, r.x0 + r.w / 2, r.H + 3, r.y0 + r.h / 2);                                                      // перекрытие
+      { // двускатная черепичная крыша
+        const isH = r === HOME.house, a = r.h / 2 + 10, rh = isH ? 62 : 34, len = Math.hypot(a, rh), ang = Math.atan2(rh, a);
+        const tiles = canvasTex(128, 128, (g, w, h) => { g.fillStyle = isH ? '#b23a2a' : '#546e7a'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 16) { g.fillStyle = isH ? '#8e2a1e' : '#37474f'; g.fillRect(0, y + 12, w, 4); for (let x = (y / 16) % 2 * 8; x < w; x += 16) g.fillRect(x, y, 2, 12); } });
+        tiles.repeat.set((r.w + 16) / 40, len / 40);
+        const tm = new THREE.MeshStandardMaterial({ map: tiles, roughness: .8 });
+        for (const sd of [-1, 1]) { const sl = box(r.w + 16, 3, len + 2, tm, r.x0 + r.w / 2, r.H + 6 + rh / 2, r.y0 + r.h / 2 + sd * a / 2); sl.rotation.x = sd * ang; }
+        const tri = new THREE.Shape(); tri.moveTo(-a + 2, 0); tri.lineTo(a - 2, 0); tri.lineTo(0, rh - 2); tri.closePath();
+        const gm = new THREE.MeshStandardMaterial({ color: isH ? '#ffe0b2' : '#cfd8dc', roughness: .85, side: THREE.DoubleSide });
+        for (const gx of [r.x0 - 1, r.x0 + r.w + 1]) { const gb = new THREE.Mesh(new THREE.ShapeGeometry(tri), gm); gb.rotation.y = Math.PI / 2; gb.position.set(gx, r.H + 6, r.y0 + r.h / 2); gb.castShadow = true; scene.add(gb); }
+        box(r.w + 18, 4, 4, trim, r.x0 + r.w / 2, r.H + 6 + rh + 1, r.y0 + r.h / 2);   // конёк
+        if (isH) { box(16, 30, 16, inner('#8d6e63', .1), r.x0 + r.w * .72, r.H + 6 + rh * .7, r.y0 + r.h / 2 - a * .35); box(19, 3, 19, trim, r.x0 + r.w * .72, r.H + 6 + rh * .7 + 15, r.y0 + r.h / 2 - a * .35); }   // труба
+      }
       box(r.w - 16, .5, r.h - 16, ceilM, r.x0 + r.w / 2, r.H - .3, r.y0 + r.h / 2, false);                                           // потолок
-      for (const sz of [-1, 1]) box(r.w + 8, 4, 3, trim, r.x0 + r.w / 2, r.H + 8, r.y0 + r.h / 2 + sz * (r.h / 2 + 2));             // бортик крыши
-      for (const sx of [-1, 1]) box(3, 4, r.h + 8, trim, r.x0 + r.w / 2 + sx * (r.w / 2 + 2), r.H + 8, r.y0 + r.h / 2);
       for (const dz of [r.d0, r.d1]) box(3, r.doorH, 3, r === HOME.gar ? new THREE.MeshStandardMaterial({ color: '#ffca28' }) : trim, r.x0 - 1, r.doorH / 2, dz);   // косяки
     }
     // пол: паркет в доме, бетон в гараже
@@ -2488,6 +2498,21 @@
     // лампы на потолке
     for (const [lx2, lz2, H] of [[HOME.house.x0 + 80, HOME.house.y0 + HOME.house.h / 2, HOME.house.H], [HOME.house.x0 + 205, HOME.house.y0 + HOME.house.h / 2, HOME.house.H], [HOME.gar.x0 + 95, HOME.gar.y0 + HOME.gar.h / 2, HOME.gar.H]]) {
       const lamp = new THREE.Mesh(new THREE.SphereGeometry(4, 12, 8), new THREE.MeshBasicMaterial({ color: '#fff8e1' })); lamp.position.set(lx2, H - 6, lz2); scene.add(lamp);
+    }
+    // двери: в доме — распашная, в гараже — подъёмные ворота; открываются сами, когда подходишь/подъезжаешь
+    {
+      const H = HOME.house, G = HOME.gar;
+      const dw = H.d1 - H.d0, hinge = new THREE.Group(); hinge.position.set(H.x0 + 1.5, 0, H.d0 + 1); scene.add(hinge);
+      const doorTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#6d3b1f'; g.fillRect(0, 0, w, h); g.strokeStyle = '#4a2612'; g.lineWidth = 4; g.strokeRect(8, 8, 48, 50); g.strokeRect(8, 70, 48, 50); g.fillStyle = '#a5d6ff'; g.fillRect(14, 14, 36, 38); });
+      const leaf = new THREE.Mesh(new THREE.BoxGeometry(3, H.doorH - 1, dw - 2), new THREE.MeshStandardMaterial({ map: doorTex, roughness: .7 }));
+      leaf.position.set(0, (H.doorH - 1) / 2, (dw - 2) / 2); leaf.castShadow = true; hinge.add(leaf);
+      for (const sx of [-2.2, 2.2]) { const kn = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 6), new THREE.MeshStandardMaterial({ color: '#ffd54f', metalness: .8, roughness: .3 })); kn.position.set(sx, H.doorH * .48, dw - 7); hinge.add(kn); }
+      const gw = G.d1 - G.d0, top = new THREE.Group(); top.position.set(G.x0 + 4, G.doorH, (G.d0 + G.d1) / 2); scene.add(top);
+      const garTex = canvasTex(128, 64, (g, w, h) => { g.fillStyle = '#eceff1'; g.fillRect(0, 0, w, h); g.fillStyle = '#b0bec5'; for (let y = 6; y < h; y += 10) g.fillRect(0, y, w, 3); g.fillStyle = '#ffca28'; g.fillRect(0, h - 5, w, 5); });
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(2.5, G.doorH, gw - 2), new THREE.MeshStandardMaterial({ map: garTex, roughness: .6 }));
+      panel.position.set(0, -G.doorH / 2, 0); panel.castShadow = true; top.add(panel);
+      homeDoors.push({ obj: hinge, axis: 'y', max: Math.PI / 2 * .95, x: H.x0, y: (H.d0 + H.d1) / 2, r: 75, k: 0 },
+                     { obj: top, axis: 'z', max: Math.PI / 2 * .97, x: G.x0, y: (G.d0 + G.d1) / 2, r: 110, k: 0 });
     }
     // табличка «ДОМ» над дверью
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(50, 16), new THREE.MeshBasicMaterial({ map: canvasTex(200, 64, (g) => { g.fillStyle = '#ff7043'; g.fillRect(0, 0, 200, 64); g.fillStyle = '#fff'; g.font = 'bold 44px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🏠', 100, 34); }) }));
@@ -4522,6 +4547,11 @@
     updateNav(t); drawMinimap(t); if (mapOpen) drawBigMap(t);
     if (menuOpen) { menuCamera(dt); updateMenuInfo(); } else updateCamera(dt);
     updateVisuals(dt, t);
+    for (const d of homeDoors) {                         // двери сами открываются, когда ты рядом (пешком или на машине)
+      const want = Math.hypot(car.x - d.x, car.y - d.y) < d.r || Math.hypot(vstate.x - d.x, vstate.y - d.y) < 20 ? 1 : 0;
+      d.k += Math.sign(want - d.k) * Math.min(Math.abs(want - d.k), dt * 2.5);
+      const e = d.k * d.k * (3 - 2 * d.k); d.obj.rotation[d.axis] = e * d.max;
+    }
     renderFrame();
     coinsEl.textContent = collected;
     moneyEl.textContent = fmt(save.money);
