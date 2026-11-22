@@ -102,6 +102,24 @@
   #garageBtn { position: fixed; right: 18px; top: 18px; z-index: 6; padding: 10px 18px; border-radius: 999px; border: 0; cursor: pointer;
     background: linear-gradient(#ffd54f, #ffb300); color: #3a2a00; font: 800 17px "Segoe UI", sans-serif; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
   #garageBtn small { font-weight: 500; opacity: .7; }
+  #shop { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; background: rgba(5,10,18,.7); backdrop-filter: blur(4px); }
+  #shopItems { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+  #shopItems h4 { grid-column: 1 / -1; margin: 6px 0 -4px; font-size: 18px; }
+  .sitem { background: #1f2835; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; border: 2px solid transparent; text-align: center; }
+  .sitem.cur { border-color: #ffd54f; }
+  .sitem .ic { font-size: 46px; line-height: 1.1; }
+  .sitem .sw { width: 56px; height: 56px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,.4); }
+  .sitem h3 { margin: 2px 0; font-size: 16px; }
+  .sitem .price { color: #ffd54f; font-weight: 800; }
+  .sitem button { margin-top: auto; width: 100%; padding: 9px; border-radius: 10px; border: 0; font: 700 14px "Segoe UI", sans-serif; cursor: pointer; background: linear-gradient(#66bb6a, #2e7d32); color: #fff; }
+  .sitem button:disabled { background: #3d4b5f; opacity: .75; cursor: default; }
+  #sClose { width: 42px; height: 42px; border-radius: 50%; border: 0; background: #2a3442; color: #fff; font-size: 20px; cursor: pointer; }
+  #actPrompt { position: fixed; left: 50%; bottom: calc(var(--btn) + 46px); transform: translateX(-50%); z-index: 6; display: none; padding: 10px 18px; border-radius: 14px;
+    background: rgba(10,15,22,.86); color: #fff; font: 700 17px "Segoe UI", sans-serif; pointer-events: none; border: 2px solid #ffd54f; white-space: nowrap; }
+  #actPrompt.on { display: block; }
+  #sleepFade { position: fixed; inset: 0; z-index: 30; background: #000; opacity: 0; pointer-events: none; transition: opacity .9s; display: flex; align-items: center; justify-content: center; }
+  #sleepFade.on { opacity: 1; pointer-events: auto; }
+  #sleepFade b { color: #fff; font: 800 clamp(28px, 6vw, 56px) "Segoe UI", sans-serif; }
   #garage { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; background: rgba(5,10,18,.7); backdrop-filter: blur(4px); }
   .gbox { width: min(1100px, 94vw); max-height: 90vh; overflow: auto; background: #151c26; border-radius: 22px; padding: 20px 24px; color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
   .ghead { display: flex; align-items: center; gap: 16px; }
@@ -306,13 +324,22 @@
 <div id="help"><span data-i18n="help"></span><br><span data-i18n="helpExtra"></span><br><span data-i18n="fightHelp"></span><br><span data-i18n="driftHelp"></span></div>
 <div id="hurt"></div>
 <div id="wasted"><b>WASTED</b></div>
+<div id="sleepFade"><b></b></div>
+<div id="prompt"></div>
+<div id="shop">
+  <div class="gbox">
+    <div class="ghead"><h2 id="shopTitle"></h2><div class="pill money">💶 <span id="sMoney">0 €</span></div><button id="sClose">✕</button></div>
+    <div class="ghint" id="shopHint"></div>
+    <div id="shopItems"></div>
+  </div>
+</div>
 <div id="driftMeter"></div>
 <canvas id="minimap"></canvas>
 <div id="bigmap">
   <div class="bmTop"><b data-i18n="mapTitle"></b><button id="bmClear" data-i18n="mapClear"></button><button id="bmClose">✕</button></div>
   <div class="bmBody"><canvas id="bigmapCanvas"></canvas><div class="legend" id="legend"></div></div>
 </div>
-<div id="prompt"></div>
+<div id="actPrompt"></div>
 <div id="msg"></div>
 <div id="pop"></div>
 <div id="wanted"><span data-i18n="chaseBanner"></span></div>
@@ -608,6 +635,21 @@
     zh: ['🌐 多人游戏', '🟢 你已在线！当前玩家：{n}', '⚪ 多人游戏只在 claude.ai 上发布的游戏里可用。', '🔴 无法连接。只有受邀并登录 Claude 的玩家才能一起玩。', '你的名字', '游戏中的玩家', '🚗 去找他', '还没有人——邀请朋友吧！', '邀请朋友：在 claude.ai 打开游戏 →“分享”→ 用邮箱邀请朋友。你们都打开游戏后，就能在城里看到对方。', '👋 {n} 加入了游戏', '{n} 离开了游戏', '玩家', '你'],
   };
   for (const k in NET_TEXT) NET_KEYS.forEach((key, i) => { I18N[k][key] = NET_TEXT[k][i]; });
+  {
+    const SH = {
+      ru: { shFood: '🏪 Магазин 24/7', shClothes: '👕 Магазин одежды', shPaint: '🎨 Покраска машин', shFoodHint: 'Покушай — здоровье восстановится ❤️', shClothesHint: 'Выбери футболку и кепку для своего человечка',
+        shPaintHint: 'Перекрась свою машину: {car}', shBuy: 'Купить', shOn: 'Надето ✓', shNoMoney: 'Не хватает денег 💶 — собирай монеты!', shYum: 'Ням-ням! ❤️ +{n}', shDone: 'Готово! ✨',
+        shPromptShop: 'Нажми {k} — зайти в магазин', shPromptSleep: 'Нажми {k} — лечь спать', shNight: 'Спокойной ночи… 💤', shMorning: '☀️ Доброе утро! Ты выспался',
+        shHotdog: 'Хот-дог', shSoda: 'Газировка', shPizza: 'Пицца', shIce: 'Мороженое', shBurger: 'Бургер', shShirts: 'Футболки', shCaps: 'Кепки', shFactory: 'Заводской цвет', shFree: 'Бесплатно',
+        lgShops: 'Магазины', shSignFood: '24/7', shSignClothes: 'ОДЕЖДА', shSignPaint: 'ПОКРАСКА' },
+      en: { shFood: '🏪 24/7 Store', shClothes: '👕 Clothes Shop', shPaint: '🎨 Paint Shop', shFoodHint: 'Have a snack — it restores your health ❤️', shClothesHint: 'Pick a T-shirt and a cap for your character',
+        shPaintHint: 'Repaint your car: {car}', shBuy: 'Buy', shOn: 'Wearing ✓', shNoMoney: 'Not enough money 💶 — collect coins!', shYum: 'Yum! ❤️ +{n}', shDone: 'Done! ✨',
+        shPromptShop: 'Press {k} — enter the shop', shPromptSleep: 'Press {k} — go to sleep', shNight: 'Good night… 💤', shMorning: '☀️ Good morning! You slept well',
+        shHotdog: 'Hot dog', shSoda: 'Soda', shPizza: 'Pizza', shIce: 'Ice cream', shBurger: 'Burger', shShirts: 'T-shirts', shCaps: 'Caps', shFactory: 'Factory color', shFree: 'Free',
+        lgShops: 'Shops', shSignFood: '24/7', shSignClothes: 'CLOTHES', shSignPaint: 'PAINT' },
+    };
+    for (const k in I18N) Object.assign(I18N[k], SH[k] || SH.en);
+  }
   Object.entries({   // homeFree, homeMoved
     ru: ['Свободный дом', 'Твой дом теперь другой — ищи табличку со своим именем 🏠'],
     en: ['Free house', 'You have a different house now — look for the sign with your name 🏠'],
@@ -980,6 +1022,7 @@
     homeLightAt = best;
     best.lights.forEach(([x, y], k) => homeLights[k].position.set(x, 40, y));
   }
+  const SHOPS = [];      // магазины: еда, одежда, покраска
   const HOMES = [];      // дома с гаражами: у каждого игрока свой
   const HOME_LOTS = ['0,0', '6,0', '0,6', '6,6', '3,6', '6,3'];
   let HOME = null;       // твой дом
@@ -1080,6 +1123,7 @@
     else if (d === 2) type = r < .4 ? 'office' : r < .6 ? 'parking' : r < .8 ? 'park' : 'downtown';
     else type = r < .55 ? 'residential' : r < .72 ? 'lake' : r < .88 ? 'park' : 'parking';
     if (HOME_LOTS.includes(i + ',' + j)) type = 'home';        // дома игроков
+    if (i === 1 && j === 0) type = 'shops';                    // магазины рядом с домом
     if ((type === 'office' || type === 'parking') && (i + 2 * j) % 3 === 0) type = 'roofpark';   // дом с заездом на крышу
     const b = { x, y, lx, ly, type, ops: [] };
     const op = f => b.ops.push(f);
@@ -1181,6 +1225,23 @@
       const hm = { idx: HOME_LOTS.indexOf(i + ',' + j), house, gar, walls, furn, inX: hx + 50, inY: (house.d0 + house.d1) / 2, carX: gar.x0 + 95, carY: (gar.d0 + gar.d1) / 2 };
       HOMES[hm.idx] = hm; b.home = hm;
       addTree(x + 340, y + 60, 20); addTree(x + 360, y + 200, 18); addTree(x + 300, y + 330, 20); addTree(x + 380, y + 400, 16);
+    }
+
+    else if (type === 'shops') {
+      // торговый ряд: три магазина вдоль северной улицы, перед ними площадка, сзади парковка
+      ['food', 'clothes', 'paint'].forEach((kind, k) => {
+        const sh = { kind, x0: lx + 6 + k * 134, y0: ly + 40, w: 124, h: 100, H: 44 };
+        sh.mx = sh.x0 + sh.w / 2; sh.my = sh.y0 - 22;
+        addObs({ t: 'r', x: sh.x0, y: sh.y0, w: sh.w, h: sh.h, tall: true });
+        SHOPS.push(sh);
+      });
+      op(() => {
+        ctx.fillStyle = PAT.paving; ctx.fillRect(lx, ly, LS, 150);
+        ctx.fillStyle = PAT.lot; ctx.fillRect(lx, ly + 150, LS, LS - 150);
+        ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 3;
+        for (let k = 0; k <= 9; k++) for (const yy of [ly + 175, ly + 300]) { const xx = lx + 22 + k * 40; ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx, yy + 70); ctx.stroke(); }
+      });
+      addTree(lx + 16, ly + LS - 16, 16); addTree(lx + LS - 16, ly + LS - 16, 16);
     }
 
     else if (type === 'residential') {
@@ -1466,6 +1527,7 @@
     if (a === 'close') {                                   // Esc: закрыть гараж → открыть/закрыть меню
       if (e.repeat) return;
       if (window.__isMapOpen?.()) window.__toggleMap?.(false);
+      else if (window.__shopOpen?.()) window.__closeShop?.();
       else if (garageOpen) window.__toggleGarage?.(false);
       else if (menuOpen) { if (window.__started) hideStart(); else showPanel('mMain'); }
       else openMenu();
@@ -1473,7 +1535,7 @@
     }
     if (a === 'play') { if (menuOpen && window.__gameReady) hideStart(); return; }
     if (a === 'map') { if (!e.repeat && !menuOpen && !garageOpen) window.__toggleMap?.(); return; }
-    if (menuOpen || garageOpen || window.__isMapOpen?.()) return;   // в меню машина не едет
+    if (menuOpen || garageOpen || window.__isMapOpen?.() || window.__shopOpen?.()) return;   // в меню машина не едет
     if (a === 'exit') { if (!e.repeat) window.__toggleVehicle?.(); return; }
     if (a === 'punch') { if (!e.repeat) window.__punch?.(); return; }
     if (a === 'reset') { if (!e.repeat) newGame(); return; }
@@ -2076,7 +2138,7 @@
     // гонщик — отдельной группой, чтобы он мог слезть с мотоцикла
     const driver = new THREE.Group(); body.add(driver);
     for (const ch of [...body.children]) if ([suit, helmet, visor].includes(ch.material)) driver.add(ch);
-    return { root, tg, body, wheels, pivots, tailMat, r, driver };
+    return { root, tg, body, wheels, pivots, tailMat, r, driver, paint };
   }
 
   function buildCar(spec) {
@@ -2161,7 +2223,7 @@
       add(new THREE.BoxGeometry(1.2, r * 1.25, 4.2), hubMat, 0, 0, 0, w);
       wheels.push(w); pivots.push(pivot);
     }
-    return { root, tg, body, wheels, pivots, tailMat, r, lights, driver };
+    return { root, tg, body, wheels, pivots, tailMat, r, lights, driver, paint };
   }
 
   // ---------- Сохранение: деньги, купленные машины ----------
@@ -2178,6 +2240,7 @@
     player = buildVehicle(spec);
     if (car.onFoot && player.driver) player.driver.visible = false;
     scene.add(player.root);
+    applyPaint();
   }
   setCar(save.current);
 
@@ -2551,6 +2614,49 @@
         strip.rotation.x = -Math.PI / 2; strip.position.set((x0 + x1) / 2, Lp.base + .25, zc); strip.receiveShadow = true; scene.add(strip);
       }
     }
+  }
+
+  // ---------- 3D: магазины ----------
+  const SHOP_INFO = { food: { icon: '🏪', wall: '#2e7d32', sign: '#43a047', key: 'shSignFood' }, clothes: { icon: '👕', wall: '#6a1b9a', sign: '#ab47bc', key: 'shSignClothes' }, paint: { icon: '🎨', wall: '#d84315', sign: '#ff7043', key: 'shSignPaint' } };
+  const shopMarkers = [];
+  for (const S of SHOPS) {
+    const info = SHOP_INFO[S.kind];
+    const ct = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = maxAniso; return tx; };
+    const frontTex = ct(256, 96, (g, w, h) => {
+      g.fillStyle = info.wall; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#fff8e1'; g.fillRect(10, 30, 92, 60); g.fillRect(154, 30, 92, 60);           // витрины (внутри горит свет)
+      g.fillStyle = 'rgba(0,0,0,.25)'; for (const x0 of [10, 154]) for (let r = 0; r < 3; r++) g.fillRect(x0 + 6, 44 + r * 16, 80, 4);   // полки
+      const col = { food: ['#e53935', '#fdd835', '#43a047', '#1e88e5'], clothes: ['#ab47bc', '#1e88e5', '#ff7043', '#26a69a'], paint: ['#e53935', '#1e88e5', '#fdd835', '#8e24aa'] }[S.kind];
+      for (const x0 of [10, 154]) for (let r = 0; r < 3; r++) for (let k = 0; k < 8; k++) { g.fillStyle = col[(k + r) % 4]; g.fillRect(x0 + 8 + k * 10, 36 + r * 16, 7, 8); }
+      g.fillStyle = '#90caf9'; g.fillRect(110, 34, 36, 62); g.fillStyle = '#fff'; g.fillRect(127, 34, 2, 62);   // стеклянная дверь
+      g.strokeStyle = '#eceff1'; g.lineWidth = 3; g.strokeRect(10, 30, 92, 60); g.strokeRect(154, 30, 92, 60); g.strokeRect(110, 34, 36, 62);
+    });
+    const frontM = new THREE.MeshStandardMaterial({ map: frontTex, roughness: .4, emissive: '#ffffff', emissiveMap: frontTex, emissiveIntensity: 0 });
+    frontM.userData.glow = .55; nightFacades.push(frontM);
+    const wallM = new THREE.MeshStandardMaterial({ color: info.wall, roughness: .85 }), roofM = new THREE.MeshStandardMaterial({ color: '#37474f', roughness: .9 });
+    const bld = new THREE.Mesh(new THREE.BoxGeometry(S.w, S.H, S.h), [wallM, wallM, roofM, roofM, wallM, frontM]);
+    bld.position.set(S.x0 + S.w / 2, S.H / 2, S.y0 + S.h / 2); bld.castShadow = bld.receiveShadow = true; scene.add(bld);
+    // светящаяся вывеска
+    const signTex = ct(512, 96, (g, w, h) => {
+      g.fillStyle = info.sign; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 6; g.strokeRect(4, 4, w - 8, h - 8);
+      g.fillStyle = '#fff'; g.font = 'bold 60px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(info.icon + ' ' + t(info.key), w / 2, h / 2 + 3);
+    });
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(S.w - 14, 20), new THREE.MeshBasicMaterial({ map: signTex }));
+    sign.position.set(S.x0 + S.w / 2, S.H + 2, S.y0 - .8); sign.rotation.y = Math.PI; scene.add(sign);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(S.w - 10, 24, 2), roofM); back.position.set(S.x0 + S.w / 2, S.H + 2, S.y0 + .5); scene.add(back);
+    // полосатый навес
+    const awnTex = ct(128, 16, (g, w, h) => { for (let k = 0; k < 8; k++) { g.fillStyle = k % 2 ? '#ffffff' : info.sign; g.fillRect(k * 16, 0, 16, h); } });
+    const awn = new THREE.Mesh(new THREE.BoxGeometry(S.w - 4, 1.5, 16), new THREE.MeshStandardMaterial({ map: awnTex, roughness: .7 }));
+    awn.position.set(S.x0 + S.w / 2, 30, S.y0 - 7); awn.rotation.x = -.25; awn.castShadow = true; scene.add(awn);
+    // маркер входа: светящийся круг на земле, как в больших играх
+    const mk = new THREE.Group(); mk.position.set(S.mx, 0, S.my); scene.add(mk);
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(15, 15, 7, 28, 1, true), new THREE.MeshBasicMaterial({ color: '#ffd54f', transparent: true, opacity: .45, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    ring.position.y = 3.5; mk.add(ring);
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(15, 28).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd54f', transparent: true, opacity: .35, depthWrite: false }));
+    disc.position.y = .8; mk.add(disc);
+    const icoTex = ct(128, 128, (g) => { g.font = '96px "Segoe UI Emoji", "Apple Color Emoji", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(info.icon, 64, 70); });
+    const ico = new THREE.Sprite(new THREE.SpriteMaterial({ map: icoTex, depthWrite: false })); ico.scale.set(16, 16, 1); ico.position.y = 20; mk.add(ico);
+    shopMarkers.push({ ico, ring });
   }
 
   // ---------- 3D: дома и гаражи игроков ----------
@@ -3810,7 +3916,7 @@
       mk(pGeo[kind], kind === 'leg' ? pants : shirt, g); limbs.push(g);
     }
     root.visible = false; scene.add(root);
-    return { root, limbs };
+    return { root, limbs, shirt, capM };
   }
   let fightT = 0;                                          // идёт драка — друзья спешат на помощь
   const foot = { ...buildPerson(), vz: 0, ph: 0, hp: 100, ko: 0, punchT: 0, punchCd: 0, sinceHit: 9 };
@@ -3864,7 +3970,9 @@
   const promptEl = document.getElementById('prompt');
 
   function toggleVehicle() {
-    if (menuOpen || garageOpen || mapOpen) return;
+    if (menuOpen || garageOpen || mapOpen || shopOpen || sleepT > 0) return;
+    { const sh = shopHere(); if (sh) { openShop(sh.kind); return; } }        // у входа в магазин — заходим
+    if (nearBed()) { goSleep(); return; }                                     // у своей кровати — ложимся спать
     if (!car.onFoot) {
       if (car.air || car.loop || Math.hypot(car.vx, car.vy) > 45) return;          // на ходу не выпрыгнешь
       Object.assign(vstate, { x: car.x, y: car.y, z: car.z, angle: car.angle });
@@ -3889,6 +3997,7 @@
   document.getElementById('exitBtn').addEventListener('pointerdown', e => { e.preventDefault(); toggleVehicle(); });
 
   function walkUpdate(dt) {
+    if (sleepT > 0) { car.vx = car.vy = 0; return; }                  // спим
     foot.punchT -= dt; foot.punchCd -= dt; foot.sinceHit += dt;
     if (foot.sinceHit > 4) foot.hp = Math.min(100, foot.hp + 8 * dt);      // здоровье понемногу восстанавливается
     if (foot.ko > 0) {                                                     // нокаут: лежим, потом очнёмся у машины
@@ -4309,6 +4418,92 @@
   langHooks.push(renderNet);
   netStart();
 
+  // ================== Сон и магазины ==================
+  let shopOpen = false, sleepT = 0, shopKind = null;
+  const shopEl = document.getElementById('shop'), shopItemsEl = document.getElementById('shopItems'), actPromptEl = document.getElementById('actPrompt'), fadeEl = document.getElementById('sleepFade'), exitBtnEl = document.getElementById('exitBtn');
+  const SHOP_SHIRTS = ['#c62828', '#1565c0', '#2e7d32', '#f9a825', '#6a1b9a', '#212121', '#ffffff', '#ff6f00', '#00acc1', '#ec407a'];
+  const CAPS = ['#ffd54f', '#d32f2f', '#1976d2', '#212121', '#43a047', '#ec407a', '#ffffff', '#8d6e63'];
+  const PAINTS = ['#e53935', '#1e88e5', '#43a047', '#fdd835', '#8e24aa', '#fb8c00', '#212121', '#fafafa', '#00bcd4', '#ff4081', '#795548', '#9e9e9e'];
+  const FOODS = [['🍦', 'shIce', 10, 15], ['🥤', 'shSoda', 15, 25], ['🌭', 'shHotdog', 30, 45], ['🍔', 'shBurger', 45, 70], ['🍕', 'shPizza', 60, 100]];
+  const SHIRT_PRICE = 50, CAP_PRICE = 30, PAINT_PRICE = 200;
+  if (!save.outfit || typeof save.outfit !== 'object') save.outfit = {};
+  if (!save.paint || typeof save.paint !== 'object') save.paint = {};
+  function applyOutfit() {
+    if (save.outfit.shirt) foot.shirt.color.set(save.outfit.shirt);
+    if (save.outfit.cap) foot.capM.color.set(save.outfit.cap);
+  }
+  function applyPaint() { if (player && player.paint) player.paint.color.set((save.paint && save.paint[spec.id]) || spec.color); }
+  applyOutfit(); applyPaint();
+  function bedOf(hm) { const b = hm && hm.furn.find(f => f[5] === 'bed'); return b && [b[0] + b[2] / 2, b[1] + b[3] / 2]; }
+  function nearBed() { if (!car.onFoot || !HOME) return false; const b = bedOf(HOME); return !!b && Math.hypot(car.x - b[0], car.y - b[1]) < 50 && (car.z || 0) < 20; }
+  function shopHere() {
+    if (!car.onFoot && Math.hypot(car.vx, car.vy) > 45) return null;
+    for (const S of SHOPS) if (Math.hypot(car.x - S.mx, car.y - S.my) < (car.onFoot ? 22 : 30)) return S;
+    return null;
+  }
+  function goSleep() {
+    sleepT = 1; car.vx = car.vy = 0;
+    const b = bedOf(HOME); if (b) { car.x = b[0] - 34; car.y = b[1]; car.angle = 0; }
+    fadeEl.querySelector('b').textContent = t('shNight'); fadeEl.classList.add('on');
+    setTimeout(() => {
+      NIGHT.hour = 7.5; NIGHT.k = -1; foot.hp = 100;                     // проснулся утром, здоровый
+      if (wanted > 0 || chase.active) endChase();                         // полиция за ночь про тебя забыла
+      fadeEl.querySelector('b').textContent = '☀️';
+    }, 1700);
+    setTimeout(() => { fadeEl.classList.remove('on'); sleepT = 0; showMsg(t('shMorning'), 3000); }, 3300);
+  }
+  function openShop(kind) {
+    shopKind = kind; shopOpen = true; car.vx = car.vy = 0;
+    held.clear(); touchHeld.clear(); refreshKeys();
+    renderShop(); shopEl.style.display = 'flex';
+  }
+  function closeShop() { shopOpen = false; shopEl.style.display = 'none'; if (!menuOpen) canvas.focus(); }
+  window.__shopOpen = () => shopOpen; window.__closeShop = closeShop;
+  document.getElementById('sClose').addEventListener('click', closeShop);
+  function renderShop() {
+    document.getElementById('sMoney').textContent = fmt(save.money);
+    const title = { food: 'shFood', clothes: 'shClothes', paint: 'shPaint' }[shopKind];
+    document.getElementById('shopTitle').textContent = t(title);
+    const hint = { food: t('shFoodHint'), clothes: t('shClothesHint'), paint: t('shPaintHint', { car: carName(spec) }) }[shopKind];
+    document.getElementById('shopHint').textContent = hint;
+    const item = (inner, name, price, act, cur) => `<div class="sitem${cur ? ' cur' : ''}">${inner}<h3>${esc(name)}</h3><div class="price">${price ? fmt(price) : esc(t('shFree'))}</div><button data-act="${act}"${cur ? ' disabled' : ''}>${esc(cur ? t('shOn') : t('shBuy'))}</button></div>`;
+    let html = '';
+    if (shopKind === 'food') html = FOODS.map(([ic, key, price, heal], i) => item(`<div class="ic">${ic}</div>`, t(key) + ' ❤️+' + heal, price, 'food:' + i, false)).join('');
+    else if (shopKind === 'clothes') {
+      html = `<h4>👕 ${esc(t('shShirts'))}</h4>` + SHOP_SHIRTS.map((c, i) => item(`<div class="sw" style="background:${c}"></div>`, '', SHIRT_PRICE, 'shirt:' + i, (save.outfit.shirt || '#c62828') === c)).join('');
+      html += `<h4>🧢 ${esc(t('shCaps'))}</h4>` + CAPS.map((c, i) => item(`<div class="sw" style="background:${c}"></div>`, '', CAP_PRICE, 'cap:' + i, (save.outfit.cap || '#ffd54f') === c)).join('');
+    } else {
+      const cur = save.paint[spec.id];
+      html = item(`<div class="sw" style="background:${spec.color}"></div>`, t('shFactory'), 0, 'paint:-1', !cur);
+      html += PAINTS.map((c, i) => item(`<div class="sw" style="background:${c}"></div>`, '', PAINT_PRICE, 'paint:' + i, cur === c)).join('');
+    }
+    shopItemsEl.innerHTML = html;
+  }
+  shopItemsEl.addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]'); if (!b || b.disabled) return;
+    const [kind, si] = b.dataset.act.split(':'), i = +si;
+    const price = kind === 'food' ? FOODS[i][2] : kind === 'shirt' ? SHIRT_PRICE : kind === 'cap' ? CAP_PRICE : i < 0 ? 0 : PAINT_PRICE;
+    if (save.money < price) { showMsg(t('shNoMoney'), 2200); return; }
+    save.money -= price;
+    if (kind === 'food') { foot.hp = Math.min(100, foot.hp + FOODS[i][3]); showMsg(FOODS[i][0] + ' ' + t('shYum', { n: FOODS[i][3] }), 1800); }
+    else if (kind === 'shirt') { save.outfit.shirt = SHOP_SHIRTS[i]; applyOutfit(); showMsg(t('shDone'), 1500); }
+    else if (kind === 'cap') { save.outfit.cap = CAPS[i]; applyOutfit(); showMsg(t('shDone'), 1500); }
+    else { if (i < 0) delete save.paint[spec.id]; else save.paint[spec.id] = PAINTS[i]; applyPaint(); showMsg('🎨 ' + t('shDone'), 1500); }
+    persist(); renderShop();
+  });
+  let promptTxt = '', exitIco = '';
+  function updateShops(time) {
+    for (const m of shopMarkers) { m.ico.position.y = 20 + Math.sin(time / 300) * 2; m.ring.material.opacity = .35 + Math.sin(time / 250) * .12; }
+    let txt = '', ico = '🚪';
+    if (!menuOpen && !garageOpen && !shopOpen && !mapOpen && !sleepT) {
+      const k = IS_TOUCH ? '🛒' : 'E';
+      if (shopHere()) { txt = t('shPromptShop', { k }); ico = '🛒'; }
+      else if (nearBed()) { txt = t('shPromptSleep', { k: IS_TOUCH ? '💤' : 'E' }); ico = '💤'; }
+    }
+    if (txt !== promptTxt) { promptTxt = txt; actPromptEl.textContent = txt; actPromptEl.classList.toggle('on', !!txt); }
+    if (ico !== exitIco) { exitIco = ico; exitBtnEl.textContent = ico; }
+  }
+
   // ================== Карта ==================
   const MAP_PX = 1024, mapK = MAP_PX / WORLD;
   const baseMap = document.createElement('canvas'); baseMap.width = baseMap.height = MAP_PX;
@@ -4460,7 +4655,7 @@
     if (Math.abs(bx - x) < ROAD_W / 2 || Math.abs(by - y) < ROAD_W / 2) return [Math.max(40, Math.min(WORLD - 40, x)), Math.max(40, Math.min(WORLD - 40, y))];
     return Math.abs(bx - x) < Math.abs(by - y) ? [bx, y] : [x, by];
   }
-  const MAP_ICONS = { park: '🌳', lake: '🌊', parking: '🅿️', downtown: '🏢', residential: '🏠', office: '🏬' };
+  const MAP_ICONS = { shops: '🛍️', park: '🌳', lake: '🌊', parking: '🅿️', downtown: '🏢', residential: '🏠', office: '🏬' };
   function mapLabel(g, s, text, x, y, size, color = '#ffffff') {
     g.font = `800 ${size / s}px "Segoe UI", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.lineWidth = 4 / s; g.strokeStyle = 'rgba(10,15,20,.85)'; g.lineJoin = 'round';
@@ -4578,6 +4773,7 @@
     ['lgParking', '🅿️', 'background:#8a919b'],
     ['lgDowntown', '🏢', 'background:#c3cad6'],
     ['lgHomes', '🏠', 'background:#b6da9d'],
+    ['lgShops', '🛍️', 'background:#ffcc80'],
   ];
   function renderLegend() {
     document.getElementById('legend').innerHTML = '<h4>' + t('lgTitle') + '</h4>' +
@@ -4803,7 +4999,7 @@
     updateNav(t); drawMinimap(t); if (mapOpen) drawBigMap(t);
     if (menuOpen) { menuCamera(dt); updateMenuInfo(); } else updateCamera(dt);
     updateVisuals(dt, t);
-    updateDayNight(dt); updateClock(); updateHomeLights();
+    updateDayNight(dt); updateClock(); updateHomeLights(); updateShops(t);
     for (const d of homeDoors) {                         // двери сами открываются, когда ты рядом (пешком или на машине)
       const want = Math.hypot(car.x - d.x, car.y - d.y) < d.r || Math.hypot(vstate.x - d.x, vstate.y - d.y) < 20 ? 1 : 0;
       d.k += Math.sign(want - d.k) * Math.min(Math.abs(want - d.k), dt * 2.5);
