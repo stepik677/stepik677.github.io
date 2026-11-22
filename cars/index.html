@@ -947,6 +947,7 @@
 
   // ================== Генерация города ==================
   const blocks = [];
+  let HOME = null;       // твой огромный дом с гаражом (квартал у старта)
   const tall = [];       // объекты с высотой (здания, деревья, фонари)
   const parked = [];     // припаркованные машины
   const decals = [];     // люки, пятна на дороге
@@ -1043,7 +1044,7 @@
     else if (d === 1) type = r < .8 ? 'downtown' : 'office';
     else if (d === 2) type = r < .4 ? 'office' : r < .6 ? 'parking' : r < .8 ? 'park' : 'downtown';
     else type = r < .55 ? 'residential' : r < .72 ? 'lake' : r < .88 ? 'park' : 'parking';
-    if (i === 0 && j === 0) type = 'residential';
+    if (i === 0 && j === 0) type = 'home';                     // здесь твой дом
     if ((type === 'office' || type === 'parking') && (i + 2 * j) % 3 === 0) type = 'roofpark';   // дом с заездом на крышу
     const b = { x, y, lx, ly, type, ops: [] };
     const op = f => b.ops.push(f);
@@ -1112,6 +1113,39 @@
         for (const yy of [ly + 98, ly + 268]) for (const xx of [lx + 110, lx + 290]) arrow(xx, yy, xx < lx + 200 ? 0 : Math.PI);
       });
       addTree(lx + 200, ly + 236 - 28, 12);
+    }
+
+    else if (type === 'home') {
+      // огромный дом (можно зайти внутрь) и гараж для твоей машины; двери смотрят на западную улицу
+      const t = 8;
+      const house = { x0: x + 40, y0: y + 30, w: 260, h: 220, H: 96, d0: y + 115, d1: y + 165, doorH: 48 };
+      const gar = { x0: x + 40, y0: y + 272, w: 170, h: 135, H: 52, d0: y + 300, d1: y + 380, doorH: 40 };
+      const walls = [];
+      const room = (r, divX) => {
+        const { x0, y0, w, h, d0, d1 } = r;
+        walls.push([x0, y0, w, t, r.H], [x0, y0 + h - t, w, t, r.H], [x0 + w - t, y0, t, h, r.H],
+                   [x0, y0, t, d0 - y0, r.H], [x0, d1, t, y0 + h - d1, r.H]);                         // западная стена с дверью
+        if (divX) walls.push([divX, y0, 6, d0 - y0, r.H], [divX, d1, 6, y0 + h - d1, r.H]);          // перегородка между комнатами
+      };
+      room(house, house.x0 + 150); room(gar);
+      for (const [wx, wy, ww, wh] of walls) addObs({ t: 'r', x: wx, y: wy, w: ww, h: wh, tall: true });
+      const hx = house.x0, hy = house.y0, hw = house.w, hh = house.h;
+      // мебель: [x, y, w, h, высота, вид]
+      const furn = [
+        [hx + 92, hy + 18, 50, 22, 18, 'sofa'], [hx + 100, hy + 92, 30, 26, 8, 'table'], [hx + 95, hy + hh - 30, 40, 12, 10, 'tv'],
+        [hx + 20, hy + 18, 16, 16, 30, 'plant'], [hx + 20, hy + hh - 34, 16, 16, 30, 'plant'],
+        [hx + hw - 72, hy + 18, 62, 44, 10, 'bed'], [hx + 172, hy + hh - 30, 72, 22, 16, 'counter'], [hx + hw - 32, hy + hh - 32, 24, 24, 42, 'fridge'],
+        [hx + 186, hy + 100, 38, 30, 10, 'dtable'],
+      ];
+      for (const [fx, fy, fw, fh, top] of furn) addObs({ t: 'r', x: fx, y: fy, w: fw, h: fh, top });
+      op(() => {
+        ctx.fillStyle = PAT.grass; ctx.fillRect(lx, ly, LS, LS);
+        ctx.fillStyle = PAT.paving; ctx.fillRect(x, house.d0 - 6, house.x0 - x, house.d1 - house.d0 + 12);      // дорожка к двери дома
+        ctx.fillStyle = PAT.lot; ctx.fillRect(x, gar.d0 - 6, gar.x0 - x, gar.d1 - gar.d0 + 12);                 // въезд в гараж
+      });
+      HOME = { house, gar, walls, furn, inX: hx + 50, inY: (house.d0 + house.d1) / 2, carX: gar.x0 + 95, carY: (gar.d0 + gar.d1) / 2 };
+      b.home = HOME;
+      addTree(x + 340, y + 60, 20); addTree(x + 360, y + 200, 18); addTree(x + 300, y + 330, 20); addTree(x + 380, y + 400, 16);
     }
 
     else if (type === 'residential') {
@@ -1267,7 +1301,7 @@
     for (const t of [125, BS / 2, BS - 125]) {
       addLamp(x + t, y + 7, 0, -1);
       addLamp(x + t, y + BS - 7, 0, 1);
-      if (!(type === 'roofpark' && t === BS / 2)) addLamp(x + 7, y + t, -1, 0);   // фонарь не стоит на пандусе
+      if (!(type === 'roofpark' && t === BS / 2) && type !== 'home') addLamp(x + 7, y + t, -1, 0);   // фонарь не стоит на пандусе
       addLamp(x + BS - 7, y + t, 1, 0);
     }
     blocks.push(b);
@@ -2148,6 +2182,8 @@
   // трамплины-«кикеры» в конце моста и на краю крыши
   RAMPS.push({ kick: true, base: DECK, cx: BX[2] - 40, cy: CY, d: 0, ux: 1, uy: 0, L: 80, H: 16, Wd: ROAD_W - 20, vzCap: 150, minVz: 130, boost: 590 });
   const LOOPS = [];
+  if (HOME) for (const [r, tag] of [[HOME.house, 'house'], [HOME.gar, 'gar']])            // крыши дома и гаража: камера не залезает выше потолка
+    PLATS.push({ cx: r.x0 + r.w / 2, cy: r.y0 + r.h / 2, ux: 1, uy: 0, L: r.w, Wd: r.h, h0: r.H, h1: r.H, bot: r.H - 6, home: tag });
   for (const b of blocks) if (b.roof) {
     const Rf = b.roof, hs = Rf.houses, Bg = Rf.bridge;
     PLATS.push({ cx: (Rf.rampX0 + hs[0].x) / 2, cy: Rf.cy, ux: 1, uy: 0, L: hs[0].x - Rf.rampX0, Wd: Rf.rampW, h0: 0, h1: hs[0].H, bot: 0, roof: true });   // пандус
@@ -2393,6 +2429,69 @@
         strip.rotation.x = -Math.PI / 2; strip.position.set((x0 + x1) / 2, Lp.base + .25, zc); strip.receiveShadow = true; scene.add(strip);
       }
     }
+  }
+
+  // ---------- 3D: твой дом и гараж ----------
+  if (HOME) {
+    const box = (w, h, d, m, x, y, z, cast = true) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = cast; o.receiveShadow = true; scene.add(o); return o; };
+    const inner = (c, e = .32) => new THREE.MeshStandardMaterial({ color: c, roughness: .8, emissive: c, emissiveIntensity: e });   // внутри светлее (как будто горит свет)
+    const canvasTex = (w, h, draw, rep = 1) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = maxAniso; return t; };
+    const wallFac = new THREE.MeshStandardMaterial({ map: facadeTex('house', '#fff1dc'), roughness: .85, emissive: '#fff1dc', emissiveIntensity: .12 });
+    const garFac = new THREE.MeshStandardMaterial({ map: facadeTex('grid', '#cfd8dc'), roughness: .85, emissive: '#cfd8dc', emissiveIntensity: .1 });
+    for (const [wx, wy, ww, wh, H] of HOME.walls) {
+      const g = new THREE.BoxGeometry(ww, H, wh); scaleBoxUV(g, ww, H, wh, 24, 30);
+      const m = new THREE.Mesh(g, H > 60 ? wallFac : garFac); m.position.set(wx + ww / 2, H / 2, wy + wh / 2); m.castShadow = m.receiveShadow = true; scene.add(m);
+    }
+    const trim = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .5 });
+    const roofM = new THREE.MeshStandardMaterial({ color: '#5d4037', roughness: .9 });
+    const ceilM = inner('#fffaf0', .45);
+    for (const r of [HOME.house, HOME.gar]) {
+      box(8, r.H - r.doorH, r.d1 - r.d0, r === HOME.house ? wallFac : garFac, r.x0 + 4, (r.H + r.doorH) / 2, (r.d0 + r.d1) / 2);   // над дверью
+      box(r.w + 6, 6, r.h + 6, roofM, r.x0 + r.w / 2, r.H + 3, r.y0 + r.h / 2);                                                      // крыша
+      box(r.w - 16, .5, r.h - 16, ceilM, r.x0 + r.w / 2, r.H - .3, r.y0 + r.h / 2, false);                                           // потолок
+      for (const sz of [-1, 1]) box(r.w + 8, 4, 3, trim, r.x0 + r.w / 2, r.H + 8, r.y0 + r.h / 2 + sz * (r.h / 2 + 2));             // бортик крыши
+      for (const sx of [-1, 1]) box(3, 4, r.h + 8, trim, r.x0 + r.w / 2 + sx * (r.w / 2 + 2), r.H + 8, r.y0 + r.h / 2);
+      for (const dz of [r.d0, r.d1]) box(3, r.doorH, 3, r === HOME.gar ? new THREE.MeshStandardMaterial({ color: '#ffca28' }) : trim, r.x0 - 1, r.doorH / 2, dz);   // косяки
+    }
+    // пол: паркет в доме, бетон в гараже
+    const wood = canvasTex(256, 256, (g, w, h) => {
+      for (let y = 0; y < h; y += 32) for (let x = (y / 32) % 2 * 64; x < w + 128; x += 128) { g.fillStyle = ['#b07a4a', '#a06c3e', '#bd8754'][((x + y) / 32) % 3 | 0]; g.fillRect(x - 64, y, 126, 30); }
+    });
+    wood.repeat.set(HOME.house.w / 60, HOME.house.h / 60);
+    const floorH = new THREE.Mesh(new THREE.PlaneGeometry(HOME.house.w - 2 * 8, HOME.house.h - 2 * 8), new THREE.MeshStandardMaterial({ map: wood, roughness: .6, emissive: '#7a5230', emissiveIntensity: .25 }));
+    floorH.rotation.x = -Math.PI / 2; floorH.position.set(HOME.house.x0 + HOME.house.w / 2, .35, HOME.house.y0 + HOME.house.h / 2); floorH.receiveShadow = true; scene.add(floorH);
+    const floorG = new THREE.Mesh(new THREE.PlaneGeometry(HOME.gar.w - 16, HOME.gar.h - 16), inner('#9e9e9e', .25));
+    floorG.rotation.x = -Math.PI / 2; floorG.position.set(HOME.gar.x0 + HOME.gar.w / 2, .35, HOME.gar.y0 + HOME.gar.h / 2); floorG.receiveShadow = true; scene.add(floorG);
+    // место для машины в гараже: жёлтая рамка
+    const spot = new THREE.Mesh(new THREE.PlaneGeometry(66, 40), new THREE.MeshBasicMaterial({ map: canvasTex(132, 80, (g) => { g.strokeStyle = '#ffd54f'; g.lineWidth = 6; g.strokeRect(4, 4, 124, 72); g.fillStyle = '#ffd54f'; g.font = 'bold 30px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('P', 66, 42); }), transparent: true }));
+    spot.rotation.x = -Math.PI / 2; spot.position.set(HOME.carX, .5, HOME.carY); scene.add(spot);
+    // ковёр в гостиной
+    const rug = new THREE.Mesh(new THREE.PlaneGeometry(70, 60), new THREE.MeshStandardMaterial({ map: canvasTex(140, 120, (g) => { g.fillStyle = '#c62828'; g.fillRect(0, 0, 140, 120); g.strokeStyle = '#ffd54f'; g.lineWidth = 8; g.strokeRect(10, 10, 120, 100); g.strokeRect(30, 30, 80, 60); }), emissive: '#7f1d1d', emissiveIntensity: .3 }));
+    rug.rotation.x = -Math.PI / 2; rug.position.set(HOME.house.x0 + 115, .5, HOME.house.y0 + HOME.house.h / 2); scene.add(rug);
+    // мебель
+    for (const [fx, fy, fw, fh, top, kind] of HOME.furn) {
+      const cx = fx + fw / 2, cz = fy + fh / 2;
+      if (kind === 'sofa') { const m = inner('#1565c0'); box(fw, 8, fh, m, cx, 4, cz); box(fw, 12, 6, m, cx, 12, fy + 3); for (const sx of [-1, 1]) box(5, 12, fh, m, cx + sx * (fw / 2 - 2.5), 8, cz); }
+      else if (kind === 'table') { box(fw, 2, fh, inner('#6d4c41'), cx, top - 1, cz); for (const [a, c] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(2, top - 2, 2, inner('#4e342e'), cx + a * (fw / 2 - 2), (top - 2) / 2, cz + c * (fh / 2 - 2)); }
+      else if (kind === 'tv') {
+        box(fw, top, fh, inner('#37474f'), cx, top / 2, cz);
+        box(40, 24, 2, new THREE.MeshStandardMaterial({ color: '#111' }), cx, top + 13, cz + 2);
+        const scr = new THREE.MeshBasicMaterial({ map: canvasTex(128, 76, (g) => { const gr = g.createLinearGradient(0, 0, 128, 76); gr.addColorStop(0, '#29b6f6'); gr.addColorStop(1, '#7c4dff'); g.fillStyle = gr; g.fillRect(0, 0, 128, 76); g.fillStyle = '#fff'; g.font = 'bold 24px sans-serif'; g.textAlign = 'center'; g.fillText('🚗 TV', 64, 46); }) });
+        const sm = new THREE.Mesh(new THREE.PlaneGeometry(37, 21), scr); sm.position.set(cx, top + 13, cz + .8); sm.rotation.y = Math.PI; scene.add(sm);
+      }
+      else if (kind === 'plant') { box(10, 12, 10, inner('#8d6e63'), cx, 6, cz); const leaf = new THREE.Mesh(new THREE.SphereGeometry(9, 10, 8), inner('#43a047')); leaf.position.set(cx, 22, cz); leaf.castShadow = true; scene.add(leaf); }
+      else if (kind === 'bed') { box(fw, 8, fh, inner('#795548'), cx, 4, cz); box(fw - 4, 4, fh - 4, inner('#42a5f5'), cx, 10, cz); box(12, 4, fh - 10, inner('#ffffff'), fx + fw - 9, 13, cz); box(4, 20, fh, inner('#5d4037'), fx + fw - 2, 10, cz); }
+      else if (kind === 'counter') { box(fw, top, fh, inner('#eceff1'), cx, top / 2, cz); box(fw + 2, 2, fh + 2, inner('#455a64'), cx, top + 1, cz); }
+      else if (kind === 'fridge') { box(fw, top, fh, inner('#e0e0e0', .4), cx, top / 2, cz); box(2, 10, 1, inner('#757575'), cx - 6, top * .6, fy - .5); }
+      else if (kind === 'dtable') { box(fw, 2, fh, inner('#a1887f'), cx, top - 1, cz); box(4, top - 2, 4, inner('#6d4c41'), cx, (top - 2) / 2, cz); for (const sz of [-1, 1]) box(10, 6, 10, inner('#ef5350'), cx, 3, cz + sz * (fh / 2 + 7)); }
+    }
+    // лампы на потолке
+    for (const [lx2, lz2, H] of [[HOME.house.x0 + 80, HOME.house.y0 + HOME.house.h / 2, HOME.house.H], [HOME.house.x0 + 205, HOME.house.y0 + HOME.house.h / 2, HOME.house.H], [HOME.gar.x0 + 95, HOME.gar.y0 + HOME.gar.h / 2, HOME.gar.H]]) {
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(4, 12, 8), new THREE.MeshBasicMaterial({ color: '#fff8e1' })); lamp.position.set(lx2, H - 6, lz2); scene.add(lamp);
+    }
+    // табличка «ДОМ» над дверью
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(50, 16), new THREE.MeshBasicMaterial({ map: canvasTex(200, 64, (g) => { g.fillStyle = '#ff7043'; g.fillRect(0, 0, 200, 64); g.fillStyle = '#fff'; g.font = 'bold 44px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🏠', 100, 34); }) }));
+    sign.position.set(HOME.house.x0 - .6, HOME.house.doorH + 12, (HOME.house.d0 + HOME.house.d1) / 2); sign.rotation.y = -Math.PI / 2; scene.add(sign);
   }
 
   // ---------- 3D: мост, дом-тоннель, второй тоннель ----------
@@ -3286,9 +3385,23 @@
     const wEl = document.getElementById('wasted');                      // надпись WASTED посередине, мигает красным
     wEl.classList.remove('on'); void wEl.offsetWidth; wEl.classList.add('on'); document.documentElement.classList.add('isWasted');
     clearTimeout(busted.wt); busted.wt = setTimeout(() => { wEl.classList.remove('on'); document.documentElement.classList.remove('isWasted'); }, 3200);
+    clearTimeout(busted.ht); busted.ht = setTimeout(goHome, 1300);                  // пока на экране WASTED — переносим домой
     foot.hp = 100; foot.ko = 0; foot.sinceHit = 9;
     endChase();
   }
+  // проиграл — просыпаешься дома, а машина стоит в гараже
+  function goHome() {
+    if (!HOME) return;
+    Object.assign(vstate, { x: HOME.carX, y: HOME.carY, z: 0, angle: Math.PI });
+    Object.assign(car, { onFoot: true, x: HOME.inX, y: HOME.inY, z: 0, angle: 0, vx: 0, vy: 0, vz: 0, steer: 0, air: false, ramp: null, stun: 0, loop: null });
+    Object.assign(trick, { pitch: 0, pitchT: 0, roll: 0, rollT: 0 });
+    foot.vz = 0; curFwd = 0; roll = pitch = lean = 0; slopePitch = 0;
+    foot.root.visible = true; footBlob.visible = true; foot.hp = 100; foot.ko = 0; foot.sinceHit = 9; setOnFootClass();
+    if (player.driver) player.driver.visible = false;
+    for (const pp of people) if (pp.mode === 'fight') pp.mode = 'return';
+    camAng = car.angle; updateCamera(0, true);
+  }
+  window.__goHome = goHome;
   // попадание пули полиции: всегда минус 15% жизни
   function shotPlayer(dmg, fromX, fromY) {
     if (car.onFoot && foot.ko > 0) return;
@@ -3616,12 +3729,7 @@
     if (foot.sinceHit > 4) foot.hp = Math.min(100, foot.hp + 8 * dt);      // здоровье понемногу восстанавливается
     if (foot.ko > 0) {                                                     // нокаут: лежим, потом очнёмся у машины
       foot.ko -= dt; car.vx = car.vy = 0;
-      if (foot.ko <= 0) {
-        const lx = Math.sin(vstate.angle), ly = -Math.cos(vstate.angle);
-        Object.assign(car, { x: vstate.x + lx * 30, y: vstate.y + ly * 30, z: vstate.z });
-        foot.hp = 100;
-        for (const pp of people) if (pp.mode === 'fight') pp.mode = 'return';
-      }
+      if (foot.ko <= 0) goHome();                                        // очнулся дома, машина в гараже
       return;
     }
     const { up, down, left, right, brake, run } = keys;
@@ -4063,9 +4171,11 @@
     // мост, тоннели, трамплины
     for (const pl of PLATS) {
       const w = pl.ux ? pl.L : pl.Wd, h = pl.ux ? pl.Wd : pl.L, x0 = pl.cx - w / 2, y0 = pl.cy - h / 2;
-      g.fillStyle = pl.roof ? (pl.h0 !== pl.h1 ? '#ff5252' : '#90a4ae') : pl.h0 !== pl.h1 ? '#b39ddb' : pl.bot >= 50 ? '#7e57c2' : '#37474f';
+      g.fillStyle = pl.home ? '#ffb74d' : pl.roof ? (pl.h0 !== pl.h1 ? '#ff5252' : '#90a4ae') : pl.h0 !== pl.h1 ? '#b39ddb' : pl.bot >= 50 ? '#7e57c2' : '#37474f';
       g.fillRect(x0, y0, w, h);
-      g.strokeStyle = pl.roof || pl.bot >= 50 || pl.h0 !== pl.h1 ? '#ffffff' : '#ffd54f'; g.lineWidth = 12; g.strokeRect(x0, y0, w, h);
+      g.strokeStyle = pl.home || pl.roof || pl.bot >= 50 || pl.h0 !== pl.h1 ? '#ffffff' : '#ffd54f'; g.lineWidth = 12; g.strokeRect(x0, y0, w, h);
+      if (pl.home === 'house') { g.font = '170px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🏠', pl.cx, pl.cy); }
+      if (pl.home === 'gar') { g.font = '110px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🚗', pl.cx, pl.cy); }
     }
     for (const r of RAMPS) {
       const along = Math.abs(r.ux) > .5, w = along ? r.L : r.Wd, h = along ? r.Wd : r.L;
