@@ -88,6 +88,14 @@
   .pad button.punch { background: rgba(230,81,0,.8); }
   #hurt { position: fixed; inset: 0; pointer-events: none; z-index: 3; box-shadow: inset 0 0 120px rgba(255,0,0,.65); opacity: 0; transition: opacity .35s; }
   #hurt.on { opacity: 1; transition: none; }
+  #wasted { position: fixed; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; pointer-events: none; }
+  #wasted.on { display: flex; animation: wastedBg .45s ease-in-out infinite alternate; }
+  #wasted b { font: 900 clamp(64px, 15vw, 180px) Impact, 'Arial Black', sans-serif; letter-spacing: .06em; color: #ff1a1a;
+    text-shadow: 0 0 3px #000, 0 5px 0 #000, 0 0 40px rgba(255,0,0,.9); animation: wastedTxt .45s ease-in-out infinite alternate, wastedIn .5s ease-out; }
+  @keyframes wastedBg { from { background: rgba(160,0,0,.15); } to { background: rgba(220,0,0,.55); } }
+  @keyframes wastedTxt { from { color: #ff1a1a; } to { color: #ffffff; } }
+  @keyframes wastedIn { from { transform: scale(2.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  html.isWasted canvas { filter: grayscale(.85) contrast(1.15); }
   @keyframes siren { 0%, 100% { box-shadow: inset 0 0 110px rgba(255,23,68,.5); } 50% { box-shadow: inset 0 0 110px rgba(41,121,255,.5); } }
   @keyframes pop { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.7); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.15); }
     100% { opacity: 0; transform: translate(-50%, -50px) scale(1); } }
@@ -296,6 +304,7 @@
 </div>
 <div id="help"><span data-i18n="help"></span><br><span data-i18n="helpExtra"></span><br><span data-i18n="fightHelp"></span><br><span data-i18n="driftHelp"></span></div>
 <div id="hurt"></div>
+<div id="wasted"><b>WASTED</b></div>
 <div id="driftMeter"></div>
 <canvas id="minimap"></canvas>
 <div id="bigmap">
@@ -1088,7 +1097,7 @@
       for (const hs of houses) addObs({ t: 'r', x: hs.x, y: hs.y, w: hs.w, h: hs.h, top: hs.H - 14 });
       const bridge = { x0: lx + 260, x1: lx + 355, gap0: lx + 300, gap1: lx + 318, H: 28, Wd: 44 };
       for (const sy of [-1, 1]) addObs({ t: 'r', x: bridge.x0, y: cy + sy * (bridge.Wd / 2) - (sy > 0 ? 3 : 0), w: bridge.x1 - bridge.x0, h: 3, bot: bridge.H, top: bridge.H + 12 });   // перила мостика
-      b.roof = { houses, cy, rampX0: x, rampW: 90, bridge, loop: { cx: lx + 228, cy, base: 28, R: 24, off: 16, W: 24 } };
+      b.roof = { houses, cy, rampX0: x, rampW: 90, bridge, loop: { cx: lx + 228, cy, base: 28, R: 28, off: 20, W: 40 } };
       addTree(lx + 30, ly + 30, 14); addTree(lx + 30, ly + LS - 30, 14); addTree(lx + 300, ly + 40, 13); addTree(lx + 300, ly + LS - 40, 13);
     }
 
@@ -2341,7 +2350,7 @@
       const Lp = Rf.loop, N = 120, pos = [], uv = [], idx = [], pos2 = [], wall = [];
       for (let i = 0; i <= N; i++) {
         const th = i / N * Math.PI * 2, k = i / N;
-        const zc = Lp.cy - Lp.off / 2 + Lp.off * k;
+        const zc = Lp.cy - Lp.off + Lp.off * k;
         for (const [rr, arr] of [[Lp.R + .3, pos], [Lp.R + 2.2, pos2]]) {
           const x = Lp.cx + rr * Math.sin(th), y = Lp.base + Lp.R - rr * Math.cos(th);
           arr.push(x, y, zc - Lp.W / 2, x, y, zc + Lp.W / 2);
@@ -2365,7 +2374,7 @@
       }
       for (const sx of [-1, 1]) {                                                       // стойки, держащие петлю
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, Lp.R * 1.6, 8), trimMat);
-        pole.position.set(Lp.cx + sx * (Lp.R + 3), Lp.base + Lp.R * .8, Lp.cy + sx * (Lp.W / 2 + 4)); pole.castShadow = true; scene.add(pole);
+        pole.position.set(Lp.cx + sx * (Lp.R + 3), Lp.base + Lp.R * .8, Lp.cy - Lp.off / 2 + sx * (Lp.W / 2 + 4)); pole.castShadow = true; scene.add(pole);
       }
     }
   }
@@ -2648,7 +2657,7 @@
       Object.assign(trick, { pitch: 0, pitchT: 0, roll: 0, rollT: 0 });
       return;
     }
-    const k = Math.min(1, lo.th / TAU), lane = Lp.cy - Lp.off / 2 + Lp.off * k;
+    const k = Math.min(1, lo.th / TAU), lane = Lp.cy - Lp.off + Lp.off * k;
     car.x = Lp.cx + Lp.R * Math.sin(Math.min(lo.th, TAU));
     car.z = Lp.base + Lp.R * (1 - Math.cos(Math.min(lo.th, TAU)));
     car.y = lo.y0 + (lane - lo.y0) * Math.min(1, lo.th / .8);
@@ -3258,6 +3267,9 @@
     save.money -= fine; persist();
     popMoney(fine ? t('busted', { p: fmt(fine) }) : t('busted0'), '#ff8a80');
     shake = 6;
+    const wEl = document.getElementById('wasted');                      // надпись WASTED посередине, мигает красным
+    wEl.classList.remove('on'); void wEl.offsetWidth; wEl.classList.add('on'); document.documentElement.classList.add('isWasted');
+    clearTimeout(busted.wt); busted.wt = setTimeout(() => { wEl.classList.remove('on'); document.documentElement.classList.remove('isWasted'); }, 3200);
     foot.hp = 100; foot.ko = 0; foot.sinceHit = 9;
     endChase();
   }
