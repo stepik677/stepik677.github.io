@@ -1436,7 +1436,6 @@
 
   // ================== Управление ==================
   // keys.up / down / left / right / brake — нажатые действия (клавиатура или экранные кнопки)
-  const keys = {};
   const held = new Set(); // какие физические клавиши сейчас зажаты
   // Работает и в английской, и в русской раскладке, и с Caps Lock
   function actionOf(e) {
@@ -4358,10 +4357,95 @@
   let mapOpen = false, dest = null;
   window.__isMapOpen = () => mapOpen;
   const nearestNode = (x, y) => [0, 1].map(i => Math.max(0, Math.min(NB, Math.round(((i ? y : x) - ROAD_W / 2) / (STEP * T))))).map(nodeC);
+  // ---------- Навигатор: путь по дорогам, как в настоящем GPS ----------
+  // Дороги — сетка; ищем самый короткий путь с наименьшим числом поворотов и не меняем его без причины
+  const RCELL = STEP * T, NN = NB + 1, TURN_COST = 90, UTURN_COST = 260;
+  const ridx = v => Math.max(0, Math.min(NB, Math.round((v - ROAD_W / 2) / RCELL)));
+  function roadSpot(x, y, hx, hy) {                          // ближайшая точка на дороге и концы её отрезка (перекрёстки)
+    const kx = ridx(x), ky = ridx(y), lo = nodeC(0), hi = nodeC(NB), ddy = Math.abs(y - nodeC(ky)), ddx = Math.abs(x - nodeC(kx));
+    const horiz = (ddx < ROAD_W / 2 && ddy < ROAD_W / 2 && hx !== undefined) ? Math.abs(hx) >= Math.abs(hy) : ddy <= ddx;   // на перекрёстке — по направлению езды
+    if (horiz) {
+      const px = Math.max(lo, Math.min(hi, x)), a = Math.max(0, Math.min(NB - 1, Math.floor((px - lo) / RCELL)));
+      return { p: [px, nodeC(ky)], horiz, line: ky, a, ends: [a + ky * NN, a + 1 + ky * NN] };
+    }
+    const py = Math.max(lo, Math.min(hi, y)), a = Math.max(0, Math.min(NB - 1, Math.floor((py - lo) / RCELL)));
+    return { p: [nodeC(kx), py], horiz, line: kx, a, ends: [kx + a * NN, kx + (a + 1) * NN] };
+  }
+  const nodeXY = n => [nodeC(n % NN), nodeC(Math.floor(n / NN))];
+  const dirOf = (a, b) => Math.abs(b[0] - a[0]) >= Math.abs(b[1] - a[1]) ? (b[0] > a[0] ? 0 : 1) : (b[1] > a[1] ? 2 : 3);
+  const DIRV = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  function pathCost(pts, hx, hy) {                          // длина + повороты + разворот назад
+    let c = 0, pd = -1;
+    for (let i = 1; i < pts.length; i++) {
+      const L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (L < 1) continue;
+      const d = dirOf(pts[i - 1], pts[i]);
+      if (pd < 0) { if (DIRV[d][0] * hx + DIRV[d][1] * hy < -.3) c += UTURN_COST; }
+      else if (d !== pd) c += TURN_COST;
+      c += L; pd = d;
+    }
+    return c;
+  }
+  function planRoute(S, D, hx, hy) {
+    if (S.horiz === D.horiz && S.line === D.line && S.a === D.a) return [S.p, D.p];       // на одной улице
+    const N = NN * NN * 4, dist = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), done = new Uint8Array(N);
+    for (const e of S.ends) {
+      const q = nodeXY(e); if (Math.hypot(q[0] - S.p[0], q[1] - S.p[1]) < 1) { for (let d = 0; d < 4; d++) { dist[e * 4 + d] = 0; } continue; }
+      const d = dirOf(S.p, q), c = Math.hypot(q[0] - S.p[0], q[1] - S.p[1]) + (DIRV[d][0] * hx + DIRV[d][1] * hy < -.3 ? UTURN_COST : 0);
+      if (c < dist[e * 4 + d]) dist[e * 4 + d] = c;
+    }
+    let bestEnd = -1, bestCost = Infinity;
+    for (;;) {
+      let u = -1, du = Infinity;
+      for (let i = 0; i < N; i++) if (!done[i] && dist[i] < du) { du = dist[i]; u = i; }
+      if (u < 0 || du >= bestCost) break;
+      done[u] = 1;
+      const n = u >> 2, d = u & 3, k = n % NN, l = Math.floor(n / NN), q = nodeXY(n);
+      if (D.ends.includes(n)) {                               // отсюда можно доехать до метки
+        const L = Math.hypot(D.p[0] - q[0], D.p[1] - q[1]), fd = L < 1 ? d : dirOf(q, D.p);
+        const c = du + L + (fd !== d ? TURN_COST : 0);
+        if (c < bestCost) { bestCost = c; bestEnd = u; }
+      }
+      for (let nd = 0; nd < 4; nd++) {
+        const k2 = k + DIRV[nd][0], l2 = l + DIRV[nd][1];
+        if (k2 < 0 || l2 < 0 || k2 > NB || l2 > NB) continue;
+        if (nd === (d ^ 1)) continue;                          // разворот на перекрёстке не нужен
+        const v = (k2 + l2 * NN) * 4 + nd, c = du + RCELL + (nd !== d ? TURN_COST : 0);
+        if (c < dist[v]) { dist[v] = c; prev[v] = u; }
+      }
+    }
+    const nodes = [];
+    for (let u = bestEnd; u >= 0; u = prev[u]) nodes.unshift(nodeXY(u >> 2));
+    const pts = [S.p];
+    for (const q of nodes) if (Math.hypot(q[0] - pts[pts.length - 1][0], q[1] - pts[pts.length - 1][1]) > 1) pts.push(q);
+    pts.push(D.p);
+    // лишние точки на прямой убираем — линия получается ровной
+    return pts.filter((pt, i) => i === 0 || i === pts.length - 1 || dirOf(pts[i - 1], pt) !== dirOf(pt, pts[i + 1]));
+  }
+  const nav = { dest: null, pts: null, t: 0, start: null };
+  function updateRoute(now) {
+    if (!dest) { nav.dest = null; nav.pts = null; return; }
+    const sp = Math.hypot(car.vx, car.vy), hx = sp > 20 ? car.vx / sp : Math.cos(car.angle), hy = sp > 20 ? car.vy / sp : Math.sin(car.angle);
+    const S = roadSpot(car.x, car.y, hx, hy), D = roadSpot(dest[0], dest[1]);
+    let keep = null;
+    if (nav.pts && nav.dest === dest && nav.pts.length > 1) {
+      // старый путь: двигаем начало туда, где ты сейчас, если ты всё ещё на той же улице
+      const first = nav.pts[1];                               // следующая точка пути лежит на той же улице, где ты едешь
+      const sameStreet = S.horiz ? Math.abs(first[1] - S.p[1]) < 1 : Math.abs(first[0] - S.p[0]) < 1;
+      if (sameStreet) {
+        keep = [S.p, ...nav.pts.slice(1)];
+        const onLine = q => S.horiz ? Math.abs(q[1] - S.p[1]) < 1 : Math.abs(q[0] - S.p[0]) < 1;
+        while (keep.length > 2 && onLine(keep[2])) keep.splice(1, 1);          // поворот уже проехал — убираем его
+      }
+    }
+    if (keep && now - nav.t < 700) { nav.pts = keep; return; }
+    const fresh = planRoute(S, D, hx, hy);
+    nav.t = now;
+    if (keep && pathCost(keep, hx, hy) <= pathCost(fresh, hx, hy) + 120) { nav.pts = keep; return; }   // не дёргаем линию из-за мелочей
+    nav.pts = fresh; nav.dest = dest;
+  }
   function routePoints() {
-    if (!dest) return [];
-    const A = nearestNode(car.x, car.y), B = nearestNode(dest[0], dest[1]);
-    const pts = [[car.x, car.y], A, [B[0], A[1]], B, dest];
+    if (!dest || !nav.pts) return [];
+    const pts = [[car.x, car.y], ...nav.pts];
     return pts.filter((pt, i) => i === 0 || Math.hypot(pt[0] - pts[i - 1][0], pt[1] - pts[i - 1][1]) > 1);
   }
   function snapToRoad(x, y) {
@@ -4403,9 +4487,11 @@
     }
     const route = routePoints();
     if (route.length) {
-      g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 10 / s; g.lineJoin = g.lineCap = 'round';
-      g.beginPath(); route.forEach((pt, i) => i ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1])); g.stroke();
-      g.strokeStyle = '#29b6f6'; g.lineWidth = 6 / s; g.stroke();
+      const lw = full ? 9 : 12;                              // толстая ровная линия по середине дороги
+      g.lineJoin = g.lineCap = 'round';
+      g.beginPath(); route.forEach((pt, i) => i ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1]));
+      g.strokeStyle = '#1a0b2e'; g.lineWidth = (lw + 5) / s; g.stroke();
+      g.strokeStyle = '#b44dff'; g.lineWidth = lw / s; g.stroke();
       // булавка метки
       const pr = (full ? 10 : 8) / s;
       g.fillStyle = '#e53935'; g.strokeStyle = '#fff'; g.lineWidth = 2.5 / s;
@@ -4514,13 +4600,14 @@
   // маяк в месте назначения — видно издалека
   const beacon = new THREE.Group();
   {
-    const bm = new THREE.MeshBasicMaterial({ color: '#29b6f6', transparent: true, opacity: .35, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const bm = new THREE.MeshBasicMaterial({ color: '#b44dff', transparent: true, opacity: .35, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(16, 16, 900, 20, 1, true).translate(0, 450, 0), bm); beacon.add(beam);
-    const ring = new THREE.Mesh(new THREE.RingGeometry(26, 36, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#29b6f6', transparent: true, opacity: .8, depthWrite: false }));
+    const ring = new THREE.Mesh(new THREE.RingGeometry(26, 36, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#b44dff', transparent: true, opacity: .8, depthWrite: false }));
     ring.position.y = 1; beacon.add(ring);
     beacon.visible = false; scene.add(beacon);
   }
   function updateNav(time) {
+    updateRoute(time);
     beacon.visible = !!dest;
     if (dest) {
       beacon.position.set(dest[0], groundHeight(dest[0], dest[1], 0), dest[1]);
@@ -4617,7 +4704,7 @@
       target = rp.slice(1).find(pt => Math.hypot(pt[0] - car.x, pt[1] - car.y) > 90) || dest;
     }
     arrowMesh.visible = !!target && !menuOpen;
-    arrowMesh.material.color.set(dest ? '#29b6f6' : '#ffd54f'); arrowMesh.material.emissive.set(dest ? '#0277bd' : '#ffb300');
+    arrowMesh.material.color.set(dest ? '#b44dff' : '#ffd54f'); arrowMesh.material.emissive.set(dest ? '#6a1b9a' : '#ffb300');
     if (target) {
       const a = Math.atan2(target[1] - car.y, target[0] - car.x);
       arrowMesh.position.set(car.x, car.z + (car.onFoot ? 34 : 30) + Math.sin(t / 250) * 1.2, car.y);
