@@ -608,6 +608,15 @@
     zh: ['🌐 多人游戏', '🟢 你已在线！当前玩家：{n}', '⚪ 多人游戏只在 claude.ai 上发布的游戏里可用。', '🔴 无法连接。只有受邀并登录 Claude 的玩家才能一起玩。', '你的名字', '游戏中的玩家', '🚗 去找他', '还没有人——邀请朋友吧！', '邀请朋友：在 claude.ai 打开游戏 →“分享”→ 用邮箱邀请朋友。你们都打开游戏后，就能在城里看到对方。', '👋 {n} 加入了游戏', '{n} 离开了游戏', '玩家', '你'],
   };
   for (const k in NET_TEXT) NET_KEYS.forEach((key, i) => { I18N[k][key] = NET_TEXT[k][i]; });
+  Object.entries({   // homeFree, homeMoved
+    ru: ['Свободный дом', 'Твой дом теперь другой — ищи табличку со своим именем 🏠'],
+    en: ['Free house', 'You have a different house now — look for the sign with your name 🏠'],
+    uk: ['Вільний дім', 'Тепер у тебе інший дім — шукай табличку зі своїм ім’ям 🏠'],
+    de: ['Freies Haus', 'Du hast jetzt ein anderes Haus — such das Schild mit deinem Namen 🏠'],
+    fr: ['Maison libre', 'Tu as maintenant une autre maison — cherche le panneau avec ton nom 🏠'],
+    es: ['Casa libre', 'Ahora tienes otra casa — busca el cartel con tu nombre 🏠'],
+    zh: ['空房子', '你的房子换了——找写着你名字的牌子 🏠'],
+  }).forEach(([k, v]) => { if (I18N[k]) [I18N[k].homeFree, I18N[k].homeMoved] = v; });
   Object.entries({   // netOff (подключаемся), netNo, netHow, netRoom, netRoomPh
     ru: ['⏳ Подключаемся к игре…', '🔴 Не получилось подключиться к серверу игры. Проверь интернет — играть можно и одному.', 'Как играть с друзьями: отправь им ссылку на игру. Все, кто сейчас играет в той же комнате, видны в городе. Пустой код — общий город для всех. Чтобы играть только своей компанией, впишите одинаковый код. Не пиши настоящую фамилию: имя видят все игроки.', 'Код комнаты', 'общий город'],
     en: ['⏳ Connecting…', '🔴 Couldn’t reach the game server. Check your internet — you can still play alone.', 'How to play with friends: send them the game link. Everyone playing in the same room right now appears in the city. Empty code — one shared city for all. To play only with your friends, all enter the same code. Don’t use your real surname: everyone can see your name.', 'Room code', 'shared city'],
@@ -949,7 +958,31 @@
   // ================== Генерация города ==================
   const blocks = [];
   const homeDoors = [];  // двери дома и гаража (анимация)
-  let HOME = null;       // твой огромный дом с гаражом (квартал у старта)
+  function drawHomeSign(hm, name, mine) {
+    const key = (mine ? '*' : '') + name;
+    if (!hm.sign || hm.sign.txt === key) return;
+    hm.sign.txt = key;
+    const g = hm.sign.c.getContext('2d'), w = 320, h = 64;
+    g.fillStyle = mine ? '#ff7043' : name ? '#42a5f5' : '#78909c'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#fff'; g.lineWidth = 4; g.strokeRect(3, 3, w - 6, h - 6);
+    g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    let label = name ? '🏠 ' + name : '🏠 ' + t('homeFree');
+    let fs = 36; g.font = 'bold ' + fs + 'px sans-serif';
+    while (g.measureText(label).width > w - 20 && fs > 16) { fs -= 2; g.font = 'bold ' + fs + 'px sans-serif'; }
+    g.fillText(label, w / 2, h / 2 + 2);
+    hm.sign.tex.needsUpdate = true;
+  }
+  let homeLightAt = null;
+  function updateHomeLights() {
+    let best = null, bd = Infinity;
+    for (const hm of HOMES) { const d = Math.hypot(car.x - hm.inX, car.y - hm.inY); if (d < bd) { bd = d; best = hm; } }
+    if (!best || best === homeLightAt || !best.lights) return;
+    homeLightAt = best;
+    best.lights.forEach(([x, y], k) => homeLights[k].position.set(x, 40, y));
+  }
+  const HOMES = [];      // дома с гаражами: у каждого игрока свой
+  const HOME_LOTS = ['0,0', '6,0', '0,6', '6,6', '3,6', '6,3'];
+  let HOME = null;       // твой дом
   const tall = [];       // объекты с высотой (здания, деревья, фонари)
   const parked = [];     // припаркованные машины
   const decals = [];     // люки, пятна на дороге
@@ -1046,7 +1079,7 @@
     else if (d === 1) type = r < .8 ? 'downtown' : 'office';
     else if (d === 2) type = r < .4 ? 'office' : r < .6 ? 'parking' : r < .8 ? 'park' : 'downtown';
     else type = r < .55 ? 'residential' : r < .72 ? 'lake' : r < .88 ? 'park' : 'parking';
-    if (i === 0 && j === 0) type = 'home';                     // здесь твой дом
+    if (HOME_LOTS.includes(i + ',' + j)) type = 'home';        // дома игроков
     if ((type === 'office' || type === 'parking') && (i + 2 * j) % 3 === 0) type = 'roofpark';   // дом с заездом на крышу
     const b = { x, y, lx, ly, type, ops: [] };
     const op = f => b.ops.push(f);
@@ -1145,8 +1178,8 @@
         ctx.fillStyle = PAT.paving; ctx.fillRect(x, house.d0 - 6, house.x0 - x, house.d1 - house.d0 + 12);      // дорожка к двери дома
         ctx.fillStyle = PAT.lot; ctx.fillRect(x, gar.d0 - 6, gar.x0 - x, gar.d1 - gar.d0 + 12);                 // въезд в гараж
       });
-      HOME = { house, gar, walls, furn, inX: hx + 50, inY: (house.d0 + house.d1) / 2, carX: gar.x0 + 95, carY: (gar.d0 + gar.d1) / 2 };
-      b.home = HOME;
+      const hm = { idx: HOME_LOTS.indexOf(i + ',' + j), house, gar, walls, furn, inX: hx + 50, inY: (house.d0 + house.d1) / 2, carX: gar.x0 + 95, carY: (gar.d0 + gar.d1) / 2 };
+      HOMES[hm.idx] = hm; b.home = hm;
       addTree(x + 340, y + 60, 20); addTree(x + 360, y + 200, 18); addTree(x + 300, y + 330, 20); addTree(x + 380, y + 400, 16);
     }
 
@@ -1310,6 +1343,7 @@
   }
 
   for (let j = 0; j < NB; j++) for (let i = 0; i < NB; i++) genBlock(i, j);
+  HOME = HOMES[0];
 
   // Лес вокруг города (декорации, за край мира не выехать)
   for (let a = -420; a < WORLD + 420; a += 52)
@@ -2265,7 +2299,7 @@
   // трамплины-«кикеры» в конце моста и на краю крыши
   RAMPS.push({ kick: true, base: DECK, cx: BX[2] - 40, cy: CY, d: 0, ux: 1, uy: 0, L: 80, H: 16, Wd: ROAD_W - 20, vzCap: 150, minVz: 130, boost: 590 });
   const LOOPS = [];
-  if (HOME) for (const [r, tag] of [[HOME.house, 'house'], [HOME.gar, 'gar']])            // крыши дома и гаража: камера не залезает выше потолка
+  for (const HOME of HOMES) for (const [r, tag] of [[HOME.house, 'house'], [HOME.gar, 'gar']])            // крыши дома и гаража: камера не залезает выше потолка
     PLATS.push({ cx: r.x0 + r.w / 2, cy: r.y0 + r.h / 2, ux: 1, uy: 0, L: r.w, Wd: r.h, h0: r.H, h1: r.H, bot: r.H - 6, home: tag });
   for (const b of blocks) if (b.roof) {
     const Rf = b.roof, hs = Rf.houses, Bg = Rf.bridge;
@@ -2514,17 +2548,16 @@
     }
   }
 
-  // ---------- 3D: твой дом и гараж ----------
-  if (HOME) {
+  // ---------- 3D: дома и гаражи игроков ----------
+  const homeLights = [150, 120, 110].map(r => { const pl = new THREE.PointLight('#ffe7c0', 1.4, r, 0); scene.add(pl); return pl; });   // свет внутри ближайшего дома
+  for (const HOME of HOMES) {
     const box = (w, h, d, m, x, y, z, cast = true) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = cast; o.receiveShadow = true; scene.add(o); return o; };
     const inner = (c, e = .32) => new THREE.MeshStandardMaterial({ color: c, roughness: .8, emissive: c, emissiveIntensity: e });   // внутри светлее (как будто горит свет)
     const canvasTex = (w, h, draw, rep = 1) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = maxAniso; return t; };
     const wallFac = new THREE.MeshStandardMaterial({ map: facadeTex('house', '#fff1dc'), roughness: .85, emissive: '#ffffff', emissiveMap: winMask('house'), emissiveIntensity: 0 });
     const garFac = new THREE.MeshStandardMaterial({ map: facadeTex('grid', '#cfd8dc'), roughness: .85, emissive: '#ffffff', emissiveMap: winMask('grid'), emissiveIntensity: 0 });
     wallFac.userData.glow = 1.2; garFac.userData.glow = .8; nightFacades.push(wallFac, garFac);
-    for (const [lx3, lz3, r] of [[HOME.house.x0 + 80, HOME.house.y0 + HOME.house.h / 2, 150], [HOME.house.x0 + 205, HOME.house.y0 + HOME.house.h / 2, 120], [HOME.gar.x0 + 95, HOME.gar.y0 + HOME.gar.h / 2, 110]]) {
-      const pl = new THREE.PointLight('#ffe7c0', 1.4, r, 0); pl.position.set(lx3, 40, lz3); scene.add(pl);   // свет внутри дома и гаража
-    }
+    HOME.lights = [[HOME.house.x0 + 80, HOME.house.y0 + HOME.house.h / 2], [HOME.house.x0 + 205, HOME.house.y0 + HOME.house.h / 2], [HOME.gar.x0 + 95, HOME.gar.y0 + HOME.gar.h / 2]];
     // внутри — обои и плинтус, без окон; окна только снаружи
     const paperH = new THREE.MeshStandardMaterial({ map: canvasTex(64, 120, (g, w, h) => { g.fillStyle = '#f3e3c3'; g.fillRect(0, 0, w, h); g.fillStyle = '#e6cfa5'; for (let x = 0; x < w; x += 16) g.fillRect(x, 0, 6, h); g.fillStyle = '#c9a77a'; g.fillRect(0, h - 40, w, 3); g.fillStyle = '#6d4c41'; g.fillRect(0, h - 8, w, 8); }), roughness: .9, emissive: '#f3e3c3', emissiveIntensity: .3 });
     const paperG = new THREE.MeshStandardMaterial({ map: canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#b0b4b8'; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(0,0,0,.08)'; for (let i = 0; i < 200; i++) g.fillRect(Math.random() * w, Math.random() * h, 2, 2); g.fillStyle = '#ffca28'; g.fillRect(0, h - 10, w, 6); g.fillStyle = '#263238'; g.fillRect(0, h - 4, w, 4); }), roughness: .95, emissive: '#b0b4b8', emissiveIntensity: .25 });
@@ -2610,9 +2643,14 @@
       homeDoors.push({ obj: hinge, axis: 'y', max: Math.PI / 2 * .95, x: H.x0, y: (H.d0 + H.d1) / 2, r: 75, k: 0 },
                      { obj: top, axis: 'z', max: Math.PI / 2 * .97, x: G.x0, y: (G.d0 + G.d1) / 2, r: 110, k: 0 });
     }
-    // табличка «ДОМ» над дверью
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(50, 16), new THREE.MeshBasicMaterial({ map: canvasTex(200, 64, (g) => { g.fillStyle = '#ff7043'; g.fillRect(0, 0, 200, 64); g.fillStyle = '#fff'; g.font = 'bold 44px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🏠', 100, 34); }) }));
-    sign.position.set(HOME.house.x0 - .6, HOME.house.doorH + 12, (HOME.house.d0 + HOME.house.d1) / 2); sign.rotation.y = -Math.PI / 2; scene.add(sign);
+    // табличка над дверью: чей это дом
+    {
+      const c = document.createElement('canvas'); c.width = 320; c.height = 64;
+      const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+      const sign = new THREE.Mesh(new THREE.PlaneGeometry(80, 16), new THREE.MeshBasicMaterial({ map: tex }));
+      sign.position.set(HOME.house.x0 - .6, HOME.house.doorH + 12, (HOME.house.d0 + HOME.house.d1) / 2); sign.rotation.y = -Math.PI / 2; scene.add(sign);
+      HOME.sign = { c, tex, txt: null };
+    }
   }
 
   // ---------- 3D: мост, дом-тоннель, второй тоннель ----------
@@ -4176,13 +4214,26 @@
     scene.remove(r.label.sp);
     remotes.delete(peer);
   }
+  function updateHomeOwners() {
+    const owners = new Map();
+    const peers = (net.room || net.mq.length) ? netPeers() : [];
+    for (const p of peers) { const k = p.presence && p.presence.hm; if (Number.isInteger(k) && HOMES[k]) { if (k === HOME.idx && String(p.peer) < String(net.id)) owners.set('clash', 1); if (!owners.has(k)) owners.set(k, cleanName(p.presence.nm)); } }
+    if (owners.has('clash')) {                       // этот дом уже занят тем, кто пришёл раньше — берём свободный
+      const free = HOMES.find(hm => hm.idx !== HOME.idx && !owners.has(hm.idx));
+      if (free) { HOME = free; save.homeSlot = free.idx; persist(); showMsg(t('homeMoved'), 3500); }
+    }
+    for (const hm of HOMES) drawHomeSign(hm, hm === HOME ? save.nick.slice(0, 16) : owners.get(hm.idx) || '', hm === HOME);
+  }
+  if (Number.isInteger(save.homeSlot) && HOMES[save.homeSlot]) HOME = HOMES[save.homeSlot];
+  updateHomeOwners();
+  setInterval(updateHomeOwners, 1500);
   function netUpdate(dt, now) {
     if (!net.room && !net.mq.length) return;
     const moving = Math.hypot(car.vx, car.vy) > 3;
     if (now - net.lastSend > (net.room ? 70 : moving ? 120 : 1000)) {                    // где я: часто, когда еду; раз в секунду, когда стою
       net.lastSend = now;
       const st = { nm: save.nick.slice(0, 16), x: Math.round(car.x), y: Math.round(car.y), z: Math.round(car.z || 0),
-        h: Math.round(car.angle * 1000) / 1000, v: Math.round(Math.hypot(car.vx, car.vy)), foot: !!car.onFoot, car: spec.id };
+        h: Math.round(car.angle * 1000) / 1000, v: Math.round(Math.hypot(car.vx, car.vy)), foot: !!car.onFoot, car: spec.id, hm: HOME.idx };
       if (net.room) net.room.presence(st).catch(() => {});
       else mqPublish(JSON.stringify(st));
     }
@@ -4326,6 +4377,12 @@
     g.strokeText(text, x, y); g.fillStyle = color; g.fillText(text, x, y);
   }
   function mapOverlay(g, s, full, time) {
+    if (HOME) {                                            // твой дом на карте — золотая звезда
+      const hx = HOME.house.x0 + HOME.house.w / 2, hy = HOME.house.y0 + HOME.house.h / 2, r = Math.max(9, full ? 15 : 10) / s;
+      g.save(); g.fillStyle = '#ffd54f'; g.strokeStyle = '#e65100'; g.lineWidth = 2.5 / s; g.beginPath();
+      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * .45 : r; g.lineTo(hx + Math.cos(a) * rr, hy + Math.sin(a) * rr); }
+      g.closePath(); g.fill(); g.stroke(); g.restore();
+    }
     if (full) {
       // значки кварталов и подписи
       g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -4653,7 +4710,7 @@
     updateNav(t); drawMinimap(t); if (mapOpen) drawBigMap(t);
     if (menuOpen) { menuCamera(dt); updateMenuInfo(); } else updateCamera(dt);
     updateVisuals(dt, t);
-    updateDayNight(dt); updateClock();
+    updateDayNight(dt); updateClock(); updateHomeLights();
     for (const d of homeDoors) {                         // двери сами открываются, когда ты рядом (пешком или на машине)
       const want = Math.hypot(car.x - d.x, car.y - d.y) < d.r || Math.hypot(vstate.x - d.x, vstate.y - d.y) < 20 ? 1 : 0;
       d.k += Math.sign(want - d.k) * Math.min(Math.abs(want - d.k), dt * 2.5);
