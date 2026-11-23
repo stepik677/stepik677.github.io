@@ -3393,16 +3393,16 @@
     const was = o.crash > 0;
     o.kvx = (was ? o.kvx : Math.cos(o.h) * o.v) + vx; o.kvy = (was ? o.kvy : Math.sin(o.h) * o.v) + vy;
     o.v = 0; o.crash = 3; o.kz = o.kz || 0; o.kvz = o.kvz || 0; o.roll = o.roll || 0;
-    o.spin = (o.spin || 0) + (Math.random() < .5 ? -1 : 1) * Math.min(7, J / 70) * (.6 + Math.random() * .6);
-    if (J > 200) o.kvz = Math.max(o.kvz, Math.min(280, (J - 170) * 1.1));
-    if (J > 320 && !o.rollV) o.rollV = (Math.random() < .5 ? -1 : 1) * (6 + Math.random() * 3);
+    o.spin = (o.spin || 0) + (Math.random() < .5 ? -1 : 1) * Math.min(11, J / 40) * (.6 + Math.random() * .6);
+    if (J > 90) o.kvz = Math.max(o.kvz, Math.min(420, (J - 70) * 1.5));
+    if (J > 180 && !o.rollV) o.rollV = (Math.random() < .5 ? -1 : 1) * (6 + Math.random() * 4);
   }
   function crashUpdate(tc, dt) {
     tc.crash -= dt;
     const nx = tc.x + tc.kvx * dt, ny = tc.y + tc.kvy * dt;
     if (solidAtZ(nx, ny, (tc.z || 0) + 4)) { tc.kvx *= -.35; tc.kvy *= -.35; tc.spin *= .6; } else { tc.x = nx; tc.y = ny; }
     const air = tc.kz > 0;
-    const k = Math.max(0, 1 - (air ? .15 : 2.2) * dt); tc.kvx *= k; tc.kvy *= k;
+    const k = Math.max(0, 1 - (air ? .1 : 1.3) * dt); tc.kvx *= k; tc.kvy *= k;
     tc.h += tc.spin * dt; tc.spin *= Math.max(0, 1 - (air ? .2 : 2.5) * dt);
     tc.kvz -= 520 * dt; tc.kz = Math.max(0, tc.kz + tc.kvz * dt);
     if (tc.kz <= 0 && tc.kvz < 0) tc.kvz = tc.kvz < -120 ? -tc.kvz * .3 : 0;     // подпрыгивает при падении
@@ -3414,7 +3414,7 @@
     const sp = Math.hypot(tc.kvx, tc.kvy);
     if (sp > 90) for (const o of traffic) {                // отлетевшая машина бьёт другие
       if (o === tc || o.crash > 0 || Math.abs(o.x - tc.x) > 34 || Math.abs(o.y - tc.y) > 34 || Math.hypot(o.x - tc.x, o.y - tc.y) > 32) continue;
-      crashCar(o, tc.kvx * .6, tc.kvy * .6, sp * .5); tc.kvx *= .5; tc.kvy *= .5;
+      crashCar(o, tc.kvx * .7, tc.kvy * .7, sp * .7); tc.kvx *= .5; tc.kvy *= .5;
       for (let i = 0; i < 6; i++) emit(o.x, 8, o.y, '#ffd27a', 1.5, .35, (Math.random() - .5) * 140, Math.random() * 70, (Math.random() - .5) * 140, 0, 1);
     }
     if (tc.crash <= 0 && (tc.kz > 0 || tc.rollV)) tc.crash = .1;          // сначала приземлиться
@@ -3896,8 +3896,8 @@
         const isTraffic = !o.remote && traffic.includes(o);
         if (isTraffic && !car.onFoot && vn < -40) {             // удар машиной: другую машину отбрасывает, как в настоящей аварии
           const J = -vn;
-          car.vx -= 1.1 * vn * nx; car.vy -= 1.1 * vn * ny;
-          crashCar(o, -nx * J * .95, -ny * J * .95, J);
+          car.vx -= 1.05 * vn * nx; car.vy -= 1.05 * vn * ny;
+          crashCar(o, -nx * J * 1.8, -ny * J * 1.8, J * 1.4);
           if (vn < -110) setTimeout(() => { if (traffic.includes(o)) startRoadRage(o); }, 2200);   // потом водитель выходит разбираться
         } else { car.vx -= 1.5 * vn * nx; car.vy -= 1.5 * vn * ny; o.v *= .3; }
         if (vn < -110) {
