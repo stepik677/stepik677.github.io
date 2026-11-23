@@ -1593,7 +1593,21 @@
     return [[hl, hw], [hl, -hw], [-hl, hw], [-hl, -hw], [hl, 0], [-hl, 0], [0, hw], [0, -hw]]
       .map(([fx, fy]) => [x + fx * c - fy * s, y + fx * s + fy * c]);
   }
-  const collides = (x, y, a) => corners(x, y, a).some(([px, py]) => solidAtZ(px, py));
+  // край карты не считаем стеной для машины (от него отскакиваем отдельно в edgeBounce) — так машина не застревает и может развернуться
+  const edgeC = v => Math.max(3, Math.min(WORLD - 3, v));
+  const collides = (x, y, a) => corners(x, y, a).some(([px, py]) => solidAtZ(edgeC(px), edgeC(py)));
+  // мягкий отскок от края карты: выталкиваем машину внутрь и немного отбрасываем назад
+  function edgeBounce() {
+    const cs = corners(car.x, car.y, car.angle), M = 4, B = .35;
+    let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
+    for (const [px, py] of cs) { mnx = Math.min(mnx, px); mxx = Math.max(mxx, px); mny = Math.min(mny, py); mxy = Math.max(mxy, py); }
+    let hit = 0;
+    if (mnx < M) { car.x += M - mnx; if (car.vx < 0) { hit = Math.max(hit, -car.vx); car.vx = Math.max(40, -car.vx * B); car.vy *= .85; } }
+    else if (mxx > WORLD - M) { car.x -= mxx - (WORLD - M); if (car.vx > 0) { hit = Math.max(hit, car.vx); car.vx = -Math.max(40, car.vx * B); car.vy *= .85; } }
+    if (mny < M) { car.y += M - mny; if (car.vy < 0) { hit = Math.max(hit, -car.vy); car.vy = Math.max(40, -car.vy * B); car.vx *= .85; } }
+    else if (mxy > WORLD - M) { car.y -= mxy - (WORLD - M); if (car.vy > 0) { hit = Math.max(hit, car.vy); car.vy = -Math.max(40, car.vy * B); car.vx *= .85; } }
+    if (hit > 140) shake = Math.min(5, hit / 80);
+  }
 
   function isOffroad(x, y) {
     // дорога — всё, что вне кварталов и в пределах мира
@@ -3137,6 +3151,7 @@
     if (garageOpen || menuOpen || mapOpen) return;
     if (car.onFoot) { walkUpdate(dt); return; }
     if (car.loop) { loopUpdate(dt); return; }
+    edgeBounce();
     if (!car.air && collides(car.x, car.y, car.angle) && unstick(carHitAt)) { car.vx *= .3; car.vy *= .3; car.ramp = null; car.stun = 0; }
     if (car.air || car.stun > 0) { airUpdate(dt); return; }
     const { up, down, left, right, brake } = keys;
