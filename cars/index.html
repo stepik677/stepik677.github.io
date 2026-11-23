@@ -641,12 +641,12 @@
         shPaintHint: 'Перекрась свою машину: {car}', shBuy: 'Купить', shOn: 'Надето ✓', shNoMoney: 'Не хватает денег 💶 — собирай монеты!', shYum: 'Ням-ням! ❤️ +{n}', shDone: 'Готово! ✨',
         shPromptShop: 'Нажми {k} — зайти в магазин', shPromptSleep: 'Нажми {k} — лечь спать', shNight: 'Спокойной ночи… 💤', shMorning: '☀️ Доброе утро! Ты выспался',
         shHotdog: 'Хот-дог', shSoda: 'Газировка', shPizza: 'Пицца', shIce: 'Мороженое', shBurger: 'Бургер', shShirts: 'Футболки', shCaps: 'Кепки', shFactory: 'Заводской цвет', shFree: 'Бесплатно',
-        lgShops: 'Магазины', shSignFood: '24/7', shSignClothes: 'ОДЕЖДА', shSignPaint: 'ПОКРАСКА' },
+        lgShops: 'Магазины', runOver: '💥 Ты сбил человека! Полиция уже едет 🚓', shSignFood: '24/7', shSignClothes: 'ОДЕЖДА', shSignPaint: 'ПОКРАСКА' },
       en: { shFood: '🏪 24/7 Store', shClothes: '👕 Clothes Shop', shPaint: '🎨 Paint Shop', shFoodHint: 'Have a snack — it restores your health ❤️', shClothesHint: 'Pick a T-shirt and a cap for your character',
         shPaintHint: 'Repaint your car: {car}', shBuy: 'Buy', shOn: 'Wearing ✓', shNoMoney: 'Not enough money 💶 — collect coins!', shYum: 'Yum! ❤️ +{n}', shDone: 'Done! ✨',
         shPromptShop: 'Press {k} — enter the shop', shPromptSleep: 'Press {k} — go to sleep', shNight: 'Good night… 💤', shMorning: '☀️ Good morning! You slept well',
         shHotdog: 'Hot dog', shSoda: 'Soda', shPizza: 'Pizza', shIce: 'Ice cream', shBurger: 'Burger', shShirts: 'T-shirts', shCaps: 'Caps', shFactory: 'Factory color', shFree: 'Free',
-        lgShops: 'Shops', shSignFood: '24/7', shSignClothes: 'CLOTHES', shSignPaint: 'PAINT' },
+        lgShops: 'Shops', runOver: '💥 You hit a person! The police are coming 🚓', shSignFood: '24/7', shSignClothes: 'CLOTHES', shSignPaint: 'PAINT' },
     };
     for (const k in I18N) Object.assign(I18N[k], SH[k] || SH.en);
   }
@@ -3490,7 +3490,16 @@
     for (const k in pInst) if (pInst[k].m.instanceColor) pInst[k].m.instanceColor.needsUpdate = true;
   }
   const pBase = new THREE.Matrix4(), pTmp = new THREE.Matrix4(), pRot = new THREE.Matrix4(), pOff = new THREE.Matrix4(), pQ = new THREE.Quaternion(), pV = new THREE.Vector3();
-  let rageHintShown = false, rageCd = 0;
+  let rageHintShown = false, rageCd = 0, runCd = 0;
+  function knockPerson(pp, sp) {                           // машина сбила человечка — он отлетает, падает и потом встаёт
+    const ca = Math.cos(car.angle), sa = Math.sin(car.angle), side = Math.random() < .5 ? -1 : 1;
+    pp.mode = 'fly'; pp.fz = 0; pp.fvz = 110 + Math.min(sp, 420) * .35;
+    pp.fvx = car.vx * .7 - sa * side * 60; pp.fvy = car.vy * .7 + ca * side * 60;
+    pp.spin = 8 + Math.random() * 4; pp.fallA = 0; pp.dodge = 0; pp.side = 0;
+    pp.yaw = Math.atan2(pp.fvy, pp.fvx);
+    car.vx *= .88; car.vy *= .88; shake = Math.max(shake, 1.8);
+    if (runCd <= 0) { runCd = 1.2; addWanted(1); showMsg(t('runOver'), 1800); }   // кто-то видел — звезда и полиция
+  }
   function startRoadRage(tc) {
     if (tc.halt || rageCd > 0 || car.onFoot) return;
     const slot = people.find(pp => pp.inactive); if (!slot) return;
@@ -3501,7 +3510,7 @@
     showMsg(t('roadRage'), 2400);
   }
   function updatePeople(dt) {
-    rageCd -= dt;
+    rageCd -= dt; runCd -= dt;
     const n = people.length;
     for (const k in pInst) pInst[k].m.count = n * pInst[k].per;
     const fighter = car.onFoot && foot.ko <= 0;              // с тобой можно драться, только когда ты пешком
@@ -3513,12 +3522,20 @@
       }
       let x, y, yaw, hop = 0, walking = false, spd = 0;
       pp.hitCd -= dt; pp.punchT -= dt;
-      if (pp.mode === 'walk') {
+      if (pp.mode === 'fly') {                              // летит после удара машиной
+        const nx = pp.x + pp.fvx * dt, ny = pp.y + pp.fvy * dt;
+        if (solidAtZ(nx, ny, Math.max(0, pp.fz))) { pp.fvx *= -.3; pp.fvy *= -.3; } else { pp.x = nx; pp.y = ny; }
+        pp.fz += pp.fvz * dt; pp.fvz -= 420 * dt; pp.fallA += pp.spin * dt;
+        pp.fvx *= 1 - .6 * dt; pp.fvy *= 1 - .6 * dt;
+        if (pp.fz <= 0 && pp.fvz < 0) { pp.fz = 0; pp.mode = 'down'; pp.downT = 3.5; pp.fallA = Math.PI / 2; pp.carHit = true; }
+        x = pp.x; y = pp.y; yaw = pp.yaw; hop = Math.max(0, pp.fz);
+      } else if (pp.mode === 'walk') {
         let h;
         [x, y, h] = perim(pp.b, pp.s);
         // машина рядом — отпрыгиваем в сторону газона
         const dx = car.x - x, dy = car.y - y, near = !car.onFoot && dx * dx + dy * dy < 55 * 55 && car.z < 20 && Math.hypot(car.vx, car.vy) > 25;
-        if (near && pp.dodge <= 0) pp.dodge = .9;
+        pp.brave = (pp.brave || 0) - dt;
+        if (near && pp.dodge <= 0 && pp.brave <= 0) { if (Math.random() < .45) pp.dodge = .9; else pp.brave = 1.5; }   // не все успевают отпрыгнуть
         if (pp.dodge > 0) pp.dodge -= dt;
         pp.side += ((pp.dodge > 0 ? 1 : 0) - pp.side) * Math.min(1, (pp.dodge > 0 ? 9 : 2) * dt);
         walking = pp.dodge <= 0;
@@ -3533,7 +3550,8 @@
         x = pp.x; y = pp.y; yaw = pp.yaw;
         if (pp.downT <= 0) {
           pp.fallA = 0;
-          if (pp.driverOf && pp.kos >= 2) { pp.mode = 'return'; showMsg(t('rageGiveUp'), 1800); }   // водитель сдался
+          if (pp.carHit) { pp.carHit = false; pp.mode = 'return'; }          // встал, отряхнулся и пошёл дальше
+          else if (pp.driverOf && pp.kos >= 2) { pp.mode = 'return'; showMsg(t('rageGiveUp'), 1800); }   // водитель сдался
           else { pp.mode = 'fight'; pp.angryT = pp.driverOf ? 25 : 14; }
         }
       } else {
@@ -3562,6 +3580,13 @@
           pp.driverOf.halt = false; pp.driverOf = null; pp.inactive = true; pp.mode = 'idle';
         } else if (pp.mode === 'return' && dd < 6) { pp.mode = 'walk'; pp.side = 0; }
         pp.x = x; pp.y = y; yaw = pp.yaw;
+      }
+      if (pp.mode !== 'down' && pp.mode !== 'fly' && !car.onFoot && !car.air && !car.loop && (car.z || 0) < 15) {
+        const sp = Math.hypot(car.vx, car.vy);
+        if (sp > 45) {
+          const rx = x - car.x, ry = y - car.y, ca = Math.cos(car.angle), sa = Math.sin(car.angle);
+          if (Math.abs(rx * ca + ry * sa) < 28 && Math.abs(-rx * sa + ry * ca) < 16) { pp.x = x; pp.y = y; knockPerson(pp, sp); }
+        }
       }
       pp.ph += dt * (walking ? spd * .32 : 0);
       const sw = walking ? Math.sin(pp.ph) * .6 : 0;
@@ -3948,7 +3973,7 @@
     const fx = Math.cos(car.angle), fy = Math.sin(car.angle);
     let best = null, bd = 34;
     for (const pp of people) {
-      if (pp.mode === 'down' || pp.inactive) continue;
+      if (pp.mode === 'down' || pp.mode === 'fly' || pp.inactive) continue;
       const dx = pp.x - car.x, dy = pp.y - car.y, d = Math.hypot(dx, dy);
       if (d < bd && (dx * fx + dy * fy) / (d || 1) > .25) { bd = d; best = pp; }
     }
