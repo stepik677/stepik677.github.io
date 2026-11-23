@@ -247,6 +247,29 @@
   #fsBtn { width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; padding: 0;
     background: rgba(15,20,28,.65); color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.3); backdrop-filter: blur(6px); }
   #fsBtn svg { width: 22px; height: 22px; }
+  #phoneBtn { width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; font-size: 21px; padding: 0;
+    background: rgba(15,20,28,.65); box-shadow: 0 4px 16px rgba(0,0,0,.3); backdrop-filter: blur(6px); }
+  .menuOpen #phoneBtn, .menuOpen #phone { display: none !important; }
+  #phone { position: fixed; right: calc(18px + var(--sr)); top: calc(72px + var(--st)); z-index: 12; width: 250px; display: none; flex-direction: column; gap: 8px;
+    background: linear-gradient(#1b2433, #0f151f); border: 4px solid #3a4558; border-radius: 30px; padding: 12px 12px 16px; color: #fff;
+    font: 600 14px "Segoe UI", sans-serif; box-shadow: 0 14px 40px rgba(0,0,0,.55); animation: phIn .25s ease-out; }
+  #phone.on { display: flex; }
+  @keyframes phIn { from { transform: translateY(30px); opacity: 0; } }
+  #phone .phTop { display: flex; justify-content: space-between; font-size: 12px; opacity: .8; padding: 0 8px; }
+  #phone .phTop::before { content: ''; position: absolute; left: 50%; top: 8px; width: 60px; height: 6px; margin-left: -30px; border-radius: 3px; background: #3a4558; }
+  #phTitle { font-size: 18px; font-weight: 800; padding: 2px 6px; }
+  .phRow { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 16px; background: rgba(255,255,255,.07); border: 2px solid transparent; cursor: pointer; }
+  .phRow.sel { border-color: #ffd54f; background: rgba(255,213,79,.12); }
+  .phAva { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 19px; flex: none; }
+  .phRow .phTxt { flex: 1; min-width: 0; }
+  .phRow b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phRow small { opacity: .75; font-size: 12px; }
+  .phRow button { border: 0; border-radius: 12px; padding: 7px 9px; font: 800 13px "Segoe UI", sans-serif; cursor: pointer; color: #fff; background: linear-gradient(#66bb6a, #2e7d32); white-space: nowrap; }
+  .phRow button.bye { background: linear-gradient(#ef5350, #c62828); }
+  .phRow button:disabled { background: #3d4b5f; cursor: default; }
+  .phRing { animation: ring .5s infinite; display: inline-block; }
+  @keyframes ring { 25% { transform: rotate(-18deg); } 75% { transform: rotate(18deg); } }
+  #phHint { font-size: 11px; opacity: .6; text-align: center; }
   #fsBtn .shrink { display: none; } .fs #fsBtn .grow { display: none; } .fs #fsBtn .shrink { display: block; }
   .standalone #fsBtn { display: none; }
   #speedo { right: calc(12px + var(--sr)); bottom: calc(12px + var(--sb)); width: var(--speedo); height: var(--speedo); }
@@ -349,9 +372,11 @@
     <svg class="grow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
     <svg class="shrink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
   </button>
+  <button id="phoneBtn" aria-label="phone" title="📱 (6 / P)">📱</button>
   <button id="garageBtn"></button>
   <button id="menuBtn" aria-label="menu">☰</button>
 </div>
+<div id="phone"><div class="phTop"><span id="phClock"></span><span>📶 🔋</span></div><div id="phTitle"></div><div id="phList"></div><div id="phHint"></div></div>
 <div id="fsHelp"><div class="box"><h3 data-i18n="fsTitle"></h3><p data-i18n="fsText"></p><button data-i18n="ok" id="fsHelpOk"></button></div></div>
 <div id="garage">
   <div class="gbox">
@@ -605,14 +630,25 @@
     de: ['Bildschirmwackeln', 'Aus', 'Leicht', 'Stark'], fr: ['Tremblement', 'Non', 'Léger', 'Fort'], es: ['Vibración de cámara', 'No', 'Suave', 'Fuerte'], zh: ['镜头震动', '关', '轻', '强'],
   }).forEach(([k, v]) => { [I18N[k].shakeLbl, I18N[k].shOff, I18N[k].shSoft, I18N[k].shStrong] = v; });
   Object.entries({
-    ru: ['👥 Друзья', 'Друг 1', 'Друг 2', 'Друзья ездят со мной', 'Нажми на имя или впиши своё'],
-    en: ['👥 Friends', 'Friend 1', 'Friend 2', 'Friends ride with me', 'Tap a name or type your own'],
+    ru: ['👥 Друзья', 'Друг 1', 'Друг 2', 'Друзья катаются по городу', 'Нажми на имя или впиши своё'],
+    en: ['👥 Friends', 'Friend 1', 'Friend 2', 'Friends drive around the city', 'Tap a name or type your own'],
     uk: ['👥 Друзі', 'Друг 1', 'Друг 2', 'Друзі їздять зі мною', 'Натисни на ім’я або впиши своє'],
     de: ['👥 Freunde', 'Freund 1', 'Freund 2', 'Freunde fahren mit mir', 'Tippe auf einen Namen oder schreib einen eigenen'],
     fr: ['👥 Amis', 'Ami 1', 'Ami 2', 'Mes amis roulent avec moi', 'Touche un prénom ou écris le tien'],
     es: ['👥 Amigos', 'Amigo 1', 'Amigo 2', 'Mis amigos van conmigo', 'Toca un nombre o escribe el tuyo'],
     zh: ['👥 朋友', '朋友 1', '朋友 2', '朋友跟我一起开车', '点一个名字或自己输入'],
   }).forEach(([k, v]) => { [I18N[k].friendsBtn, I18N[k].friend1, I18N[k].friend2, I18N[k].friendsOn, I18N[k].friendsHint] = v; });
+  {
+    const FRT = {
+      ru: { phTitle: '📱 Контакты', phCall: '📞 Позвонить', phBye: '👋 Пока', phCalling: 'Звоним…', phHint: '1 / 2 — выбрать · 3 — позвонить · 6 — закрыть',
+        frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
+        frComing: '📞 {n}: Уже еду к тебе! 🚗', frHere: '👋 {n}: Я тут! Поехали!', frLeave: '📱 {n}: Ладно, поеду покатаюсь. Звони!', frBye: '👋 {n}: Давай, пока! Звони, если что!' },
+      en: { phTitle: '📱 Contacts', phCall: '📞 Call', phBye: '👋 Bye', phCalling: 'Calling…', phHint: '1 / 2 — pick · 3 — call · 6 — close',
+        frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
+        frComing: '📞 {n}: On my way! 🚗', frHere: '👋 {n}: I’m here! Let’s go!', frLeave: '📱 {n}: OK, I’m off for a drive. Call me!', frBye: '👋 {n}: See ya! Call me anytime!' },
+    };
+    for (const k in I18N) Object.assign(I18N[k], FRT[k] || FRT.en);
+  }
   Object.entries({ ru: '💪 {n}: Я помогу!', en: '💪 {n}: I’ve got your back!', uk: '💪 {n}: Я допоможу!', de: '💪 {n}: Ich helfe dir!', fr: '💪 {n} : Je t’aide !', es: '💪 {n}: ¡Te ayudo!', zh: '💪 {n}：我来帮你！' })
     .forEach(([k, v]) => { I18N[k].helpYou = v; });
   Object.entries({
@@ -1506,10 +1542,10 @@
       Digit1: 'up', Numpad1: 'up', Digit2: 'down', Numpad2: 'down',
       Digit9: 'left', Numpad9: 'left', Digit0: 'right', Numpad0: 'right',
       Digit3: 'exit', Numpad3: 'exit', KeyE: 'exit', KeyF: 'exit', Digit5: 'map', Numpad5: 'map', KeyM: 'map',
-      Digit4: 'punch', Numpad4: 'punch', KeyQ: 'punch', ShiftLeft: 'run', ShiftRight: 'run' };
+      Digit4: 'punch', Numpad4: 'punch', KeyQ: 'punch', ShiftLeft: 'run', ShiftRight: 'run', Digit6: 'phone', Numpad6: 'phone', KeyP: 'phone' };
     if (byCode[e.code]) return byCode[e.code];
     const byKey = { w: 'up', 'ц': 'up', s: 'down', 'ы': 'down', a: 'left', 'ф': 'left', d: 'right', 'в': 'right',
-      ' ': 'brake', r: 'reset', g: 'garage', 'п': 'garage', escape: 'close', '1': 'up', '2': 'down', '9': 'left', '0': 'right', 'к': 'reset', '3': 'exit', e: 'exit', f: 'exit', 'у': 'exit', 'а': 'exit', '5': 'map', m: 'map', 'ь': 'map', '4': 'punch', q: 'punch', 'й': 'punch', shift: 'run', arrowup: 'up', arrowdown: 'down', arrowleft: 'left', arrowright: 'right' };
+      ' ': 'brake', r: 'reset', g: 'garage', 'п': 'garage', escape: 'close', '1': 'up', '2': 'down', '9': 'left', '0': 'right', 'к': 'reset', '3': 'exit', e: 'exit', f: 'exit', 'у': 'exit', 'а': 'exit', '5': 'map', m: 'map', 'ь': 'map', '4': 'punch', q: 'punch', 'й': 'punch', '6': 'phone', p: 'phone', 'з': 'phone', shift: 'run', arrowup: 'up', arrowdown: 'down', arrowleft: 'left', arrowright: 'right' };
     return byKey[(e.key || '').toLowerCase()];
   }
   function refreshKeys() {
@@ -1527,12 +1563,15 @@
     if (a === 'close') {                                   // Esc: закрыть гараж → открыть/закрыть меню
       if (e.repeat) return;
       if (window.__isMapOpen?.()) window.__toggleMap?.(false);
+      else if (window.__phoneOpen?.()) window.__togglePhone?.(false);
       else if (window.__shopOpen?.()) window.__closeShop?.();
       else if (garageOpen) window.__toggleGarage?.(false);
       else if (menuOpen) { if (window.__started) hideStart(); else showPanel('mMain'); }
       else openMenu();
       return;
     }
+    if (a === 'phone') { if (!e.repeat && !menuOpen && !garageOpen && !window.__isMapOpen?.() && !window.__shopOpen?.()) window.__togglePhone?.(); return; }
+    if (window.__phoneOpen?.() && a !== 'map') { if (!e.repeat) window.__phoneKey?.(a); return; }   // телефон в руках: 1/2 — выбор, 3 — звонок
     if (a === 'play') { if (menuOpen && window.__gameReady) hideStart(); return; }
     if (a === 'map') { if (!e.repeat && !menuOpen && !garageOpen) window.__toggleMap?.(); return; }
     if (menuOpen || garageOpen || window.__isMapOpen?.() || window.__shopOpen?.()) return;   // в меню машина не едет
@@ -2987,7 +3026,7 @@
     if (typeof chase !== 'undefined' && chase.active) endChase();
     if (car.onFoot) { car.onFoot = false; foot.root.visible = false; footBlob.visible = false; if (player.driver) player.driver.visible = true; setOnFootClass(); }
     resetCar(); spawnCoins(); collected = 0; finished = false;
-    if (typeof resetFriends === 'function') resetFriends();
+    if (typeof resetFriends === 'function') resetFriends(true);
     startTime = performance.now();
     document.getElementById('total').textContent = coins.length;
   }
@@ -4159,18 +4198,85 @@
     const person = buildPerson(L.shirt, L.cap, L.pants, L.skin);
     const blob = new THREE.Mesh(blobGeo, blobMat); blob.renderOrder = 1; scene.add(blob);
     return { i, L, m, person, blob, label: makeLabel(), x: car.x - 90, y: car.y + (i ? 60 : -60), z: 0, h: car.angle, v: 0, stuck: 0, rev: 0,
-      onFoot: false, px: 0, py: 0, pz: 0, ph: 0, ph2: 0, punchT: 0, punchCd: 0, r: spec0.wheelR };
+      onFoot: false, px: 0, py: 0, pz: 0, ph: 0, ph2: 0, punchT: 0, punchCd: 0, r: spec0.wheelR,
+      mode: 'roam', route: null, wi: 1, routeT: 0, withT: 0, comeT: 0, placed: false };   // roam — катается сам, come — едет к тебе, with — с тобой
   });
+  const frName = f => (save.friends.names[f.i] || '').trim() || (f.i ? 'Кинан' : 'Армин');
+  // случайное место на дороге, где ничего не мешает
+  function friendRandomSpot(f) {
+    for (let k = 0; k < 30; k++) {
+      const line = nodeC(Math.floor(Math.random() * (NB + 1))), along = 500 + Math.random() * (WORLD - 1000), vert = Math.random() < .5;
+      const x = vert ? line + 90 : along, y = vert ? along : line + 90, h = vert ? Math.PI / 2 : 0;
+      if (Math.hypot(x - car.x, y - car.y) < 700) continue;
+      if (corners2(x, y, h, 46, 22).some(([qx, qy]) => solidAtZ(qx, qy, 0))) continue;
+      f.x = x; f.y = y; f.h = h; f.v = 0; f.z = groundHeight(x, y, 0); f.route = null; return;
+    }
+  }
   function friendPlace(f, off) {
     const a = car.angle, fx = Math.cos(a), fy = Math.sin(a), rx = -Math.sin(a), ry = Math.cos(a);
     return [car.x + fx * off[0] + rx * off[1], car.y + fy * off[0] + ry * off[1]];
   }
-  function resetFriends() {
+  function resetFriends(full) {
     for (const f of friends) {
+      if (full) { f.mode = 'roam'; f.placed = false; }
+      if (f.mode !== 'with') {                      // катается сам по себе — ставим на случайную дорогу (если ещё не стоит)
+        if (!f.placed) { friendRandomSpot(f); f.placed = true; f.onFoot = false; if (f.m.driver) f.m.driver.visible = true; }
+        continue;
+      }
       const V = car.onFoot ? vstate : car, a = V.angle;
       const [ox, oz] = FR_OFF[f.i];
       f.x = V.x + Math.cos(a) * ox - Math.sin(a) * oz; f.y = V.y + Math.sin(a) * ox + Math.cos(a) * oz; f.h = a; f.v = 0; f.z = 0; f.onFoot = false;
     }
+  }
+  // едем по дорогам к точке (tx, ty) по маршруту навигатора, держимся правой полосы
+  function friendSteer(f, dt, maxSp) {
+    const hx = Math.cos(f.h), hy = Math.sin(f.h);
+    if (!f.route || f.routeT <= 0) {
+      if (f.mode === 'roam' && (!f.goal || !f.route)) {          // новая случайная цель: какой-нибудь перекрёсток
+        f.goal = [nodeC(Math.floor(Math.random() * (NB + 1))), nodeC(Math.floor(Math.random() * (NB + 1)))];
+      }
+      if (f.mode === 'come') f.goal = [car.x, car.y];
+      f.route = planRoute(roadSpot(f.x, f.y, hx, hy), roadSpot(f.goal[0], f.goal[1]), hx, hy);
+      f.wi = 1; f.routeT = f.mode === 'come' ? 1.5 : 1e9;
+    }
+    f.routeT -= dt;
+    const R = f.route, LANE = 90;
+    let tx, ty, turnD = Infinity;
+    for (;;) {
+      const a = R[f.wi - 1], b = R[Math.min(f.wi, R.length - 1)];
+      const sl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, ux = (b[0] - a[0]) / sl, uy = (b[1] - a[1]) / sl;
+      tx = b[0] - uy * LANE; ty = b[1] + ux * LANE;            // правая полоса
+      const left = (tx - f.x) * ux + (ty - f.y) * uy;             // сколько осталось до конца отрезка
+      if (left < 40 && f.wi < R.length - 1) { f.wi++; continue; }
+      if (f.wi < R.length - 1) turnD = left;
+      if (left < 40 && f.wi >= R.length - 1) {                    // приехали
+        if (f.mode === 'roam') { f.route = null; f.goal = null; }
+        tx = f.x + hx * 60; ty = f.y + hy * 60; maxSp = 0;
+      } else {                                                     // смотрим чуть вперёд вдоль полосы — едем плавно
+        const sc = Math.min(0, -left + 120); tx += ux * sc; ty += uy * sc;
+      }
+      break;
+    }
+    const dx = tx - f.x, dy = ty - f.y;
+    const want = Math.atan2(dy, dx), dA = angDiff(want, f.h);
+    if (f.rev > 0) { f.rev -= dt; f.v = -90; f.h -= 1.4 * dt; return; }
+    f.h += Math.max(-2.4 * dt, Math.min(2.4 * dt, dA)) * Math.min(1, Math.abs(f.v) / 60 + .3);
+    let tsp = maxSp;
+    if (turnD < 260) tsp = Math.min(tsp, 110 + turnD * .7);       // тормозим перед поворотом
+    if (Math.abs(dA) > .9) tsp = Math.min(tsp, 90);
+    f.v += Math.max(-420 * dt, Math.min(220 * dt, tsp - f.v));
+  }
+  // ты позвонил — друг едет к тебе
+  function callFriend(f) {
+    if (!save.friends.on) { save.friends.on = true; persist(); renderFriendsMenu(); showMsg(t('frOff'), 1800); }
+    const d = Math.hypot(f.x - car.x, f.y - car.y);
+    if (d < 300) { f.mode = 'with'; f.withT = 240; showMsg(t('frHere', { n: frName(f) }), 2200); return; }
+    f.mode = 'come'; f.route = null; f.routeT = 0; f.comeT = 0; f.onFoot = false; if (f.m.driver) f.m.driver.visible = true;
+    showMsg(t('frComing', { n: frName(f) }), 2600);
+  }
+  function dismissFriend(f, auto) {
+    f.mode = 'roam'; f.route = null; f.goal = null; f.placed = true;
+    showMsg(t(auto ? 'frLeave' : 'frBye', { n: frName(f) }), 2600);
   }
   function updateFriends(dt) {
     fightT -= dt;
@@ -4182,15 +4288,28 @@
       f.person.root.visible = on && f.onFoot;
       if (!on) continue;
       // --- пешком: вышли вместе с тобой ---
-      if (wantFoot && !f.onFoot) {
+      // режимы: с тобой — ждём таймер; едет к тебе — проверяем, доехал ли
+      if (f.mode === 'with') { f.withT -= dt; if (f.withT <= 0 && !f.onFoot && fightT <= 0) dismissFriend(f, true); }
+      if (f.mode === 'come') {
+        f.comeT += dt;
+        const dd = Math.hypot(f.x - car.x, f.y - car.y);
+        if (dd < 280 || (dd < 650 && f.route && f.wi >= f.route.length - 1)) { f.mode = 'with'; f.withT = 240; showMsg(t('frHere', { n: frName(f) }), 2200); }
+        else if (f.comeT > 50) {                                   // долго не может доехать — появляется сзади (как в GTA, за кадром)
+          const [tx, ty] = friendPlace(f, [-520, f.i ? 70 : -70]);
+          if (!corners2(tx, ty, car.angle, 46, 22).some(([qx, qy]) => solidAtZ(qx, qy, car.z))) { f.x = tx; f.y = ty; f.h = car.angle; f.z = groundHeight(tx, ty, car.z); }
+          f.comeT = 30;
+        }
+      }
+      const fFoot = wantFoot && f.mode === 'with';
+      if (fFoot && !f.onFoot) {
         f.onFoot = true; f.v = 0;
         const lx = Math.sin(f.h), ly = -Math.cos(f.h);
         f.px = f.x + lx * 28; f.py = f.y + ly * 28; f.pz = f.z;
         if (f.m.driver) f.m.driver.visible = false;
-      } else if (!wantFoot && f.onFoot) {
+      } else if (!fFoot && f.onFoot) {
         f.onFoot = false;
         if (f.m.driver) f.m.driver.visible = true;
-        if (Math.hypot(f.x - car.x, f.y - car.y) > 400) { const [tx, ty] = friendPlace(f, FR_OFF[f.i]); f.x = tx; f.y = ty; f.h = car.angle; }
+        if (f.mode === 'with' && Math.hypot(f.x - car.x, f.y - car.y) > 400) { const [tx, ty] = friendPlace(f, FR_OFF[f.i]); f.x = tx; f.y = ty; f.h = car.angle; }
       }
       if (f.onFoot) {
         // помогаем в драке: идём к злому прохожему рядом с тобой
@@ -4236,6 +4355,8 @@
         if (f.punchT > 0) P.limbs[3].rotation.z = Math.sin((.3 - f.punchT) / .3 * Math.PI) * 1.7;
         f.v *= Math.pow(.02, dt);                              // машина друга стоит
       } else {
+        if (f.mode !== 'with') friendSteer(f, dt, f.mode === 'come' ? 330 : 190);
+        else {
         // --- в машине: держимся рядом с тобой ---
         const [tx, ty] = friendPlace(f, FR_OFF[f.i]);
         const dx = tx - f.x, dy = ty - f.y, d = Math.hypot(dx, dy);
@@ -4256,6 +4377,7 @@
           if (Math.abs(dA) > 1.2) tsp *= .5;
           tsp = Math.max(0, Math.min(tsp, Math.max(380, spec.max * 1.25)));
           f.v += Math.max(-520 * dt, Math.min(360 * dt, tsp - f.v));
+        }
         }
         const fx = Math.cos(f.h), fy = Math.sin(f.h);
         const nx = f.x + fx * f.v * dt, ny = f.y + fy * f.v * dt;
@@ -4305,6 +4427,48 @@
   document.getElementById('fOn').addEventListener('change', e => { save.friends.on = e.target.checked; persist(); if (save.friends.on) resetFriends(); });
   renderFriendsMenu();
   resetFriends();
+
+  // ================== Телефон: звоним друзьям ==================
+  const phoneEl = document.getElementById('phone'), phList = document.getElementById('phList');
+  let phoneOpen = false, phSel = 0, phCalling = null, phTimer = 0;
+  function renderPhone() {
+    document.getElementById('phTitle').textContent = t('phTitle');
+    document.getElementById('phHint').textContent = t('phHint');
+    document.getElementById('phClock').textContent = document.getElementById('clock').textContent;
+    phList.innerHTML = friends.map((f, i) => {
+      const st = !save.friends.on ? '' : t(f.mode === 'with' ? 'frWith' : f.mode === 'come' ? 'frCome' : 'frRoam');
+      const btn = phCalling === f ? `<button disabled><span class="phRing">📞</span> ${t('phCalling')}</button>`
+        : f.mode === 'with' && save.friends.on ? `<button class="bye" data-i="${i}">${t('phBye')}</button>`
+        : f.mode === 'come' && save.friends.on ? `<button disabled>💨</button>`
+        : `<button data-i="${i}">${t('phCall')}</button>`;
+      return `<div class="phRow${i === phSel ? ' sel' : ''}" data-row="${i}"><div class="phAva" style="background:${f.L.color}">😀</div>
+        <div class="phTxt"><b>${esc(frName(f))}</b><small>${st}</small></div>${btn}</div>`;
+    }).join('');
+  }
+  function phoneAct(i) {
+    const f = friends[i]; if (!f || phCalling) return;
+    if (f.mode === 'with' && save.friends.on) { dismissFriend(f, false); renderPhone(); return; }
+    if (f.mode === 'come' && save.friends.on) return;
+    phCalling = f; renderPhone();
+    setTimeout(() => { phCalling = null; callFriend(f); renderPhone(); setTimeout(() => togglePhone(false), 700); }, 1600);   // гудки… алло!
+  }
+  function togglePhone(on = !phoneOpen) {
+    phoneOpen = on; phoneEl.classList.toggle('on', on);
+    if (on) { held.clear(); refreshKeys(); renderPhone(); clearInterval(phTimer); phTimer = setInterval(renderPhone, 600); }
+    else clearInterval(phTimer);
+  }
+  phList.addEventListener('click', e => {
+    const b = e.target.closest('button[data-i]'); if (b) { phoneAct(+b.dataset.i); return; }
+    const r = e.target.closest('[data-row]'); if (r) { phSel = +r.dataset.row; renderPhone(); }
+  });
+  document.getElementById('phoneBtn').addEventListener('click', () => togglePhone());
+  window.__phoneOpen = () => phoneOpen;
+  window.__togglePhone = togglePhone;
+  window.__phoneKey = a => {
+    if (a === 'up' || a === 'left') { phSel = (phSel + friends.length - 1) % friends.length; renderPhone(); }
+    else if (a === 'down' || a === 'right') { phSel = (phSel + 1) % friends.length; renderPhone(); }
+    else if (a === 'exit' || a === 'play') phoneAct(phSel);
+  };
 
   // ================== Мультиплеер (живые игроки) ==================
   // Каждый игрок сообщает, где он и на чём едет; остальные видят его машину с именем.
