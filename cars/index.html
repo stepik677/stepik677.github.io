@@ -1082,7 +1082,7 @@
       blobs.push({ x: Math.cos(a) * .48, y: Math.sin(a) * .48, r: rr(.42, .58) });
     }
     tall.push({ k: 't', x, y, cx: x, cy: y, r, h: r * rr(2.2, 2.9), pal, blobs });
-    if (solid) addObs({ t: 'c', x, y, r: r * 0.45 });
+    // деревья больше не препятствие — сквозь них можно проезжать
   }
 
   function addLamp(x, y, dx, dy) {
