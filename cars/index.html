@@ -251,7 +251,7 @@
   #fsBtn svg { width: 22px; height: 22px; }
   #phoneBtn { width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; font-size: 21px; padding: 0;
     background: rgba(15,20,28,.65); box-shadow: 0 4px 16px rgba(0,0,0,.3); backdrop-filter: blur(6px); }
-  .menuOpen #phoneBtn, .menuOpen #phone { display: none !important; }
+  .menuOpen #phoneBtn, .menuOpen #phone, .menuOpen #wheel, .menuOpen #wpnPill { display: none !important; }
   #phone { position: fixed; right: calc(18px + var(--sr)); top: calc(72px + var(--st)); z-index: 12; width: 250px; display: none; flex-direction: column; gap: 8px;
     background: linear-gradient(#1b2433, #0f151f); border: 4px solid #3a4558; border-radius: 30px; padding: 12px 12px 16px; color: #fff;
     font: 600 14px "Segoe UI", sans-serif; box-shadow: 0 14px 40px rgba(0,0,0,.55); animation: phIn .25s ease-out; }
@@ -272,6 +272,23 @@
   .phRing { animation: ring .5s infinite; display: inline-block; }
   @keyframes ring { 25% { transform: rotate(-18deg); } 75% { transform: rotate(18deg); } }
   #phHint { font-size: 11px; opacity: .6; text-align: center; }
+  #wheel { position: fixed; inset: 0; z-index: 21; display: none; align-items: center; justify-content: center; background: radial-gradient(rgba(0,0,0,.35), rgba(0,0,0,.75)); }
+  #wheel.on { display: flex; }
+  #whRing { position: relative; width: 480px; height: 480px; flex: none; border-radius: 50%; background: radial-gradient(circle, transparent 95px, rgba(15,20,28,.55) 96px, rgba(15,20,28,.55) 238px, transparent 239px); animation: whIn .18s ease-out; }
+  @keyframes whIn { from { transform: scale(.85); opacity: 0; } }
+  .whItem { position: absolute; width: 128px; height: 86px; transform: translate(-50%, -50%); border-radius: 18px; background: rgba(232,237,242,.93); border: 3px solid transparent;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform .1s, border-color .1s; box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+  .whItem svg { width: 112px; height: 50px; }
+  .whItem .fist { font-size: 44px; line-height: 50px; }
+  .whItem small { font: 800 12px "Segoe UI", sans-serif; color: #263238; }
+  .whItem.sel { border-color: #ffd54f; transform: translate(-50%, -50%) scale(1.14); background: #fff; z-index: 2; }
+  .whItem.cur::after { content: '✓'; position: absolute; top: 4px; right: 8px; color: #2e7d32; font: 900 16px sans-serif; }
+  .whItem.lock { filter: grayscale(1); opacity: .45; }
+  .whCenter { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 180px; text-align: center; color: #fff; pointer-events: none; }
+  .whCenter b { display: block; font: 800 19px "Segoe UI", sans-serif; text-shadow: 0 2px 6px #000; }
+  .whCenter small { display: block; margin-top: 4px; font: 600 13px "Segoe UI", sans-serif; opacity: .85; }
+  #whHint { position: absolute; bottom: calc(18px + var(--sb)); left: 0; right: 0; text-align: center; color: #fff; font: 600 13px "Segoe UI", sans-serif; opacity: .75; }
+  @media (max-height: 560px), (max-width: 560px) { #whRing { transform: scale(.68); animation: none; } }
   #fsBtn .shrink { display: none; } .fs #fsBtn .grow { display: none; } .fs #fsBtn .shrink { display: block; }
   .standalone #fsBtn { display: none; }
   #speedo { right: calc(12px + var(--sr)); bottom: calc(12px + var(--sb)); width: var(--speedo); height: var(--speedo); }
@@ -379,6 +396,7 @@
   <button id="garageBtn"></button>
   <button id="menuBtn" aria-label="menu">☰</button>
 </div>
+<div id="wheel"><div id="whRing"><div class="whCenter"><b id="whName"></b><small id="whInfo"></small></div></div><div id="whHint"></div></div>
 <div id="phone"><div class="phTop"><span id="phClock"></span><span>📶 🔋</span></div><div id="phTitle"></div><div id="phList"></div><div id="phHint"></div></div>
 <div id="fsHelp"><div class="box"><h3 data-i18n="fsTitle"></h3><p data-i18n="fsText"></p><button data-i18n="ok" id="fsHelpOk"></button></div></div>
 <div id="garage">
@@ -681,17 +699,19 @@
         shPromptShop: 'Нажми {k} — зайти в магазин', shPromptSleep: 'Нажми {k} — лечь спать', shNight: 'Спокойной ночи… 💤', shMorning: '☀️ Доброе утро! Ты выспался',
         shHotdog: 'Хот-дог', shSoda: 'Газировка', shPizza: 'Пицца', shIce: 'Мороженое', shBurger: 'Бургер', shShirts: 'Футболки', shCaps: 'Кепки', shFactory: 'Заводской цвет', shFree: 'Бесплатно',
         lgShops: 'Магазины', runOver: '💥 Ты сбил человека! Полиция уже едет 🚓', shSignFood: '24/7', shSignClothes: 'ОДЕЖДА', shSignPaint: 'ПОКРАСКА',
-        shGuns: '🔫 Оружейный магазин', shGunsHint: 'Купи оружие и патроны. Выйди из машины: 7 — достать оружие, 4 / Q / клик — стрелять', shSignGuns: 'ОРУЖИЕ',
+        shGuns: '🔫 Оружейный магазин', shGunsHint: 'Купи оружие и патроны. 7 — меню оружия, 4 / Q / клик — стрелять (когда ты пешком)', shSignGuns: 'ОРУЖИЕ',
         wpPistol: 'Пистолет ПМ', wpSmg: 'Узи', wpShotgun: 'Помповый дробовик', wpRocket: 'Базука', wpAk: 'АК-47', wpSniper: 'Снайперская винтовка СВД', wpFist: 'Кулаки', wpAmmo: 'Патроны +{n}',
-        wpNoAmmo: 'Нет патронов! Купи их в оружейном магазине 🔫', wpGot: '{w} теперь твой! Выйди из машины и нажми 7', wpOwned: 'Есть ✓' },
+        wpNoAmmo: 'Нет патронов! Купи их в оружейном магазине 🔫', wpGot: '{w} теперь твой! Нажми 7 и выбери его', wpOwned: 'Есть ✓',
+        wpLocked: '🔒 Купи в оружейном магазине', wpAmmoLeft: 'Патроны: {n}', wpWheelHint: '1 / 2 — выбрать · 3 или клик — взять · 7 — закрыть', wpFistInfo: 'Бей кулаками' },
       en: { shFood: '🏪 24/7 Store', shClothes: '👕 Clothes Shop', shPaint: '🎨 Paint Shop', shFoodHint: 'Have a snack — it restores your health ❤️', shClothesHint: 'Pick a T-shirt and a cap for your character',
         shPaintHint: 'Repaint your car: {car}', shBuy: 'Buy', shOn: 'Wearing ✓', shNoMoney: 'Not enough money 💶 — collect coins!', shYum: 'Yum! ❤️ +{n}', shDone: 'Done! ✨',
         shPromptShop: 'Press {k} — enter the shop', shPromptSleep: 'Press {k} — go to sleep', shNight: 'Good night… 💤', shMorning: '☀️ Good morning! You slept well',
         shHotdog: 'Hot dog', shSoda: 'Soda', shPizza: 'Pizza', shIce: 'Ice cream', shBurger: 'Burger', shShirts: 'T-shirts', shCaps: 'Caps', shFactory: 'Factory color', shFree: 'Free',
         lgShops: 'Shops', runOver: '💥 You hit a person! The police are coming 🚓', shSignFood: '24/7', shSignClothes: 'CLOTHES', shSignPaint: 'PAINT',
-        shGuns: '🔫 Gun Shop', shGunsHint: 'Buy weapons and ammo. Get out of the car: 7 — draw a weapon, 4 / Q / click — shoot', shSignGuns: 'GUNS',
+        shGuns: '🔫 Gun Shop', shGunsHint: 'Buy weapons and ammo. 7 — weapon menu, 4 / Q / click — shoot (on foot)', shSignGuns: 'GUNS',
         wpPistol: 'PM pistol', wpSmg: 'Uzi', wpShotgun: 'Pump shotgun', wpRocket: 'Bazooka', wpAk: 'AK-47', wpSniper: 'SVD sniper rifle', wpFist: 'Fists', wpAmmo: 'Ammo +{n}',
-        wpNoAmmo: 'Out of ammo! Buy some at the gun shop 🔫', wpGot: 'The {w} is yours! Get out of the car and press 7', wpOwned: 'Owned ✓' },
+        wpNoAmmo: 'Out of ammo! Buy some at the gun shop 🔫', wpGot: 'The {w} is yours! Press 7 and pick it', wpOwned: 'Owned ✓',
+        wpLocked: '🔒 Buy it at the gun shop', wpAmmoLeft: 'Ammo: {n}', wpWheelHint: '1 / 2 — pick · 3 or click — take · 7 — close', wpFistInfo: 'Fight with your fists' },
     };
     for (const k in I18N) Object.assign(I18N[k], SH[k] || SH.en);
   }
@@ -1572,6 +1592,7 @@
     if (a === 'close') {                                   // Esc: закрыть гараж → открыть/закрыть меню
       if (e.repeat) return;
       if (window.__isMapOpen?.()) window.__toggleMap?.(false);
+      else if (window.__wheelOpen?.()) window.__toggleWheel?.(false);
       else if (window.__phoneOpen?.()) window.__togglePhone?.(false);
       else if (window.__shopOpen?.()) window.__closeShop?.();
       else if (garageOpen) window.__toggleGarage?.(false);
@@ -1580,13 +1601,14 @@
       return;
     }
     if (a === 'phone') { if (!e.repeat && !menuOpen && !garageOpen && !window.__isMapOpen?.() && !window.__shopOpen?.()) window.__togglePhone?.(); return; }
+    if (a === 'weapon') { if (!e.repeat && !menuOpen && !garageOpen && !window.__isMapOpen?.() && !window.__shopOpen?.()) window.__toggleWheel?.(); return; }
+    if (window.__wheelOpen?.() && a !== 'map') { if (!e.repeat) window.__wheelKey?.(a); return; }   // меню оружия
     if (window.__phoneOpen?.() && a !== 'map') { if (!e.repeat) window.__phoneKey?.(a); return; }   // телефон в руках: 1/2 — выбор, 3 — звонок
     if (a === 'play') { if (menuOpen && window.__gameReady) hideStart(); return; }
     if (a === 'map') { if (!e.repeat && !menuOpen && !garageOpen) window.__toggleMap?.(); return; }
-    if (menuOpen || garageOpen || window.__isMapOpen?.() || window.__shopOpen?.()) return;   // в меню машина не едет
+    if (menuOpen || garageOpen || window.__isMapOpen?.() || window.__shopOpen?.() || window.__wheelOpen?.()) return;   // в меню машина не едет
     if (a === 'exit') { if (!e.repeat) window.__toggleVehicle?.(); return; }
     if (a === 'punch') { if (!e.repeat) window.__punch?.(); return; }
-    if (a === 'weapon') { if (!e.repeat) window.__nextWeapon?.(); return; }
     if (a === 'reset') { if (!e.repeat) newGame(); return; }
     held.add((e.code || e.key) + ':' + a); refreshKeys();
   }, true);
@@ -4866,8 +4888,8 @@
   }
   const wpnPill = document.getElementById('wpnPill');
   function updateWpnPill() {
-    const W = curW(), owned = save.weapons.owned.length;
-    wpnPill.style.display = owned ? 'flex' : 'none';
+    const W = curW();
+    wpnPill.style.display = 'flex';
     wpnPill.textContent = W ? `${W.ico} ${t(W.key)} · ${save.weapons.ammo[save.weapons.cur] || 0}` : `👊 ${t('wpFist')}`;
   }
   function nextWeapon() {
@@ -4875,8 +4897,53 @@
     save.weapons.cur = list[(list.indexOf(save.weapons.cur) + 1) % list.length];
     persist(); updateWpnPill();
   }
-  wpnPill.addEventListener('click', nextWeapon);
-  window.__nextWeapon = nextWeapon;
+  // ---------- меню оружия (колесо, как в GTA) ----------
+  const wheelEl = document.getElementById('wheel'), whRing = document.getElementById('whRing');
+  const WH_LIST = [null, ...WPN_ORDER];
+  let wheelOpen = false, whSel = 0;
+  const whOwn = id => !id || save.weapons.owned.includes(id);
+  function renderWheel() {
+    whRing.querySelectorAll('.whItem').forEach(e => e.remove());
+    const R = 172;
+    WH_LIST.forEach((id, i) => {
+      const a = -Math.PI / 2 + i / WH_LIST.length * Math.PI * 2, W = id && WEAPONS[id], own = whOwn(id);
+      const el = document.createElement('div');
+      el.className = 'whItem' + (own ? '' : ' lock') + (save.weapons.cur === id ? ' cur' : '');
+      el.dataset.i = i; el.style.left = `calc(50% + ${Math.cos(a) * R}px)`; el.style.top = `calc(50% + ${Math.sin(a) * R}px)`;
+      el.innerHTML = (id ? gunPic(id) : '<span class="fist">👊</span>') + `<small>${id ? (own ? '🎯 ' + (save.weapons.ammo[id] || 0) : '🔒 ' + fmt(W.price)) : ''}</small>`;
+      whRing.appendChild(el);
+    });
+    document.getElementById('whHint').textContent = t('wpWheelHint');
+    selWheel(whSel);
+  }
+  function selWheel(i) {
+    whSel = (i + WH_LIST.length) % WH_LIST.length;
+    whRing.querySelectorAll('.whItem').forEach(e => e.classList.toggle('sel', +e.dataset.i === whSel));
+    const id = WH_LIST[whSel], W = id && WEAPONS[id];
+    document.getElementById('whName').textContent = id ? t(W.key) : '👊 ' + t('wpFist');
+    document.getElementById('whInfo').textContent = !id ? t('wpFistInfo') : whOwn(id) ? t('wpAmmoLeft', { n: save.weapons.ammo[id] || 0 }) : t('wpLocked');
+  }
+  function pickWheel(i) {
+    const id = WH_LIST[i];
+    if (!whOwn(id)) { selWheel(i); showMsg(t('wpLocked') + ' 🔫', 1800); return; }
+    save.weapons.cur = id; persist(); updateWpnPill(); toggleWheel(false);
+  }
+  function toggleWheel(on = !wheelOpen) {
+    wheelOpen = on; wheelEl.classList.toggle('on', on);
+    if (on) { held.clear(); touchHeld.clear(); refreshKeys(); gun.fire = false; whSel = Math.max(0, WH_LIST.indexOf(save.weapons.cur)); renderWheel(); }
+    else if (!menuOpen) canvas.focus();
+  }
+  whRing.addEventListener('pointerover', e => { const it = e.target.closest('.whItem'); if (it) selWheel(+it.dataset.i); });
+  whRing.addEventListener('click', e => { const it = e.target.closest('.whItem'); if (it) pickWheel(+it.dataset.i); });
+  wheelEl.addEventListener('click', e => { if (e.target === wheelEl) toggleWheel(false); });
+  wpnPill.addEventListener('click', () => toggleWheel());
+  window.__toggleWheel = toggleWheel;
+  window.__wheelOpen = () => wheelOpen;
+  window.__wheelKey = a => {
+    if (a === 'left' || a === 'up') selWheel(whSel - 1);
+    else if (a === 'right' || a === 'down') selWheel(whSel + 1);
+    else if (a === 'exit' || a === 'play' || a === 'punch') pickWheel(whSel);
+  };
   window.__gunOut = () => !!curW();
   window.__fireDown = () => { gun.fire = true; tryShoot(); };
   window.__fireUp = () => { gun.fire = false; };
