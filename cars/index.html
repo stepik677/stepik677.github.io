@@ -677,6 +677,9 @@
         frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
         flyLand: '🛬 Сначала приземлись на землю!', flyHeli: '🚁 Пробел — вверх, S — вниз, W — вперёд, A/D — поворот', flyPlane: '✈️ W — газ, разгонись и жми пробел — взлёт. S / ▼ (тормоз) — вниз',
       mapRoad: '🗺 Схема', mapSat: '🛰 Спутник',
+      stealPrompt: 'Нажми {k} — угнать: {n}', stoleMil: '🚨 Ты угнал военную технику! Армия гонится за тобой!', stoleAir: '🚨 Угон в аэропорту! Полиция уже едет!',
+      baseAlert: '⚠️ Военная база! Тебя заметили солдаты!', drowned: '🌊 Утонул! Выплываешь на пляж…',
+      lgAirport: '✈️ Аэропорт', lgBase: '🪖 Военная база', lgBeach: '🏖 Пляж', lgMount: '⛰ Гора Орлиная', lgOcean: 'Океан', lgHighway: 'Кольцевое шоссе',
       mapMe: '🎯 Где я', mapZoomHint: 'Колёсико или ➕➖ — приблизить, тяни мышкой — двигать карту',
         streetsH: 'Проспект Мира|ул. Гонщиков|Садовая ул.|Центральный пр.|ул. Победы|Солнечная ул.|Лесная ул.|ул. Трамплинов|Морская ул.|Новая ул.|Парковая ул.|Речная ул.|ул. Строителей|Школьная ул.',
         streetsV: 'ул. Ленина|Зелёная ул.|Кленовая ул.|Вокзальная ул.|Мостовая ул.|ул. Гагарина|Озёрная ул.|Широкая ул.|Звёздная ул.|ул. Механиков|Яблочная ул.|Тихая ул.|Восточная ул.|Полевая ул.',
@@ -688,6 +691,9 @@
         frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
         flyLand: '🛬 Land on the ground first!', flyHeli: '🚁 Space — up, S — down, W — forward, A/D — turn', flyPlane: '✈️ W — throttle, speed up and press Space to take off. S / ▼ (brake) — down',
       mapRoad: '🗺 Road map', mapSat: '🛰 Satellite',
+      stealPrompt: 'Press {k} — steal: {n}', stoleMil: '🚨 You stole military equipment! The army is after you!', stoleAir: '🚨 Theft at the airport! The police are coming!',
+      baseAlert: '⚠️ Military base! The soldiers spotted you!', drowned: '🌊 You drowned! Swimming back to the beach…',
+      lgAirport: '✈️ Airport', lgBase: '🪖 Military base', lgBeach: '🏖 Beach', lgMount: '⛰ Eagle Mountain', lgOcean: 'Ocean', lgHighway: 'Ring highway',
       mapMe: '🎯 Where am I', mapZoomHint: 'Wheel or ➕➖ — zoom, drag with the mouse — move the map',
         streetsH: 'Peace Ave|Racer St|Garden St|Central Ave|Victory St|Sunny St|Forest St|Ramp St|Ocean St|New St|Park St|River St|Builders St|School St',
         streetsV: 'Main St|Green St|Maple St|Station St|Bridge St|Star St|Lake St|Broadway|Comet St|Mechanic St|Apple St|Quiet St|East St|Field St',
@@ -945,6 +951,78 @@
   const T = 64, STEP = 15, NB = 11;           // клетка, шаг дорог (8 клеток дорога + 7 квартал), кварталов на сторону
   const ROAD_W = 8 * T;                      // ширина дороги: 8 полос
   const WORLD = NB * STEP * T + ROAD_W;      // 7232
+  // ================== Мир за городом: шоссе, горы, аэропорт, военная база, пляж ==================
+  const F0 = -4400, F1 = WORLD + 4800, FS = F1 - F0;          // границы всего острова (город — в его середине)
+  const sstep = (a, b, v) => { const q = Math.max(0, Math.min(1, (v - a) / (b - a))); return q * q * (3 - 2 * q); };
+  const HW_D = 900, HW_R = 700, HW_W = 300;                   // кольцевое шоссе: в 900 от города, ширина 300
+  function hwDist(x, y) {                                     // расстояние до середины кольцевого шоссе
+    const c = WORLD / 2, b = WORLD / 2 + HW_D - HW_R;
+    const qx = Math.abs(x - c) - b, qy = Math.abs(y - c) - b;
+    return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - HW_R;
+  }
+  const HW_PTS = [];
+  {
+    const c = WORLD / 2, b = WORLD / 2 + HW_D - HW_R, R = HW_R;
+    const line = (x0, y0, x1, y1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 60); for (let i = 0; i < n; i++) HW_PTS.push([x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n]); };
+    const arc = (cx, cy, a0) => { const n = 20; for (let i = 0; i < n; i++) { const a = a0 + i / n * Math.PI / 2; HW_PTS.push([cx + Math.cos(a) * R, cy + Math.sin(a) * R]); } };
+    line(c - b, c - b - R, c + b, c - b - R); arc(c + b, c - b, -Math.PI / 2);
+    line(c + b + R, c - b, c + b + R, c + b); arc(c + b, c + b, 0);
+    line(c + b, c + b + R, c - b, c + b + R); arc(c - b, c + b, Math.PI / 2);
+    line(c - b - R, c + b, c - b - R, c - b); arc(c - b, c - b, Math.PI);
+  }
+  const GC = (NB >> 1) * STEP * T + ROAD_W / 2;               // средняя улица города — от неё дороги к аэропорту, базе, горе, пляжу
+  const MX = -2500, MY = GC;                                  // гора Орлиная
+  function rawH(x, y) {
+    const wk = sstep(-1300, -2300, x); if (wk <= 0) return 0;
+    const d2 = (x - MX) ** 2 + (y - MY) ** 2;
+    return wk * (780 * Math.exp(-d2 / (2 * 820 * 820)) + 70 + 60 * Math.sin(x * .0023 + 1.3) * Math.cos(y * .0019) + 45 * Math.sin(y * .0041 + x * .001));
+  }
+  const MR_PTS = [];                                          // серпантин на гору: [x, y, высота]
+  {
+    for (let x = -HW_D; x > -1450; x -= 50) MR_PTS.push([x, MY]);
+    const th1 = Math.PI * 2 * 2.3;
+    for (let th = 0; th < th1;) { const r = 1050 - 880 * th / th1; MR_PTS.push([MX + r * Math.cos(th), MY + r * Math.sin(th)]); th += 50 / r; }
+    let hs = MR_PTS.map(p => rawH(p[0], p[1]));
+    const n = hs.length;
+    for (let it = 0; it < 8; it++) hs = hs.map((h, i) => (hs[Math.max(0, i - 4)] + hs[Math.max(0, i - 2)] + h + hs[Math.min(n - 1, i + 2)] + hs[Math.min(n - 1, i + 4)]) / 5);
+    for (let i = 1; i < n; i++) hs[i] = Math.max(hs[i], hs[i - 1] - 1);   // дорога в гору почти не спускается
+    MR_PTS.forEach((p, i) => p.push(hs[i]));
+  }
+  const MR_GRID = new Map(), MRC = 200;
+  MR_PTS.forEach((p, i) => { const k = Math.floor(p[0] / MRC) * 100003 + Math.floor(p[1] / MRC); if (!MR_GRID.has(k)) MR_GRID.set(k, []); MR_GRID.get(k).push(i); });
+  function mrNear(x, y) {                                     // ближайшая точка серпантина: [расстояние, высота дороги]
+    const ix = Math.floor(x / MRC), iy = Math.floor(y / MRC); let bd = 1e12, bh = 0;
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
+      const L = MR_GRID.get((ix + a) * 100003 + iy + b); if (!L) continue;
+      for (const i of L) { const p = MR_PTS[i], d = (p[0] - x) ** 2 + (p[1] - y) ** 2; if (d < bd) { bd = d; bh = p[2]; } }
+    }
+    return [Math.sqrt(bd), bh];
+  }
+  const SEA = -3, SHORE = WORLD + 1550;                       // уровень моря и где начинается вода
+  function terrainH(x, y) {                                   // высота земли за городом
+    if (x > -300 && y > -300 && x < WORLD + 300 && y < WORLD + 300) return 0;
+    let h = rawH(x, y);
+    if (h > 0) { const dh = Math.abs(hwDist(x, y)); if (dh < 480) h *= sstep(190, 480, dh); }
+    if (x < -800 && x > MX - 1400 && y > MY - 1400 && y < MY + 1400) { const [d, rh] = mrNear(x, y); if (d < 185) h = rh + (h - rh) * sstep(100, 185, d); }
+    if (y > SHORE) h = Math.min(h, -(y - SHORE) * .07);
+    const e = Math.min(x - F0, F1 - x, y - F0);
+    if (e < 800) { const k = sstep(0, 800, e); h = h * k - 60 * (1 - k); }
+    return h;
+  }
+  const AP = { x0: WORLD + 1500, x1: WORLD + 4300, y0: 500, y1: WORLD - 500 };   // аэропорт
+  const MB = { x0: 1500, x1: 9500, y0: -3500, y1: -1400 };                        // военная база
+  const outerObs = [];                                        // дома и заборы за городом
+  function outerSolid(px, py, z) {
+    if (px < F0 + 4 || py < F0 + 4 || px > F1 - 4 || py > F1 - 4) return true;
+    for (const o of outerObs) if (px > o.x && px < o.x + o.w && py > o.y && py < o.y + o.h && z < o.top && z + 18 > (o.bot || 0)) return true;
+    return false;
+  }
+  function outerRoof(x, y, z) {
+    let b = -1e9;
+    for (const o of outerObs) if (!o.fence && x > o.x && x < o.x + o.w && y > o.y && y < o.y + o.h && o.top <= z + 14 && o.top > b) b = o.top;
+    return b;
+  }
+  const inCity = (x, y) => x >= 0 && y >= 0 && x <= WORLD && y <= WORLD;
   const BS = 7 * T;                          // размер квартала
   const SW = 22;                             // тротуар
   const LS = BS - 2 * SW;
@@ -1509,6 +1587,10 @@
       addTree(p, WORLD + off, rr(20, 30), false);
       if (a > -60 && a < WORLD + 60) { addTree(-off, p, rr(20, 30), false); addTree(WORLD + off, p, rr(20, 30), false); }
     }
+  {   // деревья, попавшие на дороги к кольцевому шоссе, убираем (случайные числа при этом не меняются)
+    const onRoad = v => [0, NB >> 1, NB].some(k => Math.abs(v - (k * STEP * T + ROAD_W / 2)) < 170);
+    for (let i = tall.length - 1; i >= 0; i--) { const o = tall[i]; if (o.k === 't' && !inCity(o.x, o.y) && ((o.y < 0 || o.y > WORLD) ? onRoad(o.x) : onRoad(o.y))) tall.splice(i, 1); }
+  }
 
   // Детали на дорогах
   for (let i = 0; i < 160; i++) {
@@ -1696,7 +1778,7 @@
       .map(([fx, fy]) => [x + fx * c - fy * s, y + fx * s + fy * c]);
   }
   // край карты не считаем стеной для машины (от него отскакиваем отдельно в edgeBounce) — так машина не застревает и может развернуться
-  const edgeC = v => Math.max(3, Math.min(WORLD - 3, v));
+  const edgeC = v => Math.max(F0 + 3, Math.min(F1 - 3, v));
   const collides = (x, y, a) => corners(x, y, a).some(([px, py]) => solidAtZ(edgeC(px), edgeC(py)));
   // мягкий отскок от края карты: выталкиваем машину внутрь и немного отбрасываем назад
   function edgeBounce() {
@@ -1704,10 +1786,10 @@
     let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
     for (const [px, py] of cs) { mnx = Math.min(mnx, px); mxx = Math.max(mxx, px); mny = Math.min(mny, py); mxy = Math.max(mxy, py); }
     let hit = 0;
-    if (mnx < M) { car.x += M - mnx; if (car.vx < 0) { hit = Math.max(hit, -car.vx); car.vx = Math.max(40, -car.vx * B); car.vy *= .85; } }
-    else if (mxx > WORLD - M) { car.x -= mxx - (WORLD - M); if (car.vx > 0) { hit = Math.max(hit, car.vx); car.vx = -Math.max(40, car.vx * B); car.vy *= .85; } }
-    if (mny < M) { car.y += M - mny; if (car.vy < 0) { hit = Math.max(hit, -car.vy); car.vy = Math.max(40, -car.vy * B); car.vx *= .85; } }
-    else if (mxy > WORLD - M) { car.y -= mxy - (WORLD - M); if (car.vy > 0) { hit = Math.max(hit, car.vy); car.vy = -Math.max(40, car.vy * B); car.vx *= .85; } }
+    if (mnx < F0 + M) { car.x += F0 + M - mnx; if (car.vx < 0) { hit = Math.max(hit, -car.vx); car.vx = Math.max(40, -car.vx * B); car.vy *= .85; } }
+    else if (mxx > F1 - M) { car.x -= mxx - (F1 - M); if (car.vx > 0) { hit = Math.max(hit, car.vx); car.vx = -Math.max(40, car.vx * B); car.vy *= .85; } }
+    if (mny < F0 + M) { car.y += F0 + M - mny; if (car.vy < 0) { hit = Math.max(hit, -car.vy); car.vy = Math.max(40, -car.vy * B); car.vx *= .85; } }
+    else if (mxy > F1 - M) { car.y -= mxy - (F1 - M); if (car.vy > 0) { hit = Math.max(hit, car.vy); car.vy = -Math.max(40, car.vy * B); car.vx *= .85; } }
     if (hit > 140) shake = Math.min(5, hit / 80);
   }
 
@@ -1866,7 +1948,6 @@
   const NITC = { sun: C_('#c2ceff'), sky: C_('#7487c0'), gnd: C_('#4a4236'), fog: C_('#33304a') };   // ночное небо подсвечено городом
   const DUSK = { sun: C_('#ff9a5a'), fog: C_('#d98a66') };
   const envMats = [];
-  const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   function updateDayNight(dt) {
     NIGHT.hour = (NIGHT.hour + dt / 20) % 24;
     const h = NIGHT.hour;
@@ -1941,7 +2022,7 @@
     const t = new THREE.CanvasTexture(c);
     t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(120, 120); t.colorSpace = THREE.SRGBColorSpace;
     const outer = new THREE.Mesh(new THREE.PlaneGeometry(16000, 16000), new THREE.MeshStandardMaterial({ map: t, roughness: 1 }));
-    outer.rotation.x = -Math.PI / 2; outer.position.set(WORLD / 2, -0.5, WORLD / 2);
+    outer.rotation.x = -Math.PI / 2; outer.position.set(WORLD / 2, -200, WORLD / 2);
     outer.receiveShadow = true;
     scene.add(outer);
   }
@@ -2632,7 +2713,7 @@
   }
   // высота «земли» под машиной: самая высокая поверхность, на которую она может встать
   function groundHeight(x, y, z = car.z) {
-    let best = 0;
+    let best = (x < 0 || y < 0 || x > WORLD || y > WORLD) ? terrainH(x, y) : 0;   // за городом — холмы, горы, пляж
     for (const r of RAMPS) { const [u, v] = rampLocal(r, x, y); if (inside(r, u, v)) { const h = rampH(r, u); if (h <= z + 14 && h > best) best = h; } }
     for (const p of PLATS) { const [u, v] = rampLocal(p, x, y); if (inside(p, u, v)) { const h = platH(p, u); if (h <= z + 14 && h > best) best = h; } }
     return best;
@@ -2648,14 +2729,14 @@
   const FLY = { on: false };                               // летим — у домов есть настоящая высота, над ними можно пролететь
   function roofAt(x, y, z) {                               // крыша дома под вертолётом — на неё можно сесть
     let best = 0;
-    if (x < 0 || y < 0 || x >= WORLD || y >= WORLD) return 0;
+    if (x < 0 || y < 0 || x >= WORLD || y >= WORLD) return outerRoof(x, y, z);
     for (const o of grid[((y / CELL) | 0) * GN + ((x / CELL) | 0)])
       if (o.t === 'r' && o.H && x > o.x && x < o.x + o.w && y > o.y && y < o.y + o.h && o.H <= z + 14 && o.H > best) best = o.H;
     return best;
   }
   function solidAtZ(px, py, zz) {
     const tol = zz === undefined ? climbTol : 12;
-    if (px < 2 || py < 2 || px > WORLD - 2 || py > WORLD - 2) return true;
+    const outC = px < 2 || py < 2 || px > WORLD - 2 || py > WORLD - 2;      // за городом — свои дома и заборы
     const z = zz ?? (car.z || 0);
     for (const r of RAMPS) {
       const [u, v] = rampLocal(r, px, py);
@@ -2665,6 +2746,7 @@
       const [u, v] = rampLocal(p, px, py);
       if (inside(p, u, v) && platH(p, u) > z + tol && p.bot < z + 18) return true;
     }
+    if (outC) return outerSolid(px, py, z);
     for (const o of grid[((py / CELL) | 0) * GN + ((px / CELL) | 0)]) {
       const top = o.top ?? (o.tall ? (FLY.on && o.H ? o.H : 1e9) : 28), bot = o.bot ?? 0;
       if (z >= top || z + 18 <= bot) continue;
@@ -4381,6 +4463,7 @@
       foot.root.visible = true; footBlob.visible = true; foot.hp = 100; foot.ko = 0; setOnFootClass();
       if (player.driver) player.driver.visible = false;
     } else {
+      { const pv = nearParked(); if (pv && Math.hypot(car.x - pv.x, car.y - pv.y) < Math.hypot(car.x - vstate.x, car.y - vstate.y)) { stealVehicle(pv); return; } }   // угон
       if (Math.hypot(car.x - vstate.x, car.y - vstate.y) > 60) return;
       car.onFoot = false;
       Object.assign(car, { x: vstate.x, y: vstate.y, z: vstate.z, angle: vstate.angle, vx: 0, vy: 0, steer: 0 });
@@ -4420,6 +4503,348 @@
     curFwd = 0;
     collectCoins();
   }
+
+  // ================== Мир за городом: 3D ==================
+  const outerTex = (w, h, draw, rx = 1, ry = 1) => {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+    const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = maxAniso;
+    tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(rx, ry); return tx;
+  };
+  const noiseFill = (g, w, h, base, cols, n) => { g.fillStyle = base; g.fillRect(0, 0, w, h); for (let i = 0; i < n; i++) { g.fillStyle = cols[i % cols.length]; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); } };
+  // --- земля острова: холмы, гора, пляж, дно моря ---
+  {
+    const SEG = 300, geo = new THREE.PlaneGeometry(FS, FS, SEG, SEG); geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position, cols = new Float32Array(pos.count * 3), col = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i) + F0 + FS / 2, y = pos.getZ(i) + F0 + FS / 2;
+      let h = terrainH(x, y);
+      const cityZone = x > -300 && y > -300 && x < WORLD + 300 && y < WORLD + 300;
+      if (cityZone) h = -1.5;
+      pos.setX(i, x); pos.setZ(i, y); pos.setY(i, h);
+      const n = Math.sin(x * .013) * Math.cos(y * .011) * .5 + .5;
+      if (h < SEA - 2) col.set('#c9b27a').lerp(new THREE.Color('#8f7f58'), Math.min(1, -h / 60));
+      else if (y > WORLD + 1100 && h < 25) col.set('#e3cf98');
+      else if (h > 690) col.set('#f2f4f6');
+      else if (h > 470) col.set('#8d877c').lerp(new THREE.Color('#6f6a60'), n);
+      else if (h > 170) col.set('#4f7a36').lerp(new THREE.Color('#3f6a2c'), n);
+      else col.set('#6a9a45').lerp(new THREE.Color('#58893a'), n);
+      cols[i * 3] = col.r; cols[i * 3 + 1] = col.g; cols[i * 3 + 2] = col.b;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(cols, 3)); geo.computeVertexNormals();
+    const grassDetail = outerTex(128, 128, (g, w, h) => noiseFill(g, w, h, '#ffffff', ['#d9d9d9', '#c8c8c8', '#ececec'], 2500), 400, 400);
+    const terrain = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: grassDetail, roughness: 1 }));
+    terrain.receiveShadow = true; scene.add(terrain);
+  }
+  // --- океан ---
+  const waterTex = outerTex(256, 256, (g, w, h) => {
+    g.fillStyle = '#2a8cc4'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 260; i++) { g.strokeStyle = `rgba(255,255,255,${.08 + Math.random() * .14})`; g.lineWidth = 2; const x = Math.random() * w, y = Math.random() * h; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 8, y - 4, x + 18, y); g.stroke(); }
+  }, 300, 300);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(90000, 90000).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: waterTex, color: '#7fc4ee', roughness: .12, metalness: .25, transparent: true, opacity: .9 }));
+  water.position.set(WORLD / 2, SEA, WORLD / 2); scene.add(water);
+  // --- дороги-ленты ---
+  function ribbon(pts, w, mat, vLen, yOff = .4, closed = false) {
+    const P = closed ? [...pts, pts[0]] : pts, pos = [], uv = [], idx = []; let acc = 0;
+    for (let i = 0; i < P.length; i++) {
+      const a = P[Math.max(0, i - 1)], b = P[Math.min(P.length - 1, i + 1)], p = P[i];
+      let tx = b[0] - a[0], ty = b[1] - a[1]; const L = Math.hypot(tx, ty) || 1; tx /= L; ty /= L;
+      const nx = -ty, ny = tx;
+      if (i) acc += Math.hypot(p[0] - P[i - 1][0], p[1] - P[i - 1][1]);
+      const h = (p[2] !== undefined ? p[2] : terrainH(p[0], p[1])) + yOff;
+      pos.push(p[0] + nx * w / 2, h, p[1] + ny * w / 2, p[0] - nx * w / 2, h, p[1] - ny * w / 2);
+      uv.push(0, acc / vLen, 1, acc / vLen);
+      if (i) { const k = i * 2; idx.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, mat); m.receiveShadow = true; scene.add(m); return m;
+  }
+  const asphaltBase = (g, w, h) => noiseFill(g, w, h, '#47494d', ['#3f4145', '#505257', '#44464a'], 1800);
+  const hwTex = outerTex(256, 256, (g, w, h) => {
+    asphaltBase(g, w, h);
+    g.fillStyle = '#f2f2f2'; g.fillRect(8, 0, 6, h); g.fillRect(w - 14, 0, 6, h);
+    for (const u of [w / 4, w * 3 / 4]) for (let v = 0; v < h; v += 64) g.fillRect(u - 2, v, 4, 34);
+    g.fillStyle = '#ffd54f'; g.fillRect(w / 2 - 6, 0, 4, h); g.fillRect(w / 2 + 2, 0, 4, h);
+  });
+  const roadTex = outerTex(128, 128, (g, w, h) => {
+    asphaltBase(g, w, h);
+    g.fillStyle = '#f2f2f2'; g.fillRect(5, 0, 4, h); g.fillRect(w - 9, 0, 4, h);
+    g.fillStyle = '#ffd54f'; for (let v = 0; v < h; v += 64) g.fillRect(w / 2 - 2, v, 4, 36);
+  });
+  const hwMat = new THREE.MeshStandardMaterial({ map: hwTex, roughness: .9, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
+  const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: .9, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 });
+  ribbon(HW_PTS, HW_W, hwMat, 260, .55, true);                                       // кольцевое шоссе
+  const OUT_ROADS = [];                                                              // дороги от города к шоссе и дальше
+  {
+    const line = (x0, y0, x1, y1) => { const pts = [], n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 60); for (let i = 0; i <= n; i++) pts.push([x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n]); return pts; };
+    for (const k of [0, NB >> 1, NB]) {
+      const c = k * STEP * T + ROAD_W / 2;
+      OUT_ROADS.push(line(c, -20, c, -HW_D), line(c, WORLD + 20, c, WORLD + HW_D), line(-20, c, -HW_D, c), line(WORLD + 20, c, WORLD + HW_D, c));
+    }
+    OUT_ROADS.push(line(WORLD + HW_D, GC, AP.x0 + 20, GC));                       // к аэропорту
+    OUT_ROADS.push(line(GC, -HW_D, GC, MB.y1 + 20));                                // к воротам базы
+    OUT_ROADS.push(line(GC, WORLD + HW_D, GC, SHORE - 120));                        // к пляжу и пирсу
+    for (const r of OUT_ROADS) ribbon(r, 240, roadMat, 160, .35);
+  }
+  ribbon(MR_PTS, 110, roadMat, 160, 1.2);                                            // серпантин на гору
+  // смотровая площадка на вершине
+  { const top = MR_PTS[MR_PTS.length - 1]; const pad = new THREE.Mesh(new THREE.CylinderGeometry(120, 130, 6, 24), new THREE.MeshStandardMaterial({ color: '#8d8a84', roughness: .9 })); pad.position.set(top[0], top[2] - 1.5, top[1]); pad.receiveShadow = true; scene.add(pad); }
+
+  // --- дома и предметы за городом ---
+  const box = (x0, y0, w, h, H, mat, base = 0, obs = true) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, H, h), mat); m.position.set(x0 + w / 2, base + H / 2, y0 + h / 2); m.castShadow = m.receiveShadow = true; scene.add(m);
+    if (obs) outerObs.push({ x: x0, y: y0, w, h, top: base + H, bot: base });
+    return m;
+  };
+  const flat = (x0, y0, w, h, mat, y = .2) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h).rotateX(-Math.PI / 2), mat); m.position.set(x0 + w / 2, y, y0 + h / 2); m.receiveShadow = true; scene.add(m); return m; };
+  const concreteTex = (light) => outerTex(256, 256, (g, w, h) => { noiseFill(g, w, h, light ? '#94989c' : '#7d817a', light ? ['#8a8e92', '#a0a4a8'] : ['#727670', '#888c84'], 2500); g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 2; g.strokeRect(0, 0, w, h); });
+  const runwayTex = (L) => outerTex(256, 512, (g, w, h) => {
+    noiseFill(g, w, h, '#36383b', ['#2f3134', '#3d3f43'], 2500);
+    g.fillStyle = '#f4f4f4'; g.fillRect(10, 0, 8, h); g.fillRect(w - 18, 0, 8, h);
+    for (let v = 0; v < h; v += 128) g.fillRect(w / 2 - 4, v, 8, 70);
+  }, 1, L / 700);
+  const taxiTex = (L) => outerTex(128, 256, (g, w, h) => { noiseFill(g, w, h, '#3e4043', ['#36383b', '#46484c'], 900); g.fillStyle = '#ffcc00'; g.fillRect(w / 2 - 3, 0, 6, h); }, 1, L / 300);
+  const strip = (cx, cy, w, L, tex, vert, y = .5) => {                            // прямая полоса (взлётка, рулёжка)
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, L).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: tex, roughness: .85, polygonOffset: true, polygonOffsetFactor: -3 }));
+    m.position.set(cx, y, cy); if (!vert) m.rotation.y = Math.PI / 2; m.receiveShadow = true; scene.add(m); return m;
+  };
+  const glassTex = (base, win) => outerTex(256, 128, (g, w, h) => { g.fillStyle = base; g.fillRect(0, 0, w, h); for (let y = 8; y < h; y += 24) for (let x = 6; x < w; x += 20) { g.fillStyle = Math.random() < .15 ? '#ffe9a8' : win; g.fillRect(x, y, 14, 14); } }, 4, 2);
+  const metalTex = (col) => outerTex(128, 128, (g, w, h) => { g.fillStyle = col; g.fillRect(0, 0, w, h); for (let x = 0; x < w; x += 8) { g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x, 0, 2, h); g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(x + 3, 0, 2, h); } }, 6, 2);
+  function hangar(x0, y0, w, h, col, doorSide) {                                  // ангар с полукруглой крышей
+    const mat = new THREE.MeshStandardMaterial({ map: metalTex(col), roughness: .6, metalness: .3 });
+    box(x0, y0, w, h, 70, mat);
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(w / 2, w / 2, h, 24, 1), mat); roof.rotation.x = Math.PI / 2; roof.scale.set(1, 1, .42);
+    roof.position.set(x0 + w / 2, 70, y0 + h / 2); roof.castShadow = true; scene.add(roof);
+    outerObs[outerObs.length - 1].top = 70 + w / 2 * .42;
+    const door = new THREE.Mesh(new THREE.PlaneGeometry(w * .7, 60), new THREE.MeshStandardMaterial({ color: '#2b2f33', roughness: .8 }));
+    const dx = doorSide === 'x' ? x0 + w + .6 : doorSide === '-x' ? x0 - .6 : x0 + w / 2, dy = doorSide === 'y' ? y0 + h + .6 : doorSide === '-y' ? y0 - .6 : y0 + h / 2;
+    door.position.set(dx, 30, dy); door.rotation.y = doorSide === 'x' ? Math.PI / 2 : doorSide === '-x' ? -Math.PI / 2 : doorSide === '-y' ? Math.PI : 0;
+    if (doorSide === 'x' || doorSide === '-x') door.geometry = new THREE.PlaneGeometry(h * .7, 60);
+    scene.add(door);
+  }
+  // --- аэропорт ---
+  {
+    flat(AP.x0, AP.y0, AP.x1 - AP.x0, AP.y1 - AP.y0, new THREE.MeshStandardMaterial({ map: concreteTex(true), roughness: .9, polygonOffset: true, polygonOffsetFactor: -1 }), .25).material.map.repeat.set(30, 90);
+    const RX = WORLD + 3500, L = AP.y1 - AP.y0 - 400;
+    strip(RX, (AP.y0 + AP.y1) / 2, 240, L, runwayTex(L), true, .5);                // взлётная полоса
+    for (const end of [AP.y0 + 230, AP.y1 - 230]) for (let i = -5; i <= 5; i++) if (i) flat(RX + i * 19 - 6, end - 60, 12, 120, new THREE.MeshBasicMaterial({ color: '#f4f4f4' }), .6);
+    const TX = WORLD + 2700;
+    strip(TX, (AP.y0 + AP.y1) / 2, 110, L, taxiTex(L), true, .45);                 // рулёжка
+    for (const ty of [AP.y0 + 500, (AP.y0 + AP.y1) / 2, AP.y1 - 500]) strip((TX + RX) / 2, ty, 110, RX - TX, taxiTex(RX - TX), false, .47);
+    const term = new THREE.MeshStandardMaterial({ map: glassTex('#cfd8dc', '#4f7fa8'), roughness: .3, metalness: .2 });
+    box(AP.x0 + 40, GC + 300, 260, 1100, 90, term);                                  // терминал
+    box(AP.x0 + 30, GC + 290, 280, 1120, 6, new THREE.MeshStandardMaterial({ color: '#eceff1' }), 90, false);
+    hangar(AP.x0 + 60, AP.y0 + 200, 360, 300, '#b0bec5', 'x');
+    hangar(AP.x0 + 60, AP.y0 + 620, 360, 300, '#90a4ae', 'x');
+    hangar(AP.x0 + 60, AP.y1 - 520, 360, 300, '#b0bec5', 'x');
+    // диспетчерская вышка
+    const tw = new THREE.Mesh(new THREE.CylinderGeometry(26, 34, 220, 16), new THREE.MeshStandardMaterial({ color: '#eceff1', roughness: .6 })); tw.position.set(WORLD + 2300, 110, GC - 500); tw.castShadow = true; scene.add(tw);
+    box(WORLD + 2255, GC - 545, 90, 90, 40, new THREE.MeshStandardMaterial({ color: '#4fc3f7', roughness: .1, metalness: .6, transparent: true, opacity: .8 }), 220);
+    box(WORLD + 2250, GC - 550, 100, 100, 6, new THREE.MeshStandardMaterial({ color: '#37474f' }), 260);
+    outerObs.push({ x: WORLD + 2270, y: GC - 530, w: 60, h: 60, top: 220, bot: 0 });
+    // большой пассажирский самолёт (стоит у терминала)
+    {
+      const g = new THREE.Group(), white = new THREE.MeshStandardMaterial({ color: '#f5f5f5', roughness: .35, metalness: .2 }), blue = new THREE.MeshStandardMaterial({ color: '#1565c0', roughness: .4 });
+      const fus = new THREE.Mesh(new THREE.CylinderGeometry(16, 14, 230, 18), white); fus.rotation.z = Math.PI / 2; fus.position.y = 30; g.add(fus);
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(16, 16, 12), white); nose.scale.set(1.6, 1, 1); nose.position.set(115, 30, 0); g.add(nose);
+      const stripe = new THREE.Mesh(new THREE.CylinderGeometry(16.3, 14.3, 200, 18, 1, true, 0, .5), blue); stripe.rotation.z = Math.PI / 2; stripe.position.y = 30; g.add(stripe);
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(50, 3, 230), white); wing.position.set(5, 22, 0); g.add(wing);
+      for (const z of [-55, 55]) { const en = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 26, 12), new THREE.MeshStandardMaterial({ color: '#90a4ae', metalness: .6, roughness: .3 })); en.rotation.z = Math.PI / 2; en.position.set(14, 14, z); g.add(en); }
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(34, 46, 3), blue); fin.position.set(-100, 60, 0); g.add(fin);
+      const tail = new THREE.Mesh(new THREE.BoxGeometry(26, 2, 80), white); tail.position.set(-102, 34, 0); g.add(tail);
+      for (const x of [70, -10]) for (const z of (x > 0 ? [0] : [-12, 12])) { const w = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 4, 10), new THREE.MeshStandardMaterial({ color: '#1c1f22' })); w.rotation.x = Math.PI / 2; w.position.set(x, 5, z); g.add(w); }
+      g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+      g.position.set(WORLD + 2100, 0, GC - 1500); scene.add(g);
+      outerObs.push({ x: WORLD + 1980, y: GC - 1520, w: 250, h: 40, top: 50, bot: 0 }, { x: WORLD + 2080, y: GC - 1615, w: 50, h: 230, top: 26, bot: 16 });
+    }
+  }
+  // --- военная база ---
+  const MB_TOWERS = [];
+  {
+    flat(MB.x0, MB.y0, MB.x1 - MB.x0, MB.y1 - MB.y0, new THREE.MeshStandardMaterial({ map: concreteTex(false), roughness: .95, polygonOffset: true, polygonOffsetFactor: -1 }), .25).material.map.repeat.set(80, 21);
+    const L = MB.x1 - MB.x0 - 700;
+    strip((MB.x0 + MB.x1) / 2, MB.y0 + 850, 220, L, runwayTex(L), false, .5);
+    for (const end of [MB.x0 + 580, MB.x1 - 580]) for (let i = -4; i <= 4; i++) if (i) flat(end - 60, MB.y0 + 850 + i * 20 - 6, 120, 12, new THREE.MeshBasicMaterial({ color: '#f4f4f4' }), .6);
+    strip((MB.x0 + MB.x1) / 2, MB.y0 + 1300, 110, L, taxiTex(L), false, .45);
+    // забор с воротами
+    const fenceMat = new THREE.MeshStandardMaterial({ color: '#9aa3ab', roughness: .5, metalness: .4, transparent: true, opacity: .5, side: THREE.DoubleSide, depthWrite: false });
+    const postMat = new THREE.MeshStandardMaterial({ color: '#4a4f55', roughness: .6 });
+    const fence = (x0, y0, x1, y1) => {
+      const L = Math.hypot(x1 - x0, y1 - y0), m = new THREE.Mesh(new THREE.PlaneGeometry(L, 40), fenceMat);
+      m.position.set((x0 + x1) / 2, 20, (y0 + y1) / 2); m.rotation.y = -Math.atan2(y1 - y0, x1 - x0); scene.add(m);
+      for (let s = 0; s <= L; s += 160) { const p = new THREE.Mesh(new THREE.BoxGeometry(3, 46, 3), postMat); p.position.set(x0 + (x1 - x0) * s / L, 23, y0 + (y1 - y0) * s / L); scene.add(p); }
+      outerObs.push({ x: Math.min(x0, x1) - 5, y: Math.min(y0, y1) - 5, w: Math.abs(x1 - x0) + 10, h: Math.abs(y1 - y0) + 10, top: 40, bot: 0, fence: true });
+    };
+    const g0 = GC - 160, g1 = GC + 160;
+    fence(MB.x0, MB.y0, MB.x1, MB.y0); fence(MB.x0, MB.y0, MB.x0, MB.y1); fence(MB.x1, MB.y0, MB.x1, MB.y1);
+    fence(MB.x0, MB.y1, g0, MB.y1); fence(g1, MB.y1, MB.x1, MB.y1);
+    box(g0 - 70, MB.y1 + 15, 50, 50, 30, new THREE.MeshStandardMaterial({ color: '#c9b37e' }));             // будка охраны
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(300, 4, 4), new THREE.MeshStandardMaterial({ color: '#e53935' })); bar.position.set(GC, 18, MB.y1); bar.rotation.z = .9; scene.add(bar);
+    const camo = '#5b6b4a';
+    hangar(MB.x0 + 300, MB.y1 - 520, 420, 330, camo, '-y'); hangar(MB.x0 + 800, MB.y1 - 520, 420, 330, '#6b7354', '-y'); hangar(MB.x0 + 1300, MB.y1 - 520, 420, 330, camo, '-y');
+    const bunker = new THREE.MeshStandardMaterial({ map: concreteTex(false), roughness: .9 });
+    box(MB.x1 - 700, MB.y1 - 420, 240, 160, 50, bunker); box(MB.x1 - 700, MB.y1 - 760, 240, 160, 50, bunker);
+    // танки
+    const tankMat = new THREE.MeshStandardMaterial({ color: '#4b5a32', roughness: .7 }), tankDark = new THREE.MeshStandardMaterial({ color: '#2e3520', roughness: .8 });
+    for (const [x, y] of [[MB.x1 - 1300, MB.y1 - 300], [MB.x1 - 1150, MB.y1 - 300], [MB.x1 - 1000, MB.y1 - 300]]) {
+      const tk = new THREE.Group();
+      const hull = new THREE.Mesh(new THREE.BoxGeometry(72, 16, 42), tankMat); hull.position.y = 14; tk.add(hull);
+      for (const z of [-20, 20]) { const tr = new THREE.Mesh(new THREE.BoxGeometry(76, 12, 10), tankDark); tr.position.set(0, 7, z); tk.add(tr); }
+      const tur = new THREE.Mesh(new THREE.BoxGeometry(34, 12, 28), tankMat); tur.position.set(-4, 28, 0); tk.add(tur);
+      const gun = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 46, 8), tankDark); gun.rotation.z = Math.PI / 2; gun.position.set(30, 29, 0); tk.add(gun);
+      tk.traverse(o => { if (o.isMesh) o.castShadow = true; }); tk.position.set(x, 0, y); tk.rotation.y = Math.PI / 2; scene.add(tk);
+      outerObs.push({ x: x - 22, y: y - 38, w: 44, h: 76, top: 34, bot: 0 });
+    }
+    // вышки охраны с солдатами
+    const legMat = new THREE.MeshStandardMaterial({ color: '#5d4037', roughness: .8 }), cabMat = new THREE.MeshStandardMaterial({ color: '#6d6447', roughness: .8 });
+    for (const [x, y] of [[MB.x0 + 120, MB.y0 + 120], [MB.x1 - 120, MB.y0 + 120], [MB.x0 + 120, MB.y1 - 120], [MB.x1 - 120, MB.y1 - 120], [g0 - 200, MB.y1 - 140], [g1 + 200, MB.y1 - 140], [(MB.x0 + MB.x1) / 2, MB.y0 + 120]]) {
+      for (const [a, b] of [[-14, -14], [14, -14], [-14, 14], [14, 14]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(3, 80, 3), legMat); l.position.set(x + a, 40, y + b); scene.add(l); }
+      box(x - 20, y - 20, 40, 40, 14, cabMat, 80); box(x - 23, y - 23, 46, 46, 3, legMat, 94, false);
+      outerObs.push({ x: x - 16, y: y - 16, w: 32, h: 32, top: 80, bot: 0, fence: true });
+      MB_TOWERS.push([x, y, 97]);
+    }
+  }
+  // --- пляж: пирс и пальмы ---
+  {
+    const PL = 820, cy = SHORE + PL / 2 - 200;
+    PLATS.push({ cx: GC, cy, ux: 0, uy: 1, L: PL, Wd: 90, h0: 9, h1: 9, bot: 2 });
+    const wood = new THREE.MeshStandardMaterial({ map: outerTex(64, 256, (g, w, h) => { g.fillStyle = '#8d6e4a'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 16) { g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, y, w, 2); } }, 1, PL / 120), roughness: .9 });
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(90, 3, PL), wood); deck.position.set(GC, 7.5, cy); deck.receiveShadow = deck.castShadow = true; scene.add(deck);
+    for (let s = -PL / 2; s <= PL / 2; s += 80) for (const x of [-40, 40]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 40, 6), new THREE.MeshStandardMaterial({ color: '#5d4037' })); p.position.set(GC + x, -12, cy + s); scene.add(p); }
+    for (const x of [-44, 44]) { const r = new THREE.Mesh(new THREE.BoxGeometry(2, 8, PL), new THREE.MeshStandardMaterial({ color: '#efebe9' })); r.position.set(GC + x, 13, cy); scene.add(r); }
+  }
+  // --- лес на холмах и пальмы на пляже (много деревьев одной «пачкой») ---
+  {
+    const pine = [], palm = [];
+    for (let tries = 0; pine.length < 2600 && tries < 40000; tries++) {
+      const x = F0 + 700 + Math.random() * (-1300 - F0 - 700), y = F0 + 700 + Math.random() * (FS - 1400);
+      const h = terrainH(x, y); if (h < 4 || h > 640) continue;
+      if (Math.abs(hwDist(x, y)) < 260) continue;
+      if (x > MX - 1400 && y > MY - 1400 && y < MY + 1400 && mrNear(x, y)[0] < 130) continue;
+      pine.push([x, y, h]);
+    }
+    for (let tries = 0; pine.length < 3300 && tries < 20000; tries++) {        // немного леса и на севере
+      const x = F0 + 900 + Math.random() * (FS - 1800), y = F0 + 700 + Math.random() * 2600;
+      if (x > MB.x0 - 150 && x < MB.x1 + 150 && y > MB.y0 - 150) continue;
+      if (Math.abs(hwDist(x, y)) < 260 || OUT_ROADS.some(r => Math.abs(r[0][0] - r[r.length - 1][0]) < 1 && Math.abs(x - r[0][0]) < 180)) continue;
+      const h = terrainH(x, y); if (h < 0) continue; pine.push([x, y, h]);
+    }
+    for (let i = 0; i < 90; i++) { const x = -200 + Math.random() * (WORLD + 400), y = WORLD + 1150 + Math.random() * 300; if (Math.abs(x - GC) < 140) continue; palm.push([x, y, terrainH(x, y)]); }
+    const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3(), Yax = new THREE.Vector3(0, 1, 0);
+    const inst = (geo, mat, list, sc) => { const m = new THREE.InstancedMesh(geo, mat, list.length); list.forEach((p, i) => { const k = sc[i]; M4.compose(P.set(p[0], p[2] - 1, p[1]), Q.setFromAxisAngle(Yax, k * 40), S.set(k, k, k)); m.setMatrixAt(i, M4); }); m.castShadow = true; m.receiveShadow = true; scene.add(m); return m; };
+    const ps = pine.map(() => .75 + Math.random() * .7), pl = palm.map(() => .85 + Math.random() * .4);
+    inst(new THREE.CylinderGeometry(2.2, 3.2, 20, 6).translate(0, 10, 0), new THREE.MeshStandardMaterial({ color: '#5d4037', roughness: .9 }), pine, ps);
+    inst(new THREE.ConeGeometry(17, 58, 7).translate(0, 46, 0), new THREE.MeshStandardMaterial({ color: '#2f5d34', roughness: .85 }), pine, ps);
+    inst(new THREE.CylinderGeometry(1.8, 2.8, 48, 6).translate(0, 24, 0), new THREE.MeshStandardMaterial({ color: '#8d6e4a', roughness: .9 }), palm, pl);
+    inst(new THREE.ConeGeometry(26, 12, 8).translate(0, 50, 0), new THREE.MeshStandardMaterial({ color: '#4caf50', roughness: .8 }), palm, pl);
+  }
+
+  // ================== Угон: самолёты, вертолёты и брошенные машины ==================
+  const parkedVeh = [];                                       // [{spec, x, y, z, angle, model, zone}]
+  function placeParked(id, x, y, angle, zone) {
+    const sp = CARS.find(c => c.id === id); if (!sp) return;
+    const m = buildVehicle(sp), z = inCity(x, y) ? 0 : Math.max(0, terrainH(x, y));
+    m.root.position.set(x, z, y); m.root.rotation.y = -angle; if (m.driver) m.driver.visible = false; scene.add(m.root);
+    parkedVeh.push({ spec: sp, x, y, z, angle, model: m, zone });
+  }
+  placeParked('kukuruznik', AP.x0 + 700, GC - 900, 0, 'airport');
+  placeParked('kukuruznik', AP.x0 + 700, GC + 1500, 0, 'airport');
+  placeParked('strela', AP.x0 + 800, GC - 250, 0, 'airport');
+  placeParked('strekoza', AP.x0 + 650, GC + 1000, 0, 'airport');
+  placeParked('strela', MB.x0 + 2600, MB.y1 - 330, 0, 'military');
+  placeParked('strela', MB.x0 + 3000, MB.y1 - 330, 0, 'military');
+  placeParked('strela', MB.x0 + 3400, MB.y1 - 330, 0, 'military');
+  placeParked('kasatka', MB.x0 + 4300, MB.y1 - 330, Math.PI / 2, 'military');
+  placeParked('kasatka', MB.x0 + 4750, MB.y1 - 330, Math.PI / 2, 'military');
+  function nearParked() {
+    if (!car.onFoot) return null;
+    let best = null, bd = Infinity;
+    for (const pv of parkedVeh) { const d = Math.hypot(car.x - pv.x, car.y - pv.y), r = isAirSpec(pv.spec) ? 60 : 45; if (d < r && d < bd && Math.abs((car.z || 0) - pv.z) < 30) { bd = d; best = pv; } }
+    return best;
+  }
+  function stealVehicle(pv) {
+    if (player.driver) player.driver.visible = false;
+    parkedVeh.push({ spec, x: vstate.x, y: vstate.y, z: vstate.z, angle: vstate.angle, model: player, zone: null });   // своя машина остаётся стоять
+    parkedVeh.splice(parkedVeh.indexOf(pv), 1);
+    spec = pv.spec; player = pv.model; if (player.driver) player.driver.visible = true;
+    Object.assign(vstate, { x: pv.x, y: pv.y, z: pv.z, angle: pv.angle });
+    car.onFoot = false;
+    Object.assign(car, { x: pv.x, y: pv.y, z: pv.z, angle: pv.angle, vx: 0, vy: 0, steer: 0, air: false, ramp: null, stun: 0 });
+    if (car.fly) { car.fly.pitch = car.fly.bank = car.fly.vz = 0; car.fly.spd = 0; car.fly.rotor = 0; }
+    foot.root.visible = false; footBlob.visible = false; setOnFootClass(); camAng = car.angle;
+    if (pv.zone === 'military') { addWanted(Math.max(1, STAR_HEAT[4] - heat)); showMsg(t('stoleMil'), 3000); }
+    else if (pv.zone === 'airport') { addWanted(Math.max(1, STAR_HEAT[2] - heat)); showMsg(t('stoleAir'), 2600); }
+    if (isAirSpec(spec)) setTimeout(() => showMsg(t(spec.kind === 'heli' ? 'flyHeli' : 'flyPlane'), 5000), pv.zone ? 3000 : 0);
+  }
+  // солдаты на вышках базы
+  const soldiers = MB_TOWERS.map(([x, y, z]) => { const p = buildPerson('#556b2f', '#3b4a1a', '#3b4a1a', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac'])); p.root.visible = true; p.root.position.set(x, z, y); p.limbs[2].rotation.z = 1.4; p.limbs[3].rotation.z = 1.4; return { x, y, z, p, cd: 1 + Math.random() }; });
+  const base = { alerted: false };
+  let drownT = 0;
+  function updateOuter(dt) {
+    waterTex.offset.x += dt * .006; waterTex.offset.y += dt * .004;
+    // военная база: заехал — тревога и звёзды
+    const inBase = car.x > MB.x0 && car.x < MB.x1 && car.y > MB.y0 && car.y < MB.y1;
+    if (inBase && !base.alerted) { base.alerted = true; if (wanted < 3) addWanted(Math.max(1, STAR_HEAT[3] - heat)); showMsg(t('baseAlert'), 3000); }
+    if (!inBase && wanted === 0) base.alerted = false;
+    const spd = Math.hypot(car.vx, car.vy);
+    for (const so of soldiers) {
+      const dx = car.x - so.x, dy = car.y - so.y, d = Math.hypot(dx, dy);
+      so.p.root.rotation.y = -Math.atan2(dy, dx);
+      so.cd -= dt;
+      if (base.alerted && wanted > 0 && d < 700 && so.cd <= 0) {
+        so.cd = .8 + Math.random() * .6;
+        const hit = Math.random() < Math.max(.1, .5 - spd / 900 - d / 2200);
+        tracer(so.x + Math.cos(Math.atan2(dy, dx)) * 8, so.z + 18, so.y + Math.sin(Math.atan2(dy, dx)) * 8, car.x + (hit ? 0 : (Math.random() - .5) * 60), (car.z || 0) + 12, car.y + (hit ? 0 : (Math.random() - .5) * 60));
+        emit(so.x, so.z + 18, so.y, '#ffd54f', 2, .08, 0, 0, 0, 10, 1);
+        if (hit) shotPlayer(15, so.x, so.y);
+      }
+    }
+    // утонул в океане
+    if (drownT > 0) {
+      drownT -= dt; car.vx *= .9; car.vy *= .9;
+      if (drownT <= 0) {
+        const nx = Math.max(-200, Math.min(WORLD + 200, car.x)), ny = SHORE - 260;
+        Object.assign(car, { x: nx, y: ny, z: 0, vx: 0, vy: 0, air: false, ramp: null });
+        if (!car.onFoot) Object.assign(vstate, { x: nx, y: ny, z: 0 });
+        if (car.fly) { car.fly.vz = 0; car.fly.spd = 0; }
+      }
+    } else if (!inCity(car.x, car.y) && (car.z || 0) < SEA + .5 && terrainH(car.x, car.y) < SEA - 1) {
+      drownT = 1.6; showMsg(t('drowned'), 2600);
+      for (let i = 0; i < 24; i++) emit(car.x, 2, car.y, '#e3f2fd', 3, .8, (Math.random() - .5) * 120, 60 + Math.random() * 80, (Math.random() - .5) * 120, 10, .9);
+    }
+    // в небе и за городом видно дальше
+    const far = Math.min(14000, 2900 + Math.max(0, car.z || 0) * 7 + (inCity(car.x, car.y) ? 0 : 1800));
+    scene.fog.far += (far - scene.fog.far) * Math.min(1, dt * 1.5); scene.fog.near = scene.fog.far * .34;
+    const cf = scene.fog.far + 1500;
+    if (Math.abs(camera.far - cf) > 200) { camera.far = cf; camera.updateProjectionMatrix(); }
+  }
+  // карта острова для большой карты и мини-карты
+  function drawOuterMap(g, style) {
+    const sat = style === 'sat';
+    g.fillStyle = sat ? '#1d6a99' : '#1f3d57'; g.fillRect(F0, F0, FS, FS);
+    const N = 240, cs = FS / N;
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const x = F0 + (i + .5) * cs, y = F0 + (j + .5) * cs; if (inCity(x, y)) continue;
+      const h = terrainH(x, y); if (h < SEA) continue;
+      const beach = y > WORLD + 1100 && h < 25;
+      g.fillStyle = sat ? (beach ? '#dcc78f' : h > 690 ? '#eef0f2' : h > 470 ? '#8a8378' : h > 170 ? '#4a7434' : '#5f8f42')
+        : (beach ? '#4d4838' : h > 690 ? '#6a6f75' : h > 470 ? '#454a47' : h > 170 ? '#2f4733' : '#344a39');
+      g.fillRect(x - cs / 2, y - cs / 2, cs + 1, cs + 1);
+    }
+    const road = sat ? '#4a4c50' : '#7b8189';
+    const path = (pts, w, col, closed) => { g.strokeStyle = col; g.lineWidth = w; g.lineJoin = g.lineCap = 'round'; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); if (closed) g.closePath(); g.stroke(); };
+    g.fillStyle = sat ? '#a5a9ac' : '#4a4f56'; g.fillRect(AP.x0, AP.y0, AP.x1 - AP.x0, AP.y1 - AP.y0);
+    g.fillStyle = sat ? '#7d817a' : '#454a42'; g.fillRect(MB.x0, MB.y0, MB.x1 - MB.x0, MB.y1 - MB.y0);
+    path(HW_PTS, HW_W, road, true); path(HW_PTS, 10, sat ? '#ffd54f' : 'rgba(255,255,255,.35)', true);
+    for (const r of OUT_ROADS) path(r, 240, road, false);
+    path(MR_PTS, 110, road, false);
+    g.fillStyle = sat ? '#36383b' : '#8a9099';
+    g.fillRect(WORLD + 3380, AP.y0 + 200, 240, AP.y1 - AP.y0 - 400); g.fillRect(MB.x0 + 350, MB.y0 + 740, MB.x1 - MB.x0 - 700, 220);
+    g.fillStyle = sat ? '#3e4043' : '#6d737b'; g.fillRect(WORLD + 2645, AP.y0 + 200, 110, AP.y1 - AP.y0 - 400);
+    for (const o of outerObs) { g.fillStyle = o.fence ? (sat ? '#c9ccd0' : '#9aa1a8') : (sat ? '#cfd3d6' : '#5a626c'); g.fillRect(o.x, o.y, o.w, o.h); }
+    g.fillStyle = sat ? '#8d6e4a' : '#7a6a52'; g.fillRect(GC - 45, SHORE - 200, 90, 820);
+  }
+  const OUTER_LABELS = [['lgAirport', (AP.x0 + AP.x1) / 2, GC - 200], ['lgBase', (MB.x0 + MB.x1) / 2, MB.y0 + 450], ['lgBeach', WORLD / 2 + 1400, SHORE - 150],
+    ['lgMount', MX, MY - 1150], ['lgOcean', WORLD / 2, F1 - 1200], ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
 
   // ================== Друзья ==================
   if (!save.friends || !Array.isArray(save.friends.names)) save.friends = { names: ['Армин', 'Кинан'], on: true };
@@ -5398,6 +5823,7 @@
       const k = IS_TOUCH ? '🛒' : 'E';
       if (shopHere()) { txt = t('shPromptShop', { k }); ico = '🛒'; }
       else if (nearBed()) { txt = t('shPromptSleep', { k: IS_TOUCH ? '💤' : 'E' }); ico = '💤'; }
+      else { const pv = nearParked(); if (pv) { txt = t('stealPrompt', { k: IS_TOUCH ? '🔑' : 'E', n: carName(pv.spec) }); ico = '🔑'; } }
     }
     if (txt !== promptTxt) { promptTxt = txt; actPromptEl.textContent = txt; actPromptEl.classList.toggle('on', !!txt); }
     if (ico !== exitIco) { exitIco = ico; exitBtnEl.textContent = ico; }
@@ -5457,11 +5883,12 @@
   // ---------- настоящая карта (вид сверху, как со спутника): рисуем один раз, когда её впервые открыли ----------
   let realMap = null;
   function buildRealMap() {
-    const PX = IS_TOUCH ? 2048 : 4096, k = PX / WORLD;
+    const PX = IS_TOUCH ? 2048 : 4096, k = PX / FS;
     const c = document.createElement('canvas'); c.width = c.height = PX;
     const g = c.getContext('2d');
-    g.drawImage(groundCanvas, MARGIN * gsc, MARGIN * gsc, WORLD * gsc, WORLD * gsc, 0, 0, PX, PX);     // земля, дороги, газоны — как в игре
-    g.setTransform(k, 0, 0, k, 0, 0);
+    g.setTransform(k, 0, 0, k, -F0 * k, -F0 * k);
+    drawOuterMap(g, 'sat');
+    g.drawImage(groundCanvas, MARGIN * gsc, MARGIN * gsc, WORLD * gsc, WORLD * gsc, 0, 0, WORLD, WORLD);     // земля, дороги, газоны — как в игре
     const SUN = [.55, .8];                                                  // тени падают вправо-вниз
     const shadowRect = (x, y, w, h, H) => { const L = Math.min(140, H * .32); g.fillStyle = 'rgba(0,0,0,.30)'; g.beginPath(); g.moveTo(x + w, y); g.lineTo(x + w + L * SUN[0], y + L * SUN[1]); g.lineTo(x + w + L * SUN[0], y + h + L * SUN[1]); g.lineTo(x + L * SUN[0], y + h + L * SUN[1]); g.lineTo(x, y + h); g.lineTo(x + w, y + h); g.closePath(); g.fill(); };
     const gable = (x, y, w, h, A, B, ridge) => {                           // двускатная крыша
@@ -5517,9 +5944,10 @@
   // ---------- тёмная карта-схема: дороги, кварталы, дома, парки, вода ----------
   let roadMap = null, bmStyle = 'road';
   function buildRoadMap() {
-    const PX = IS_TOUCH ? 2048 : 4096, k = PX / WORLD;
+    const PX = IS_TOUCH ? 2048 : 4096, k = PX / FS;
     const c = document.createElement('canvas'); c.width = c.height = PX;
-    const g = c.getContext('2d'); g.setTransform(k, 0, 0, k, 0, 0);
+    const g = c.getContext('2d'); g.setTransform(k, 0, 0, k, -F0 * k, -F0 * k);
+    drawOuterMap(g, 'road');
     const rr = (x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
     g.fillStyle = '#62686f'; g.fillRect(0, 0, WORLD, WORLD);                        // асфальт
     g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = 5; g.setLineDash([60, 60]); g.beginPath();
@@ -5555,11 +5983,11 @@
   let mapRotInv = 0;                                          // мини-карта повёрнута — значки рисуем ровно
   const bmView = { cx: WORLD / 2, cy: WORLD / 2, zoom: 1 };
   function clampView() {
-    bmView.zoom = Math.max(1, Math.min(8, bmView.zoom));
-    const half = WORLD / 2 / bmView.zoom;
-    bmView.cx = Math.max(half, Math.min(WORLD - half, bmView.cx)); bmView.cy = Math.max(half, Math.min(WORLD - half, bmView.cy));
+    bmView.zoom = Math.max(1, Math.min(16, bmView.zoom));
+    const half = FS / 2 / bmView.zoom;
+    bmView.cx = Math.max(F0 + half, Math.min(F1 - half, bmView.cx)); bmView.cy = Math.max(F0 + half, Math.min(F1 - half, bmView.cy));
   }
-  function centerOnMe() { bmView.cx = car.x; bmView.cy = car.y; bmView.zoom = Math.max(bmView.zoom, 2.6); clampView(); }
+  function centerOnMe() { bmView.cx = car.x; bmView.cy = car.y; bmView.zoom = Math.max(bmView.zoom, 4.6); clampView(); }
   let mapOpen = false, dest = null;
   window.__isMapOpen = () => mapOpen;
   const nearestNode = (x, y) => [0, 1].map(i => Math.max(0, Math.min(NB, Math.round(((i ? y : x) - ROAD_W / 2) / (STEP * T))))).map(nodeC);
@@ -5630,6 +6058,7 @@
   const nav = { dest: null, pts: null, t: 0, start: null };
   function updateRoute(now) {
     if (!dest) { nav.dest = null; nav.pts = null; return; }
+    if (!inCity(dest[0], dest[1]) || !inCity(car.x, car.y)) { nav.pts = [dest]; nav.dest = dest; return; }   // за городом — прямая линия
     const sp = Math.hypot(car.vx, car.vy), hx = sp > 20 ? car.vx / sp : Math.cos(car.angle), hy = sp > 20 ? car.vy / sp : Math.sin(car.angle);
     const S = roadSpot(car.x, car.y, hx, hy), D = roadSpot(dest[0], dest[1]);
     let keep = null;
@@ -5702,6 +6131,8 @@
       }
       const deck = PLATS[1];
       mapLabel(g, s, '🌉 ' + t('lgBridge'), deck.cx + 120, deck.cy - ROAD_W * .9, 15, '#ffcdd2');
+      for (const [k, x, y] of OUTER_LABELS) mapLabel(g, s, t(k), x, y, k === 'lgOcean' ? 22 : 17, k === 'lgOcean' ? '#bfe3ff' : '#fff8e1');
+      for (const pv of parkedVeh) mapLabel(g, s, pv.zone ? (pv.spec.kind === 'heli' ? '🚁' : '✈️') : '🚗', pv.x, pv.y, 14);
     } else {
       // конус обзора — куда ты смотришь
       g.fillStyle = 'rgba(255,255,255,.16)';
@@ -5780,9 +6211,9 @@
     const spd = Math.hypot(car.vx, car.vy);
     mmView.R += ((560 + spd * .9 + (car.z || 0) * 1.2) - mmView.R) * .05;        // на скорости и в воздухе карта отдаляется
     const Rv = mmView.R, s = px / (2 * Rv), rot = -car.angle - Math.PI / 2, cxp = px / 2, cyp = px * .62;
-    mmc.setTransform(1, 0, 0, 1, 0, 0); mmc.fillStyle = '#262a30'; mmc.fillRect(0, 0, px, px);
+    mmc.setTransform(1, 0, 0, 1, 0, 0); mmc.fillStyle = '#1f3d57'; mmc.fillRect(0, 0, px, px);
     mmc.translate(cxp, cyp); mmc.rotate(rot); mmc.scale(s, s); mmc.translate(-car.x, -car.y);
-    mmc.drawImage(roadMap, 0, 0, WORLD, WORLD);
+    mmc.drawImage(roadMap, F0, F0, FS, FS);
     mapRotInv = -rot;
     mapOverlay(mmc, s, false, time);
     mapRotInv = 0;
@@ -5797,7 +6228,7 @@
   function toggleMap(force) {
     const was = mapOpen;
     mapOpen = force ?? !mapOpen;
-    if (mapOpen && !was) { bmView.zoom = 2.6; centerOnMe(); }            // открываем карту там, где ты
+    if (mapOpen && !was) { bmView.zoom = 4.6; centerOnMe(); }            // открываем карту там, где ты
     bmEl.classList.toggle('on', mapOpen);
     held.clear(); touchHeld.clear(); refreshKeys();
     if (!mapOpen && !menuOpen) canvas.focus();
@@ -5834,11 +6265,11 @@
     if (bmStyle === 'sat' && !realMap) buildRealMap();
     if (!roadMap) buildRoadMap();
     clampView(); mapRotInv = 0;
-    const s = px / WORLD * bmView.zoom;
-    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.fillStyle = bmStyle === 'sat' ? '#2f4a2a' : '#262a30'; bctx.fillRect(0, 0, px, px);
+    const s = px / FS * bmView.zoom;
+    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.fillStyle = bmStyle === 'sat' ? '#1d6a99' : '#1f3d57'; bctx.fillRect(0, 0, px, px);
     bctx.setTransform(s, 0, 0, s, px / 2 - bmView.cx * s, px / 2 - bmView.cy * s);
     bctx.imageSmoothingQuality = 'high';
-    bctx.drawImage(bmStyle === 'sat' ? realMap : roadMap, 0, 0, WORLD, WORLD);
+    bctx.drawImage(bmStyle === 'sat' ? realMap : roadMap, F0, F0, FS, FS);
     mapOverlay(bctx, s, true, time);
     // компас и масштаб
     bctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -5861,7 +6292,7 @@
   document.getElementById('bmClear').addEventListener('click', () => { dest = null; toggleMap(false); });
   // карта: тянуть — двигать, колёсико / щипок — приблизить, короткое нажатие — поставить метку
   const bmPtr = new Map(); let bmMoved = 0, bmPinch = 0;
-  const bmWorld = (cx, cy) => { const r = bmc.getBoundingClientRect(), z = bmView.zoom; return [bmView.cx + ((cx - r.left) / r.width - .5) * WORLD / z, bmView.cy + ((cy - r.top) / r.height - .5) * WORLD / z]; };
+  const bmWorld = (cx, cy) => { const r = bmc.getBoundingClientRect(), z = bmView.zoom; return [bmView.cx + ((cx - r.left) / r.width - .5) * FS / z, bmView.cy + ((cy - r.top) / r.height - .5) * FS / z]; };
   function zoomAt(f, cx, cy) {
     const before = cx === undefined ? null : bmWorld(cx, cy);
     bmView.zoom *= f; clampView();
@@ -5893,7 +6324,7 @@
     if (!bmPtr.size) bmc.classList.remove('drag');
     if (e.type === 'pointerup' && was === 1 && bmMoved < 8) {            // это было нажатие, а не перетаскивание — ставим метку
       const [wx, wy] = bmWorld(e.clientX, e.clientY);
-      dest = snapToRoad(Math.max(0, Math.min(WORLD, wx)), Math.max(0, Math.min(WORLD, wy)));
+      dest = inCity(wx, wy) ? snapToRoad(wx, wy) : [Math.max(F0 + 60, Math.min(F1 - 60, wx)), Math.max(F0 + 60, Math.min(F1 - 60, wy))];   // за городом — прямо в точку
       showMsg(t('destSet'), 2200);
       toggleMap(false);
     }
@@ -5949,11 +6380,13 @@
     const tx = car.x - cx * dist, tz = car.y - cy * dist;
     const k = snap ? 1 : Math.min(1, 9 * dt);
     camPos.x += (tx - camPos.x) * k; camPos.z += (tz - camPos.z) * k;
-    let camY = height + car.z * (isFly() && !car.onFoot ? 1 : .7);
+    const gBase = inCity(car.x, car.y) ? 0 : terrainH(car.x, car.y);                  // за городом камера идёт вместе с холмами
+    let camY = height + gBase + (car.z - gBase) * (isFly() && !car.onFoot ? 1 : .7);
+    if (!inCity(camPos.x, camPos.z)) camY = Math.max(camY, terrainH(camPos.x, camPos.z) + 14);   // не залезаем в склон
     const ceil = Math.min(ceilingAt(car.x, car.y, car.z), ceilingAt(camPos.x, camPos.z, car.z));
     if (ceil < 1e8) camY = Math.min(camY, ceil - 5);
     camPos.y += (camY - camPos.y) * (ceil < 1e8 ? Math.min(1, 14 * dt) : k);
-    camLook.set(car.x + cx * 55 * (car.onFoot ? .5 : 1), (car.onFoot ? 16 : 14) + car.z * (isFly() && !car.onFoot ? 1 : .85), car.y + cy * 55 * (car.onFoot ? .5 : 1));
+    camLook.set(car.x + cx * 55 * (car.onFoot ? .5 : 1), (car.onFoot ? 16 : 14) + gBase + (car.z - gBase) * (isFly() && !car.onFoot ? 1 : .85), car.y + cy * 55 * (car.onFoot ? .5 : 1));
     const sh = shake * shakeK;
     camera.position.set(camPos.x + (Math.random() - .5) * sh, camPos.y + (Math.random() - .5) * sh, camPos.z + (Math.random() - .5) * sh);
     camera.lookAt(camLook);
@@ -6111,7 +6544,7 @@
     const subs = dt > .018 ? 2 : 1;                       // когда игра подтормаживает — считаем движение мелкими шагами, чтобы не пролетать сквозь стены
     for (let i = 0; i < subs; i++) update(dt / subs);
     if (!garageOpen) { updateTraffic(dt); drawTraffic(); updatePeople(dt); }
-    if (!garageOpen && !menuOpen && !mapOpen) { updatePolice(dt, t); collideVehicles(); updateFriends(dt); updateWeapons(dt); }
+    if (!garageOpen && !menuOpen && !mapOpen) { updatePolice(dt, t); collideVehicles(); updateFriends(dt); updateWeapons(dt); updateOuter(dt); }
     netUpdate(dt, t);
     updateNav(t); drawMinimap(t); if (mapOpen) drawBigMap(t);
     if (menuOpen) { menuCamera(dt); updateMenuInfo(); } else updateCamera(dt);
