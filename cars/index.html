@@ -5443,9 +5443,10 @@
     if (full) {
       // названия улиц вдоль дорог (как на настоящей карте)
       const SH = t('streetsH').split('|'), SV = t('streetsV').split('|'), z = s * WORLD / (bmc.width || 1);
-      const fs = Math.min(15, 9 + z * 1.6), step = RCELL * (z < 2 ? 3 : z < 4 ? 2 : 1);
+      const fs = Math.min(15, 9 + z * 1.6), step = RCELL * (z < 2.6 ? 3 : z < 4 ? 2 : 1);
       g.textAlign = 'center'; g.textBaseline = 'middle';
       for (let kk = 0; kk <= NB; kk++) {
+        if (z < 1.7 || (z < 2.6 && kk % 2)) continue;            // издалека — меньше надписей
         const c = nodeC(kk);
         for (let a = RCELL * .5 + (kk % 2) * RCELL; a < WORLD; a += step) {
           for (const vert of [false, true]) {
@@ -5463,7 +5464,7 @@
         let key = null;
         if (b.type === 'park') key = 'dPark'; else if (b.type === 'lake') key = 'dLake'; else if (b.type === 'shops') key = 'dShops';
         else if (b.type === 'parking' && z >= 2.5) key = 'dParking';
-        if (key) mapLabel(g, s, t(key), b.x + BS / 2, b.y + BS / 2, Math.min(22, 11 + z * 2), key === 'dLake' ? '#d6f0ff' : key === 'dShops' ? '#ffe0b2' : '#e8f5d0');
+        if (key && z >= 1.7) mapLabel(g, s, t(key), b.x + BS / 2, b.y + BS / 2, Math.min(22, 11 + z * 2), key === 'dLake' ? '#d6f0ff' : key === 'dShops' ? '#ffe0b2' : '#e8f5d0');
         if (bi === Math.floor(CCi) && bj === Math.floor(CCi)) { g.globalAlpha = .85; mapLabel(g, s, t('dCenter'), b.x + BS / 2, b.y + BS / 2 - 36 / s, 30, '#fffde7'); g.globalAlpha = 1; }
       }
       const deck = PLATS[1];
@@ -5592,8 +5593,10 @@
     bctx.fillStyle = 'rgba(15,20,28,.75)'; bctx.fillRect(14 * u, px - 34 * u, bw + 20 * u, 22 * u);
     bctx.fillStyle = '#fff'; bctx.fillRect(24 * u, px - 20 * u, bw, 3 * u); bctx.fillRect(24 * u, px - 26 * u, 2 * u, 9 * u); bctx.fillRect(24 * u + bw - 2 * u, px - 26 * u, 2 * u, 9 * u);
     bctx.font = `bold ${10 * u}px sans-serif`; bctx.textAlign = 'center'; bctx.fillText(meters + ' м', 24 * u + bw / 2, px - 25 * u);
-    bctx.fillStyle = 'rgba(15,20,28,.6)'; bctx.font = `600 ${10 * u}px "Segoe UI", sans-serif`; bctx.textAlign = 'left';
-    bctx.fillText(t('mapZoomHint'), 14 * u, 16 * u);
+    bctx.font = `600 ${10 * u}px "Segoe UI", sans-serif`; bctx.textAlign = 'left';
+    const hw = bctx.measureText(t('mapZoomHint')).width;
+    bctx.fillStyle = 'rgba(15,20,28,.72)'; bctx.fillRect(8 * u, 6 * u, hw + 12 * u, 17 * u);
+    bctx.fillStyle = '#fff'; bctx.textBaseline = 'middle'; bctx.fillText(t('mapZoomHint'), 14 * u, 14.5 * u);
   }
   mmEl.addEventListener('click', () => toggleMap(true));
   document.getElementById('bmClose').addEventListener('click', () => toggleMap(false));
