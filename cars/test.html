@@ -4596,7 +4596,7 @@
     return m;
   };
   const flat = (x0, y0, w, h, mat, y = .2) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h).rotateX(-Math.PI / 2), mat); m.position.set(x0 + w / 2, y, y0 + h / 2); m.receiveShadow = true; scene.add(m); return m; };
-  const concreteTex = (light) => outerTex(256, 256, (g, w, h) => { noiseFill(g, w, h, light ? '#a7aaad' : '#7d817a', light ? ['#9a9da0', '#b3b6b8'] : ['#727670', '#888c84'], 2500); g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 2; g.strokeRect(0, 0, w, h); });
+  const concreteTex = (light) => outerTex(256, 256, (g, w, h) => { noiseFill(g, w, h, light ? '#94989c' : '#7d817a', light ? ['#8a8e92', '#a0a4a8'] : ['#727670', '#888c84'], 2500); g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 2; g.strokeRect(0, 0, w, h); });
   const runwayTex = (L) => outerTex(256, 512, (g, w, h) => {
     noiseFill(g, w, h, '#36383b', ['#2f3134', '#3d3f43'], 2500);
     g.fillStyle = '#f4f4f4'; g.fillRect(10, 0, 8, h); g.fillRect(w - 18, 0, 8, h);
@@ -6381,11 +6381,13 @@
     const tx = car.x - cx * dist, tz = car.y - cy * dist;
     const k = snap ? 1 : Math.min(1, 9 * dt);
     camPos.x += (tx - camPos.x) * k; camPos.z += (tz - camPos.z) * k;
-    let camY = height + car.z * (isFly() && !car.onFoot ? 1 : .7);
+    const gBase = inCity(car.x, car.y) ? 0 : terrainH(car.x, car.y);                  // за городом камера идёт вместе с холмами
+    let camY = height + gBase + (car.z - gBase) * (isFly() && !car.onFoot ? 1 : .7);
+    if (!inCity(camPos.x, camPos.z)) camY = Math.max(camY, terrainH(camPos.x, camPos.z) + 14);   // не залезаем в склон
     const ceil = Math.min(ceilingAt(car.x, car.y, car.z), ceilingAt(camPos.x, camPos.z, car.z));
     if (ceil < 1e8) camY = Math.min(camY, ceil - 5);
     camPos.y += (camY - camPos.y) * (ceil < 1e8 ? Math.min(1, 14 * dt) : k);
-    camLook.set(car.x + cx * 55 * (car.onFoot ? .5 : 1), (car.onFoot ? 16 : 14) + car.z * (isFly() && !car.onFoot ? 1 : .85), car.y + cy * 55 * (car.onFoot ? .5 : 1));
+    camLook.set(car.x + cx * 55 * (car.onFoot ? .5 : 1), (car.onFoot ? 16 : 14) + gBase + (car.z - gBase) * (isFly() && !car.onFoot ? 1 : .85), car.y + cy * 55 * (car.onFoot ? .5 : 1));
     const sh = shake * shakeK;
     camera.position.set(camPos.x + (Math.random() - .5) * sh, camPos.y + (Math.random() - .5) * sh, camPos.z + (Math.random() - .5) * sh);
     camera.lookAt(camLook);
