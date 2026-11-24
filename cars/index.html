@@ -677,6 +677,8 @@
         frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
         flyLand: '🛬 Сначала приземлись на землю!', flyHeli: '🚁 Пробел — вверх, S — вниз, W — вперёд, A/D — поворот', flyPlane: '✈️ W — газ, разгонись и жми пробел — взлёт. S / ▼ (тормоз) — вниз',
       mapRoad: '🗺 Схема', mapSat: '🛰 Спутник',
+      stolenCar: 'чужая машина', stolenPolice: 'полицейская машина', friendCar: 'машина друга {n}',
+      jackAngry: '😡 Водитель выскочил и злится!', jackRun: '🏃 Водитель испугался и убежал!', jackPolice: '🚓 Ты угнал полицейскую машину!', jackFriend: '😠 {n}: Эй! Это же моя машина!',
       mbSign1: 'ВОЕННАЯ БАЗА', mbSign2: 'ВХОД ЗАПРЕЩЁН', jetHint: 'Q / 4 / клик — ракеты 🚀',
       stealPrompt: 'Нажми {k} — угнать: {n}', stoleMil: '🚨 Ты угнал военную технику! Армия гонится за тобой!', stoleAir: '🚨 Угон в аэропорту! Полиция уже едет!',
       baseAlert: '⚠️ Военная база! Тебя заметили солдаты!', drowned: '🌊 Утонул! Выплываешь на пляж…',
@@ -692,6 +694,8 @@
         frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
         flyLand: '🛬 Land on the ground first!', flyHeli: '🚁 Space — up, S — down, W — forward, A/D — turn', flyPlane: '✈️ W — throttle, speed up and press Space to take off. S / ▼ (brake) — down',
       mapRoad: '🗺 Road map', mapSat: '🛰 Satellite',
+      stolenCar: 'a stranger’s car', stolenPolice: 'a police car', friendCar: '{n}’s car',
+      jackAngry: '😡 The driver jumped out and is angry!', jackRun: '🏃 The driver got scared and ran away!', jackPolice: '🚓 You stole a police car!', jackFriend: '😠 {n}: Hey! That’s my car!',
       mbSign1: 'MILITARY BASE', mbSign2: 'NO ENTRY', jetHint: 'Q / 4 / click — missiles 🚀',
       stealPrompt: 'Press {k} — steal: {n}', stoleMil: '🚨 You stole military equipment! The army is after you!', stoleAir: '🚨 Theft at the airport! The police are coming!',
       baseAlert: '⚠️ Military base! The soldiers spotted you!', drowned: '🌊 You drowned! Swimming back to the beach…',
@@ -4479,7 +4483,7 @@
       foot.root.visible = true; footBlob.visible = true; foot.hp = 100; foot.ko = 0; setOnFootClass();
       if (player.driver) player.driver.visible = false;
     } else {
-      { const pv = nearParked(); if (pv && Math.hypot(car.x - pv.x, car.y - pv.y) < Math.hypot(car.x - vstate.x, car.y - vstate.y)) { stealVehicle(pv); return; } }   // угон
+      { const st = nearStealable(); if (st && st.d < Math.hypot(car.x - vstate.x, car.y - vstate.y)) { doSteal(st); return; } }   // угон
       if (Math.hypot(car.x - vstate.x, car.y - vstate.y) > 60) return;
       car.onFoot = false;
       Object.assign(car, { x: vstate.x, y: vstate.y, z: vstate.z, angle: vstate.angle, vx: 0, vy: 0, steer: 0 });
@@ -4861,16 +4865,67 @@
     for (const pv of parkedVeh) { const d = Math.hypot(car.x - pv.x, car.y - pv.y), r = isAirSpec(pv.spec) ? 60 : 45; if (d < r && d < bd && Math.abs((car.z || 0) - pv.z) < 30) { bd = d; best = pv; } }
     return best;
   }
-  function stealVehicle(pv) {
+  // садимся в чужой транспорт: свой остаётся стоять там, где ты его оставил
+  function takeVehicle(newSpec, model, x, y, z, angle) {
     if (player.driver) player.driver.visible = false;
-    parkedVeh.push({ spec, x: vstate.x, y: vstate.y, z: vstate.z, angle: vstate.angle, model: player, zone: null });   // своя машина остаётся стоять
-    parkedVeh.splice(parkedVeh.indexOf(pv), 1);
-    spec = pv.spec; player = pv.model; if (player.driver) player.driver.visible = true;
-    Object.assign(vstate, { x: pv.x, y: pv.y, z: pv.z, angle: pv.angle });
+    parkedVeh.push({ spec, x: vstate.x, y: vstate.y, z: vstate.z, angle: vstate.angle, model: player, zone: null });
+    spec = newSpec; player = model; if (player.driver) player.driver.visible = true;
+    Object.assign(vstate, { x, y, z, angle });
     car.onFoot = false;
-    Object.assign(car, { x: pv.x, y: pv.y, z: pv.z, angle: pv.angle, vx: 0, vy: 0, steer: 0, air: false, ramp: null, stun: 0 });
+    Object.assign(car, { x, y, z, angle, vx: 0, vy: 0, steer: 0, air: false, ramp: null, stun: 0 });
     if (car.fly) { car.fly.pitch = car.fly.bank = car.fly.vz = 0; car.fly.spd = 0; car.fly.rotor = 0; }
     foot.root.visible = false; footBlob.visible = false; setOnFootClass(); camAng = car.angle;
+  }
+  // что можно угнать рядом: стоящий транспорт, машины на дороге, полицейские машины, машины друзей
+  function nearStealable() {
+    if (!car.onFoot) return null;
+    let best = null;
+    const tryIt = (kind, obj, x, y, z, r) => { const d = Math.hypot(car.x - x, car.y - y); if (d < r && Math.abs((car.z || 0) - (z || 0)) < 30 && (!best || d < best.d)) best = { kind, obj, d }; };
+    for (const pv of parkedVeh) tryIt('parked', pv, pv.x, pv.y, pv.z, isAirSpec(pv.spec) ? 60 : 45);
+    for (const tc of traffic) if (!(tc.crash > 0) && !(tc.dead > 0) && (tc.v < 90 || tc.halt)) tryIt('traffic', tc, tc.x, tc.y, tc.z, 42);
+    for (const c of chase.cops) if (c.mode !== 'drive' && !c.blown) tryIt('cop', c, c.x, c.y, c.z, 44);
+    if (save.friends.on) for (const f of friends) if (f.onFoot || Math.abs(f.v) < 50) tryIt('friend', f, f.x, f.y, f.z, 44);
+    return best;
+  }
+  const stealName = st => st.kind === 'parked' ? carName(st.obj.spec) : st.kind === 'cop' ? t('stolenPolice') : st.kind === 'friend' ? t('friendCar', { n: frName(st.obj) }) : t('stolenCar');
+  function doSteal(st) {
+    if (st.kind === 'parked') { stealVehicle(st.obj); return; }
+    if (st.kind === 'traffic') {
+      const tc = st.obj, x = tc.x, y = tc.y, a = tc.h;
+      const sp = { ...CARS.find(c => c.id === (tc.van ? 'bizon' : 'sedan')), id: 'stolen-car', hidden: true, color: tc.color, stripes: null, name: t('stolenCar'), desc: '' };
+      const m = buildVehicle(sp); scene.add(m.root);
+      const slot = Math.random() < .55 && people.find(pp => pp.inactive);
+      if (slot) {                                              // водитель выскочил и лезет драться
+        const lx = Math.sin(a), ly = -Math.cos(a), px = x + lx * 26, py = y + ly * 26;
+        Object.assign(slot, { inactive: false, mode: 'fight', x: px, y: py, yaw: Math.atan2(car.y - py, car.x - px), angryT: 14, hitCd: 1, punchT: 0, kos: 0, fallA: 0, downT: 0, driverOf: { x: px + lx * 300, y: py + ly * 300, halt: true } });
+        fightT = 8; showMsg(t('jackAngry'), 2200);
+      } else showMsg(t('jackRun'), 2000);
+      relocateTraffic(tc);
+      takeVehicle(sp, m, x, y, 0, a);
+      if (Math.random() < .35) addWanted(1);                   // кто-то видел и позвонил в полицию
+      return;
+    }
+    if (st.kind === 'cop') {
+      const c = st.obj, k = chase.cops.indexOf(c); if (k >= 0) chase.cops.splice(k, 1);
+      scene.remove(c.officer.root);
+      const sp = { ...(c.mil ? milSpec : policeSpec), id: c.mil ? 'stolen-army' : 'stolen-police', hidden: true, name: t('stolenPolice'), desc: '' };
+      takeVehicle(sp, c.m, c.x, c.y, c.z || 0, c.h);
+      addWanted(Math.max(1, STAR_HEAT[Math.min(MAX_STARS, wanted + 1)] - heat)); showMsg(t('jackPolice'), 2600);
+      return;
+    }
+    if (st.kind === 'friend') {
+      const f = st.obj, x = f.x, y = f.y, z = f.z || 0, a = f.h;
+      const sp = { ...CARS.find(c => c.id === f.L.car), id: 'friend-car', hidden: true, color: f.L.color, name: t('friendCar', { n: frName(f) }), desc: '' };
+      const m = buildVehicle(sp); scene.add(m.root);
+      f.onFoot = false; if (f.m.driver) f.m.driver.visible = true;
+      friendRandomSpot(f); f.mode = 'roam'; f.placed = true;   // друг обиделся и уехал на такси :)
+      takeVehicle(sp, m, x, y, z, a);
+      showMsg(t('jackFriend', { n: frName(f) }), 2600);
+    }
+  }
+  function stealVehicle(pv) {
+    parkedVeh.splice(parkedVeh.indexOf(pv), 1);
+    takeVehicle(pv.spec, pv.model, pv.x, pv.y, pv.z, pv.angle);
     if (pv.zone === 'military') { addWanted(Math.max(1, STAR_HEAT[4] - heat)); showMsg(t('stoleMil'), 3000); }
     else if (pv.zone === 'airport') { addWanted(Math.max(1, STAR_HEAT[2] - heat)); showMsg(t('stoleAir'), 2600); }
     if (isAirSpec(spec)) setTimeout(() => showMsg(t(spec.kind === 'heli' ? 'flyHeli' : 'flyPlane') + (spec.missiles ? ' · ' + t('jetHint') : ''), 6000), pv.zone ? 3000 : 0);
@@ -5986,7 +6041,7 @@
       const k = IS_TOUCH ? '🛒' : 'E';
       if (shopHere()) { txt = t('shPromptShop', { k }); ico = '🛒'; }
       else if (nearBed()) { txt = t('shPromptSleep', { k: IS_TOUCH ? '💤' : 'E' }); ico = '💤'; }
-      else { const pv = nearParked(); if (pv) { txt = t('stealPrompt', { k: IS_TOUCH ? '🔑' : 'E', n: carName(pv.spec) }); ico = '🔑'; } }
+      else { const st = nearStealable(); if (st && st.d < Math.hypot(car.x - vstate.x, car.y - vstate.y)) { txt = t('stealPrompt', { k: IS_TOUCH ? '🔑' : 'E', n: stealName(st) }); ico = '🔑'; } }
     }
     if (txt !== promptTxt) { promptTxt = txt; actPromptEl.textContent = txt; actPromptEl.classList.toggle('on', !!txt); }
     if (ico !== exitIco) { exitIco = ico; exitBtnEl.textContent = ico; }
