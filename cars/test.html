@@ -4088,7 +4088,7 @@
     if (!nodes.length) for (let k = 0; k < 60 && nodes.length < 10; k++) {      // за городом — подъезжают откуда-нибудь рядом
       const a = Math.random() * Math.PI * 2, d = 650 + Math.random() * 650, x = car.x + Math.cos(a) * d, y = car.y + Math.sin(a) * d;
       if (x < F0 + 400 || y < F0 + 400 || x > F1 - 400 || y > F1 - 400) continue;
-      const gz = inCity(x, y) ? 0 : terrainH(x, y); if (gz < 1 && !inCity(x, y)) continue;
+      const gz = inCity(x, y) ? 0 : terrainH(x, y); if (gz < 0) continue;   // не в воде
       if (gz > 200) continue;
       if (solidAtZ(x, y, gz + 2) || solidAtZ(x + 25, y, gz + 2) || solidAtZ(x - 25, y, gz + 2)) continue;
       nodes.push([x, y]);
