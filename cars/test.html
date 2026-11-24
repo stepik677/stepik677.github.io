@@ -4141,6 +4141,7 @@
     clearTimeout(busted.ht); busted.ht = setTimeout(goHome, 1300);                  // пока на экране WASTED — переносим домой
     foot.hp = 100; foot.ko = 0; foot.sinceHit = 9;
     endChase();
+    if (!save.owned.includes(spec.id)) setTimeout(() => { if (!save.owned.includes(spec.id)) setCar(save.current); }, 1400);   // угнанное забирают — дома ждёт своя машина
   }
   // проиграл — просыпаешься дома, а машина стоит в гараже
   function goHome() {
@@ -4734,6 +4735,7 @@
       box(hx, MB_HY1 - 12, w, 12, 75, wallM); box(hx, MB_HY0, 12, h, 75, wallM); box(hx + w - 12, MB_HY0, 12, h, 75, wallM);
       const rg = new THREE.CylinderGeometry(w / 2, w / 2, h, 28, 1, true, Math.PI / 2, Math.PI); rg.rotateX(Math.PI / 2); const roof = new THREE.Mesh(rg, wallM); roof.scale.set(1, .42, 1);
       roof.position.set(hx + w / 2, 75, (MB_HY0 + MB_HY1) / 2); roof.castShadow = true; scene.add(roof);
+      const back = new THREE.Mesh(new THREE.CircleGeometry(w / 2, 28, 0, Math.PI), wallM); back.scale.set(1, .42, 1); back.position.set(hx + w / 2, 75, MB_HY1 - 6); scene.add(back);   // задняя стенка арки
       outerObs.push({ x: hx, y: MB_HY0, w, h, top: 75 + w / 2 * .42, bot: 75 });
       flat(hx + 12, MB_HY0, w - 24, h - 12, new THREE.MeshStandardMaterial({ color: '#9da3a8', roughness: .6 }), .7);
       for (let k = 0; k < 3; k++) { const ls = new THREE.Mesh(new THREE.BoxGeometry(w * .7, 1, 6), lightStrip); ls.position.set(hx + w / 2, 72, MB_HY0 + 60 + k * 80); scene.add(ls); }
@@ -4937,9 +4939,9 @@
       const dx = car.x - so.x, dy = car.y - so.y, d = Math.hypot(dx, dy);
       so.p.root.rotation.y = -Math.atan2(dy, dx);
       so.cd -= dt;
-      if (alarm && d < 700 && so.cd <= 0) {
-        so.cd = .8 + Math.random() * .6;
-        const hit = Math.random() < Math.max(.1, .5 - spd / 900 - d / 2200);
+      if (alarm && d < (so.ground ? 520 : 650) && so.cd <= 0) {
+        so.cd = 1.5 + Math.random() * 1.2;
+        const hit = Math.random() < Math.max(.05, .3 - spd / 700 - d / 2400) * (car.onFoot ? 1 : .7);
         tracer(so.x + Math.cos(Math.atan2(dy, dx)) * 8, so.z + 18, so.y + Math.sin(Math.atan2(dy, dx)) * 8, car.x + (hit ? 0 : (Math.random() - .5) * 60), (car.z || 0) + 12, car.y + (hit ? 0 : (Math.random() - .5) * 60));
         emit(so.x, so.z + 18, so.y, '#ffd54f', 2, .08, 0, 0, 0, 10, 1);
         if (hit) shotPlayer(15, so.x, so.y);
