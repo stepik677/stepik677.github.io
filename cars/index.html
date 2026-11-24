@@ -929,7 +929,7 @@
   const msgEl = document.getElementById('msg');
 
   // ================== Параметры мира ==================
-  const T = 64, STEP = 15, NB = 7;           // клетка, шаг дорог (8 клеток дорога + 7 квартал), кварталов на сторону
+  const T = 64, STEP = 15, NB = 11;           // клетка, шаг дорог (8 клеток дорога + 7 квартал), кварталов на сторону
   const ROAD_W = 8 * T;                      // ширина дороги: 8 полос
   const WORLD = NB * STEP * T + ROAD_W;      // 7232
   const BS = 7 * T;                          // размер квартала
@@ -1104,7 +1104,7 @@
   }
   const SHOPS = [];      // магазины: еда, одежда, покраска
   const HOMES = [];      // дома с гаражами: у каждого игрока свой
-  const HOME_LOTS = ['0,0', '6,0', '0,6', '6,6', '3,6', '6,3'];
+  const HOME_LOTS = ['0,0', (NB - 1) + ',0', '0,' + (NB - 1), (NB - 1) + ',' + (NB - 1), (NB >> 1) + ',' + (NB - 1), (NB - 1) + ',' + (NB >> 1)];
   let HOME = null;       // твой дом
   const tall = [];       // объекты с высотой (здания, деревья, фонари)
   const parked = [];     // припаркованные машины
@@ -1195,12 +1195,12 @@
   function genBlock(i, j) {
     const x = i * STEP * T + ROAD_W, y = j * STEP * T + ROAD_W;   // квартал начинается сразу за дорогой
     const lx = x + SW, ly = y + SW;
-    const d = Math.max(Math.abs(i - 3), Math.abs(j - 3));
+    const CC = (NB - 1) / 2, d = Math.max(Math.abs(i - CC), Math.abs(j - CC));   // расстояние от центра города
     const r = rnd();
     let type;
     if (d === 0) type = 'park';
     else if (d === 1) type = r < .8 ? 'downtown' : 'office';
-    else if (d === 2) type = r < .4 ? 'office' : r < .6 ? 'parking' : r < .8 ? 'park' : 'downtown';
+    else if (d === 2 || d === 3) type = r < .4 ? 'office' : r < .6 ? 'parking' : r < .8 ? 'park' : 'downtown';
     else type = r < .55 ? 'residential' : r < .72 ? 'lake' : r < .88 ? 'park' : 'parking';
     if (HOME_LOTS.includes(i + ',' + j)) type = 'home';        // дома игроков
     if (i === 1 && j === 0) type = 'shops';                    // магазины рядом с домом
@@ -3460,8 +3460,8 @@
       tInst.body.m.setMatrixAt(i, tc.van ? T_ZERO : tBase); tInst.cab.m.setMatrixAt(i, tc.van ? T_ZERO : tBase);
       tInst.vanBody.m.setMatrixAt(i, tc.van ? tBase : T_ZERO); tInst.vanGlass.m.setMatrixAt(i, tc.van ? tBase : T_ZERO);
       for (const k of ['wheel', 'head', 'tail', 'blob', 'beam']) {
-        const L = T_LOCAL[k];
-        for (let j = 0; j < L.length; j++) tInst[k].m.setMatrixAt(i * L.length + j, tTmp.multiplyMatrices(tBase, L[j]));
+        const L = T_LOCAL[k], off = tc.dead > 0 && k !== 'wheel' && k !== 'blob';      // у сгоревшей машины фары не горят
+        for (let j = 0; j < L.length; j++) tInst[k].m.setMatrixAt(i * L.length + j, off ? T_ZERO : tTmp.multiplyMatrices(tBase, L[j]));
       }
     }
     for (const k in tInst) tInst[k].m.instanceMatrix.needsUpdate = true;
@@ -3508,7 +3508,7 @@
     const k = Math.max(0, 1 - (air ? .1 : 1.3) * dt); tc.kvx *= k; tc.kvy *= k;
     tc.h += tc.spin * dt; tc.spin *= Math.max(0, 1 - (air ? .2 : 2.5) * dt);
     tc.kvz -= 520 * dt; tc.kz = Math.max(0, tc.kz + tc.kvz * dt);
-    if (tc.kz <= 0 && tc.kvz < 0) tc.kvz = tc.kvz < -120 ? -tc.kvz * .3 : 0;     // подпрыгивает при падении
+    if (tc.kz <= 0 && tc.kvz < 0) { if (tc.kvz < -330) damageCar(tc, (-tc.kvz - 330) * .4); tc.kvz = tc.kvz < -120 ? -tc.kvz * .3 : 0; }     // подпрыгивает при падении (сильно упала — повреждена)
     if (tc.rollV) {
       tc.roll += tc.rollV * dt;
       if (!air) { const tg = Math.round(tc.roll / (2 * Math.PI)) * 2 * Math.PI; tc.roll += (tg - tc.roll) * Math.min(1, 8 * dt); if (Math.abs(tg - tc.roll) < .03) { tc.roll = 0; tc.rollV = 0; } }
@@ -3517,7 +3517,7 @@
     const sp = Math.hypot(tc.kvx, tc.kvy);
     if (sp > 90) for (const o of traffic) {                // отлетевшая машина бьёт другие
       if (o === tc || o.crash > 0 || Math.abs(o.x - tc.x) > 34 || Math.abs(o.y - tc.y) > 34 || Math.hypot(o.x - tc.x, o.y - tc.y) > 32) continue;
-      crashCar(o, tc.kvx * .7, tc.kvy * .7, sp * .7); tc.kvx *= .5; tc.kvy *= .5;
+      crashCar(o, tc.kvx * .7, tc.kvy * .7, sp * .7); damageCar(o, Math.max(0, sp * .7 - 150) * .6); tc.kvx *= .5; tc.kvy *= .5;
       for (let i = 0; i < 6; i++) emit(o.x, 8, o.y, '#ffd27a', 1.5, .35, (Math.random() - .5) * 140, Math.random() * 70, (Math.random() - .5) * 140, 0, 1);
     }
     if (tc.crash <= 0 && (tc.kz > 0 || tc.rollV)) tc.crash = .1;          // сначала приземлиться
@@ -3526,6 +3526,8 @@
   function updateTraffic(dt) {
     for (const tc of traffic) {
       if (tc.crash > 0) { crashUpdate(tc, dt); continue; }
+      if (tc.dead > 0) { burnWreck(tc, dt); continue; }                  // сгоревшая машина стоит и горит
+      if (tc.dmg >= 60 && Math.random() < .15) emit(tc.x + Math.cos(tc.h) * 18, tc.z + 12, tc.y + Math.sin(tc.h) * 18, '#5f5f5f', 4, 1.1, 0, 30, 0, 14, .5);   // разбитая — дымит
       if (tc.halt) { tc.v = 0; continue; }
       const s = tc.axis === 'v' ? tc.y : tc.x;
       const j = nextNode(s, tc.dir);
@@ -3638,7 +3640,7 @@
     if (runCd <= 0) { runCd = 1.2; addWanted(1); showMsg(t('runOver'), 1800); }   // кто-то видел — звезда и полиция
   }
   function startRoadRage(tc) {
-    if (tc.halt || rageCd > 0 || car.onFoot) return;
+    if (tc.halt || tc.dead > 0 || rageCd > 0 || car.onFoot) return;
     const slot = people.find(pp => pp.inactive); if (!slot) return;
     rageCd = 2.5; tc.halt = true; tc.v = 0;
     const lx = Math.sin(tc.h), ly = -Math.cos(tc.h), x = tc.x + lx * 24, y = tc.y + ly * 24;
@@ -4001,6 +4003,7 @@
           const J = -vn;
           car.vx -= 1.05 * vn * nx; car.vy -= 1.05 * vn * ny;
           crashCar(o, -nx * J * 1.8, -ny * J * 1.8, J * 1.4);
+          damageCar(o, Math.max(0, J - 150) * .6);                 // очень сильный удар — машина взрывается
           if (vn < -110) setTimeout(() => { if (traffic.includes(o)) startRoadRage(o); }, 2200);   // потом водитель выходит разбираться
         } else { car.vx -= 1.5 * vn * nx; car.vy -= 1.5 * vn * ny; o.v *= .3; }
         if (vn < -110) {
@@ -4008,7 +4011,7 @@
           for (let i = 0; i < 8; i++) emit(o.x + nx * 17, 8, o.y + ny * 17, '#ffd27a', 1.5, .35, (Math.random() - .5) * 160, Math.random() * 80, (Math.random() - .5) * 160, 0, 1);
         }
       }
-      if (chase.cops.includes(o) && vn < -110 && chase.hitCd <= 0) { chase.hitCd = 3; addWanted(1); }
+      if (chase.cops.includes(o) && vn < -110 && chase.hitCd <= 0) { chase.hitCd = 3; addWanted(1); damageCop(o, Math.max(0, -vn - 150) * .6); }
     }
   }
 
@@ -4852,11 +4855,11 @@
   });
   // ================== Оружие ==================
   const WEAPONS = {
-    pistol:  { ico: '🔫', key: 'wpPistol', price: 2000, ammoPrice: 150, pack: 24, cd: .3, range: 520, acc: .9, pellets: 1, push: 140, stars: 1, len: 4, col: '#37474f' },
-    smg:     { ico: '🔫', key: 'wpSmg', price: 8000, ammoPrice: 400, pack: 90, cd: .09, range: 480, acc: .7, pellets: 1, push: 110, auto: true, stars: 2, len: 7, col: '#263238' },
-    shotgun: { ico: '💥', key: 'wpShotgun', price: 12000, ammoPrice: 500, pack: 16, cd: .85, range: 300, acc: 1, pellets: 3, push: 260, stars: 3, len: 9, col: '#6d4c41' },
-    ak47:    { ico: '🔫', key: 'wpAk', price: 20000, ammoPrice: 800, pack: 90, cd: .11, range: 650, acc: .8, pellets: 1, push: 190, auto: true, stars: 3, len: 9, col: '#2b2f33' },
-    sniper:  { ico: '🎯', key: 'wpSniper', price: 35000, ammoPrice: 1000, pack: 10, cd: 1.2, range: 1500, acc: 1, pellets: 1, push: 320, sniper: true, stars: 4, len: 12, col: '#2b2f33' },
+    pistol:  { ico: '🔫', key: 'wpPistol', price: 2000, ammoPrice: 150, pack: 24, cd: .3, range: 520, acc: .9, pellets: 1, dmg: 9, push: 140, stars: 1, len: 4, col: '#37474f' },
+    smg:     { ico: '🔫', key: 'wpSmg', price: 8000, ammoPrice: 400, pack: 90, cd: .09, range: 480, acc: .7, pellets: 1, dmg: 6, push: 110, auto: true, stars: 2, len: 7, col: '#263238' },
+    shotgun: { ico: '💥', key: 'wpShotgun', price: 12000, ammoPrice: 500, pack: 16, cd: .85, range: 300, acc: 1, pellets: 3, dmg: 12, push: 260, stars: 3, len: 9, col: '#6d4c41' },
+    ak47:    { ico: '🔫', key: 'wpAk', price: 20000, ammoPrice: 800, pack: 90, cd: .11, range: 650, acc: .8, pellets: 1, dmg: 10, push: 190, auto: true, stars: 3, len: 9, col: '#2b2f33' },
+    sniper:  { ico: '🎯', key: 'wpSniper', price: 35000, ammoPrice: 1000, pack: 10, cd: 1.2, range: 1500, acc: 1, pellets: 1, dmg: 45, push: 320, sniper: true, stars: 4, len: 12, col: '#2b2f33' },
     rocket:  { ico: '🚀', key: 'wpRocket', price: 60000, ammoPrice: 3000, pack: 4, cd: 1.3, range: 1000, rocket: true, stars: 5, len: 11, col: '#556b2f' },
   };
   const WPN_ORDER = ['pistol', 'smg', 'shotgun', 'ak47', 'sniper', 'rocket'];
@@ -5023,11 +5026,12 @@
     if (tg.kind === 'person') { shootPerson(tg.o, ux, uy, W.push * mult); gunWanted(1); }
     else if (tg.kind === 'cop') { tg.o.odown = 5; tg.o.ofall = 0; gunWanted(1); }
     else if (tg.kind === 'car') {
-      tg.o.holes = (tg.o.holes || 0) + mult;
       for (let k = 0; k < 4; k++) emit(tg.x, 10, tg.y, '#ffd54f', 1.2, .2, (Math.random() - .5) * 140, Math.random() * 90, (Math.random() - .5) * 140, 0, 1);
-      if (tg.o.holes >= 4) { tg.o.holes = 0; crashCar(tg.o, ux * 120, uy * 120, 150); }   // водитель потерял управление
+      const was = tg.o.dmg || 0;
+      damageCar(tg.o, W.dmg * mult);
+      if (was < 60 && tg.o.dmg >= 60 && !(tg.o.dead > 0)) crashCar(tg.o, ux * 120, uy * 120, 150);   // водитель потерял управление
       if (wanted < 1) gunWanted(1);
-    } else { for (let k = 0; k < 4; k++) emit(tg.x, 10, tg.y, '#ffd54f', 1.2, .2, (Math.random() - .5) * 140, Math.random() * 90, (Math.random() - .5) * 140, 0, 1); gunWanted(1); }
+    } else { for (let k = 0; k < 4; k++) emit(tg.x, 10, tg.y, '#ffd54f', 1.2, .2, (Math.random() - .5) * 140, Math.random() * 90, (Math.random() - .5) * 140, 0, 1); damageCop(tg.o, W.dmg * mult); gunWanted(1); }
   }
   function tryShoot() {
     const W = curW();
@@ -5084,18 +5088,87 @@
     }
     for (const tc of traffic) {
       const dx = tc.x - x, dy = tc.y - y, d = Math.hypot(dx, dy);
-      if (d < R) { const J = 520 * (1 - d / R) + 160; crashCar(tc, dx / (d || 1) * J, dy / (d || 1) * J, J * 1.4); tc.kvz = Math.max(tc.kvz || 0, 300 * (1 - d / R) + 140); hit = true; }
+      if (d < R) { const J = 520 * (1 - d / R) + 160; crashCar(tc, dx / (d || 1) * J, dy / (d || 1) * J, J * 1.4); tc.kvz = Math.max(tc.kvz || 0, 300 * (1 - d / R) + 140); damageCar(tc, 260 * (1 - d / R) + 40); hit = true; }
     }
-    for (const c of chase.cops) {
+    for (const c of [...chase.cops]) {
       if (c.mode !== 'drive' && Math.hypot(c.ox - x, c.oy - y) < R) { c.odown = 6; c.ofall = 0; hit = true; }
       const d = Math.hypot(c.x - x, c.y - y);
-      if (d < R) { c.v = -200; c.rev = 1.2; hit = true; }                                // полицейскую машину отбрасывает
+      if (d < R) { c.v = -200; c.rev = 1.2; damageCop(c, 260 * (1 - d / R) + 40); hit = true; }   // полицейскую машину отбрасывает
     }
     const pd = Math.hypot(car.x - x, car.y - y);
     if (pd < 90) { if (car.onFoot) hurtPlayer(35 * (1 - pd / 90) + 10, x, y); else { car.vx += (car.x - x) / (pd || 1) * 250; car.vy += (car.y - y) / (pd || 1) * 250; } }
     gunWanted(hit ? 2 : 1);
   }
+  // ---------- взрывы машин ----------
+  const booms = [];                                           // взрывы по очереди — цепная реакция, как в GTA
+  const wrecks = [];                                          // сгоревшие полицейские машины
+  const wreckMat = new THREE.MeshStandardMaterial({ color: '#1d1b1a', roughness: .95, metalness: .1 });
+  const fireLight = new THREE.PointLight('#ff7a1a', 0, 260, 1.4); scene.add(fireLight);
+  function damageCar(tc, dmg) {
+    if (!(dmg > 0) || tc.dead > 0 || tc.remote) return;
+    tc.dmg = (tc.dmg || 0) + dmg;
+    if (tc.dmg >= 100) blowCar(tc);
+  }
+  function blowCar(tc) {
+    tc.dead = 24; tc.halt = false; tc.color0 = tc.color0 || tc.color; tc.color = '#1d1b1a';
+    const i = traffic.indexOf(tc); if (i >= 0) paintTraffic(i, tc);
+    crashCar(tc, (Math.random() - .5) * 160, (Math.random() - .5) * 160, 420);
+    tc.kvz = Math.max(tc.kvz || 0, 260 + Math.random() * 120); tc.rollV = tc.rollV || (Math.random() < .5 ? -1 : 1) * (5 + Math.random() * 3);
+    booms.push({ x: tc.x, y: tc.y, z: tc.z || 0, t: .05 });
+  }
+  function damageCop(c, dmg) {
+    if (!(dmg > 0) || c.blown) return;
+    c.dmg = (c.dmg || 0) + dmg;
+    if (c.dmg >= 100) {                                       // полицейская машина взорвалась — остаётся сгоревший остов
+      c.blown = true;
+      booms.push({ x: c.x, y: c.y, z: c.z || 0, t: .05 });
+      c.m.root.traverse(o => { if (o.isMesh) o.material = wreckMat; else if (o.isLight) o.intensity = 0; });
+      c.m.root.position.y += 2; c.m.root.rotation.z = (Math.random() - .5) * .5;
+      scene.remove(c.officer.root);
+      const k = chase.cops.indexOf(c); if (k >= 0) chase.cops.splice(k, 1);
+      wrecks.push({ root: c.m.root, x: c.x, y: c.y, z: c.z || 0, t: 24 });
+    }
+  }
+  function fireAt(x, y, z, k) {                               // огонь и дым над сгоревшей машиной
+    if (Math.random() < .7 * k) emit(x + (Math.random() - .5) * 22, z + 10, y + (Math.random() - .5) * 14, Math.random() < .5 ? '#ff6d00' : '#ffab00', 3 + Math.random() * 2, .45, (Math.random() - .5) * 12, 45 + Math.random() * 30, (Math.random() - .5) * 12, 10, .95);
+    if (Math.random() < .25) emit(x + (Math.random() - .5) * 16, z + 22, y + (Math.random() - .5) * 16, '#2e2e2e', 7, 1.8, (Math.random() - .5) * 14, 40, (Math.random() - .5) * 14, 22, .55);
+  }
+  let fireNear = null, fireD = Infinity;
+  function burnWreck(tc, dt) {
+    tc.dead -= dt; tc.v = 0;
+    const d = Math.hypot(tc.x - car.x, tc.y - car.y);
+    if (d < 1100) fireAt(tc.x, tc.y, tc.z || 0, Math.min(1, tc.dead / 10));
+    if (d < fireD && tc.dead > 4) { fireD = d; fireNear = tc; }
+    if (tc.dead <= 0) { if (d < 700) tc.dead = 3; else relocateTraffic(tc); }    // убираем, когда ты далеко
+  }
+  function relocateTraffic(tc) {                              // вместо сгоревшей — новая машина в другом месте
+    for (let tries = 0; tries < 400; tries++) {
+      const axis = Math.random() < .5 ? 'v' : 'h', k = Math.floor(Math.random() * (NB + 1)), seg = Math.floor(Math.random() * NB);
+      if (!segAllowed(axis, k, seg)) continue;
+      const dir = Math.random() < .5 ? 1 : -1, lane = Math.floor(Math.random() * LANES);
+      const sv = roadPos(seg) + ROAD_W + 40 + Math.random() * (BS - 80), lc = laneCoord(axis, k, dir, lane);
+      const x = axis === 'v' ? lc : sv, y = axis === 'v' ? sv : lc;
+      if (Math.hypot(x - car.x, y - car.y) < 900 || traffic.some(o => o !== tc && Math.abs(o.x - x) < 120 && Math.abs(o.y - y) < 120)) continue;
+      Object.assign(tc, { x, y, z: 0, h: headingOf(axis, dir), v: 0, axis, k, dir, lane, next: null, decidedJ: null, wait: 0, ghost: 0, dead: 0, dmg: 0, crash: 0,
+        kvx: 0, kvy: 0, kz: 0, kvz: 0, spin: 0, roll: 0, rollV: 0, halt: false, color: tc.color0 || tc.color });
+      const i = traffic.indexOf(tc); if (i >= 0) paintTraffic(i, tc);
+      return;
+    }
+    tc.dead = 5;
+  }
   function updateWeapons(dt) {
+    for (let i = booms.length - 1; i >= 0; i--) { const b = booms[i]; b.t -= dt; if (b.t <= 0) { booms.splice(i, 1); explode(b.x, b.y, b.z); } }
+    for (let i = wrecks.length - 1; i >= 0; i--) {
+      const w = wrecks[i]; w.t -= dt;
+      const d = Math.hypot(w.x - car.x, w.y - car.y);
+      if (d < 1100) fireAt(w.x, w.y, w.z, Math.min(1, w.t / 10));
+      if (d < fireD && w.t > 4) { fireD = d; fireNear = w; }
+      if (w.t <= 0 && d > 700) { scene.remove(w.root); wrecks.splice(i, 1); }
+    }
+    // свет от ближайшего огня (мерцает)
+    if (fireNear && fireD < 700) { fireLight.position.set(fireNear.x, (fireNear.z || 0) + 22, fireNear.y); fireLight.intensity = 2.2 + Math.random() * 1.6; }
+    else fireLight.intensity = 0;
+    fireNear = null; fireD = Infinity;
     gun.cd -= dt; gun.wantedCd -= dt; gun.recoil = Math.max(0, gun.recoil - dt * 3);
     const W = curW();
     if (gun.fire && W && W.auto) tryShoot();                                        // автомат стреляет, пока держишь
