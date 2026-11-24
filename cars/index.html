@@ -242,7 +242,8 @@
     .legend h4 { grid-column: 1 / -1; }
     #bigmapCanvas { width: min(94vw, calc(100vh - 250px)) !important; height: min(94vw, calc(100vh - 250px)) !important; }
   }
-  #bigmapCanvas { width: min(calc(100vw - 240px), calc(100vh - 90px)); height: min(calc(100vw - 240px), calc(100vh - 90px)); border-radius: 16px; cursor: crosshair; touch-action: none; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  #bigmapCanvas { width: min(calc(100vw - 240px), calc(100vh - 90px)); height: min(calc(100vw - 240px), calc(100vh - 90px)); border-radius: 16px; cursor: grab; touch-action: none; box-shadow: 0 10px 40px rgba(0,0,0,.5); border: 3px solid rgba(255,255,255,.18); }
+  #bigmapCanvas.drag { cursor: grabbing; }
   #prompt { position: fixed; left: 50%; bottom: calc(110px + var(--sb)); transform: translateX(-50%); z-index: 6; padding: 8px 18px; border-radius: 999px;
     background: rgba(15,20,28,.75); color: #fff; font: 700 16px "Segoe UI", sans-serif; display: none; pointer-events: none; }
   #prompt.on { display: block; }
@@ -383,7 +384,7 @@
 <div id="driftMeter"></div>
 <canvas id="minimap"></canvas>
 <div id="bigmap">
-  <div class="bmTop"><b data-i18n="mapTitle"></b><button id="bmClear" data-i18n="mapClear"></button><button id="bmClose">✕</button></div>
+  <div class="bmTop"><b data-i18n="mapTitle"></b><button id="bmIn" title="+">➕</button><button id="bmOut" title="−">➖</button><button id="bmMe" data-i18n="mapMe"></button><button id="bmClear" data-i18n="mapClear"></button><button id="bmClose">✕</button></div>
   <div class="bmBody"><canvas id="bigmapCanvas"></canvas><div class="legend" id="legend"></div></div>
 </div>
 <div id="actPrompt"></div>
@@ -674,12 +675,20 @@
     const FRT = {
       ru: { phTitle: '📱 Контакты', phCall: '📞 Позвонить', phBye: '👋 Пока', phCalling: 'Звоним…', phHint: '1 / 2 — выбрать · 3 — позвонить · 6 — закрыть',
         frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
-        nickTitle: '✏️ Придумай себе никнейм', nickHint: 'Так тебя будут видеть другие игроки и так будет подписан твой дом. Не пиши настоящую фамилию.',
+        mapMe: '🎯 Где я', mapZoomHint: 'Колёсико или ➕➖ — приблизить, тяни мышкой — двигать карту',
+        streetsH: 'Проспект Мира|ул. Гонщиков|Садовая ул.|Центральный пр.|ул. Победы|Солнечная ул.|Лесная ул.|ул. Трамплинов|Морская ул.|Новая ул.|Парковая ул.|Речная ул.|ул. Строителей|Школьная ул.',
+        streetsV: 'ул. Ленина|Зелёная ул.|Кленовая ул.|Вокзальная ул.|Мостовая ул.|ул. Гагарина|Озёрная ул.|Широкая ул.|Звёздная ул.|ул. Механиков|Яблочная ул.|Тихая ул.|Восточная ул.|Полевая ул.',
+        dCenter: 'ЦЕНТР', dPark: 'Парк', dLake: 'Озеро', dParking: 'Парковка', dShops: 'Магазины', dHome: 'Дом',
+      nickTitle: '✏️ Придумай себе никнейм', nickHint: 'Так тебя будут видеть другие игроки и так будет подписан твой дом. Не пиши настоящую фамилию.',
         nickPh: 'Например: Гонщик777', nickGo: 'Готово — играть! 🚗', nickShort: 'Никнейм должен быть хотя бы из 3 букв', nickBad: 'Придумай свой никнейм, а не «Игрок»',
       frComing: '📞 {n}: Уже еду к тебе! 🚗', frHere: '👋 {n}: Я тут! Поехали!', frLeave: '📱 {n}: Ладно, поеду покатаюсь. Звони!', frBye: '👋 {n}: Давай, пока! Звони, если что!' },
       en: { phTitle: '📱 Contacts', phCall: '📞 Call', phBye: '👋 Bye', phCalling: 'Calling…', phHint: '1 / 2 — pick · 3 — call · 6 — close',
         frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
-        nickTitle: '✏️ Choose your nickname', nickHint: 'Other players will see this name, and it will be on your house sign. Don’t use your real surname.',
+        mapMe: '🎯 Where am I', mapZoomHint: 'Wheel or ➕➖ — zoom, drag with the mouse — move the map',
+        streetsH: 'Peace Ave|Racer St|Garden St|Central Ave|Victory St|Sunny St|Forest St|Ramp St|Ocean St|New St|Park St|River St|Builders St|School St',
+        streetsV: 'Main St|Green St|Maple St|Station St|Bridge St|Star St|Lake St|Broadway|Comet St|Mechanic St|Apple St|Quiet St|East St|Field St',
+        dCenter: 'DOWNTOWN', dPark: 'Park', dLake: 'Lake', dParking: 'Parking', dShops: 'Shops', dHome: 'Home',
+      nickTitle: '✏️ Choose your nickname', nickHint: 'Other players will see this name, and it will be on your house sign. Don’t use your real surname.',
         nickPh: 'For example: Racer777', nickGo: 'Done — play! 🚗', nickShort: 'Your nickname needs at least 3 letters', nickBad: 'Make up your own nickname, not “Player”',
       frComing: '📞 {n}: On my way! 🚗', frHere: '👋 {n}: I’m here! Let’s go!', frLeave: '📱 {n}: OK, I’m off for a drive. Call me!', frBye: '👋 {n}: See ya! Call me anytime!' },
     };
@@ -5251,6 +5260,73 @@
       g.strokeStyle = '#ffffff'; g.lineWidth = 10; g.strokeRect(r.cx - w / 2, r.cy - h / 2, w, h);
     }
   }
+  // ---------- настоящая карта (вид сверху, как со спутника): рисуем один раз, когда её впервые открыли ----------
+  let realMap = null;
+  function buildRealMap() {
+    const PX = IS_TOUCH ? 2048 : 4096, k = PX / WORLD;
+    const c = document.createElement('canvas'); c.width = c.height = PX;
+    const g = c.getContext('2d');
+    g.drawImage(groundCanvas, MARGIN * gsc, MARGIN * gsc, WORLD * gsc, WORLD * gsc, 0, 0, PX, PX);     // земля, дороги, газоны — как в игре
+    g.setTransform(k, 0, 0, k, 0, 0);
+    const SUN = [.55, .8];                                                  // тени падают вправо-вниз
+    const shadowRect = (x, y, w, h, H) => { const L = Math.min(140, H * .32); g.fillStyle = 'rgba(0,0,0,.30)'; g.beginPath(); g.moveTo(x + w, y); g.lineTo(x + w + L * SUN[0], y + L * SUN[1]); g.lineTo(x + w + L * SUN[0], y + h + L * SUN[1]); g.lineTo(x + L * SUN[0], y + h + L * SUN[1]); g.lineTo(x, y + h); g.lineTo(x + w, y + h); g.closePath(); g.fill(); };
+    const gable = (x, y, w, h, A, B, ridge) => {                           // двускатная крыша
+      if (w >= h) { g.fillStyle = A; g.fillRect(x, y, w, h / 2); g.fillStyle = B; g.fillRect(x, y + h / 2, w, h / 2); g.strokeStyle = ridge; g.lineWidth = 3; g.beginPath(); g.moveTo(x + 4, y + h / 2); g.lineTo(x + w - 4, y + h / 2); g.stroke(); }
+      else { g.fillStyle = A; g.fillRect(x, y, w / 2, h); g.fillStyle = B; g.fillRect(x + w / 2, y, w / 2, h); g.strokeStyle = ridge; g.lineWidth = 3; g.beginPath(); g.moveTo(x + w / 2, y + 4); g.lineTo(x + w / 2, y + h - 4); g.stroke(); }
+      g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 2; g.strokeRect(x, y, w, h);
+    };
+    // машины на парковках
+    for (const pc of parked) {
+      g.save(); g.translate(pc.x, pc.y); g.rotate(pc.angle);
+      g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(-20, -9, 44, 22);
+      g.fillStyle = pc.color; g.fillRect(-22, -10, 44, 20); g.fillStyle = 'rgba(20,30,40,.75)'; g.fillRect(-4, -8, 14, 16); g.restore();
+    }
+    // тени зданий, потом крыши
+    for (const o of tall) if (o.k === 'b' || o.k === 'h') shadowRect(o.x, o.y, o.w, o.h, o.k === 'b' ? o.H : o.H2 || 50);
+    for (const S of SHOPS) shadowRect(S.x0, S.y0, S.w, S.h, S.H);
+    for (const hm of HOMES) if (hm) for (const r of [hm.house, hm.gar]) shadowRect(r.x0, r.y0, r.w, r.h, 60);
+    for (const o of tall) {
+      if (o.k === 'b') {
+        const gr = g.createLinearGradient(o.x, o.y, o.x + o.w, o.y + o.h); gr.addColorStop(0, o.roofEdge); gr.addColorStop(1, o.roofIn);
+        g.fillStyle = gr; g.fillRect(o.x, o.y, o.w, o.h);
+        g.strokeStyle = o.roofEdge; g.lineWidth = 6; g.strokeRect(o.x + 3, o.y + 3, o.w - 6, o.h - 6);
+        g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 2; g.strokeRect(o.x, o.y, o.w, o.h);
+        for (const d of o.details) { g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(d.x + 3, d.y + 3, d.w, d.h); g.fillStyle = '#c9cdd2'; g.fillRect(d.x, d.y, d.w, d.h); g.fillStyle = '#9aa1a8'; g.fillRect(d.x + 3, d.y + 3, d.w - 6, d.h - 6); }
+        if (o.heli) { const r = Math.min(o.w, o.h) * .28; g.fillStyle = '#4a5560'; g.beginPath(); g.arc(o.cx, o.cy, r, 0, 7); g.fill(); g.strokeStyle = '#ffd54f'; g.lineWidth = 4; g.stroke(); g.fillStyle = '#fff'; g.font = `bold ${r * 1.1}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('H', o.cx, o.cy + 2); }
+      } else if (o.k === 'h') { gable(o.x, o.y, o.w, o.h, o.roofA, o.roofB, o.ridge); if (o.chimney) { g.fillStyle = '#6d4c41'; g.fillRect(o.x + o.w * .7, o.y + o.h * .2, 8, 8); } }
+    }
+    const SHOP_ROOF = { food: '#43a047', clothes: '#ab47bc', paint: '#ff7043', guns: '#c62828' };
+    for (const S of SHOPS) { g.fillStyle = '#5a646d'; g.fillRect(S.x0, S.y0, S.w, S.h); g.fillStyle = SHOP_ROOF[S.kind] || '#888'; g.fillRect(S.x0, S.y0, S.w, 12); g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 2; g.strokeRect(S.x0, S.y0, S.w, S.h); }
+    for (const hm of HOMES) if (hm) { gable(hm.house.x0, hm.house.y0, hm.house.w, hm.house.h, '#c0593f', '#8d3b2c', '#5d2a20'); gable(hm.gar.x0, hm.gar.y0, hm.gar.w, hm.gar.h, '#7d8790', '#59626b', '#3e454c'); }
+    // мост, тоннели, трамплины
+    for (const pl of PLATS) {
+      if (pl.home) continue;
+      const w = pl.ux ? pl.L : pl.Wd, h = pl.ux ? pl.Wd : pl.L, x0 = pl.cx - w / 2, y0 = pl.cy - h / 2;
+      shadowRect(x0, y0, w, h, (pl.h0 + pl.h1) / 2);
+      g.fillStyle = pl.roof ? '#8d969e' : pl.bot >= 50 ? '#6b7178' : '#5b6168'; g.fillRect(x0, y0, w, h);
+      g.strokeStyle = '#d7dbe0'; g.lineWidth = 5; g.strokeRect(x0 + 3, y0 + 3, w - 6, h - 6);
+    }
+    for (const r of RAMPS) {
+      const along = Math.abs(r.ux) > .5, w = along ? r.L : r.Wd, h = along ? r.Wd : r.L, x0 = r.cx - w / 2, y0 = r.cy - h / 2;
+      const gr = along ? g.createLinearGradient(x0, 0, x0 + w, 0) : g.createLinearGradient(0, y0, 0, y0 + h);
+      gr.addColorStop(r.ux > 0 || r.uy > 0 ? 0 : 1, '#9e2b2b'); gr.addColorStop(r.ux > 0 || r.uy > 0 ? 1 : 0, '#ff6b6b');
+      g.fillStyle = gr; g.fillRect(x0, y0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 3; g.strokeRect(x0, y0, w, h);
+    }
+    // деревья: тень и крона сверху
+    for (const o of tall) if (o.k === 't' && o.x > -40 && o.y > -40 && o.x < WORLD + 40 && o.y < WORLD + 40) {
+      g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.arc(o.x + o.r * .5, o.y + o.r * .7, o.r * .95, 0, 7); g.fill();
+      for (const b of o.blobs) { g.fillStyle = o.pal[1]; g.beginPath(); g.arc(o.x + b.x * o.r, o.y + b.y * o.r, b.r * o.r, 0, 7); g.fill(); }
+      g.fillStyle = o.pal[2]; g.beginPath(); g.arc(o.x - o.r * .2, o.y - o.r * .2, o.r * .45, 0, 7); g.fill();
+    }
+    realMap = c;
+  }
+  const bmView = { cx: WORLD / 2, cy: WORLD / 2, zoom: 1 };
+  function clampView() {
+    bmView.zoom = Math.max(1, Math.min(8, bmView.zoom));
+    const half = WORLD / 2 / bmView.zoom;
+    bmView.cx = Math.max(half, Math.min(WORLD - half, bmView.cx)); bmView.cy = Math.max(half, Math.min(WORLD - half, bmView.cy));
+  }
+  function centerOnMe() { bmView.cx = car.x; bmView.cy = car.y; bmView.zoom = Math.max(bmView.zoom, 2.6); clampView(); }
   let mapOpen = false, dest = null;
   window.__isMapOpen = () => mapOpen;
   const nearestNode = (x, y) => [0, 1].map(i => Math.max(0, Math.min(NB, Math.round(((i ? y : x) - ROAD_W / 2) / (STEP * T))))).map(nodeC);
@@ -5365,18 +5441,33 @@
       g.closePath(); g.fill(); g.stroke(); g.restore();
     }
     if (full) {
-      // значки кварталов и подписи
+      // названия улиц вдоль дорог (как на настоящей карте)
+      const SH = t('streetsH').split('|'), SV = t('streetsV').split('|'), z = s * WORLD / (bmc.width || 1);
+      const fs = Math.min(15, 9 + z * 1.6), step = RCELL * (z < 2 ? 3 : z < 4 ? 2 : 1);
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      const isz = Math.max(14, Math.min(34, BS * s * .42));
-      for (const b of blocks) {
-        const ic = MAP_ICONS[b.type]; if (!ic) continue;
-        g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(b.x + BS / 2, b.y + BS / 2, isz * .72 / s, 0, 7); g.fill();
-        g.font = `${isz / s}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`; g.fillStyle = '#000';
-        g.fillText(ic, b.x + BS / 2, b.y + BS / 2 + isz * .05 / s);
+      for (let kk = 0; kk <= NB; kk++) {
+        const c = nodeC(kk);
+        for (let a = RCELL * .5 + (kk % 2) * RCELL; a < WORLD; a += step) {
+          for (const vert of [false, true]) {
+            const name = (vert ? SV : SH)[kk % 14];
+            g.save(); g.translate(vert ? c : a, vert ? a : c); if (vert) g.rotate(-Math.PI / 2);
+            g.font = `italic 700 ${fs / s}px "Segoe UI", sans-serif`; g.lineWidth = 3.5 / s; g.strokeStyle = 'rgba(20,24,30,.9)'; g.lineJoin = 'round';
+            g.strokeText(name, 0, 0); g.fillStyle = '#f5f1e6'; g.fillText(name, 0, 0); g.restore();
+          }
+        }
       }
-      const deck = PLATS[1], tun = PLATS.filter(pl => pl.h0 === pl.h1 && pl.bot < 50);
+      // районы
+      const CCi = (NB - 1) / 2;
+      for (const b of blocks) {
+        const bi = Math.round((b.x - ROAD_W) / RCELL), bj = Math.round((b.y - ROAD_W) / RCELL);
+        let key = null;
+        if (b.type === 'park') key = 'dPark'; else if (b.type === 'lake') key = 'dLake'; else if (b.type === 'shops') key = 'dShops';
+        else if (b.type === 'parking' && z >= 2.5) key = 'dParking';
+        if (key) mapLabel(g, s, t(key), b.x + BS / 2, b.y + BS / 2, Math.min(22, 11 + z * 2), key === 'dLake' ? '#d6f0ff' : key === 'dShops' ? '#ffe0b2' : '#e8f5d0');
+        if (bi === Math.floor(CCi) && bj === Math.floor(CCi)) { g.globalAlpha = .85; mapLabel(g, s, t('dCenter'), b.x + BS / 2, b.y + BS / 2 - 36 / s, 30, '#fffde7'); g.globalAlpha = 1; }
+      }
+      const deck = PLATS[1];
       mapLabel(g, s, '🌉 ' + t('lgBridge'), deck.cx + 120, deck.cy - ROAD_W * .9, 15, '#ffcdd2');
-      for (const tu of tun) mapLabel(g, s, t('lgTunnel'), tu.cx, tu.cy, 12, '#ffe082');
     } else {
       // конус обзора — куда ты смотришь
       g.fillStyle = 'rgba(255,255,255,.16)';
@@ -5449,7 +5540,9 @@
   }
   const bmEl = document.getElementById('bigmap'), bmc = document.getElementById('bigmapCanvas'), bctx = bmc.getContext('2d');
   function toggleMap(force) {
+    const was = mapOpen;
     mapOpen = force ?? !mapOpen;
+    if (mapOpen && !was) { bmView.zoom = 2.6; centerOnMe(); }            // открываем карту там, где ты
     bmEl.classList.toggle('on', mapOpen);
     held.clear(); touchHeld.clear(); refreshKeys();
     if (!mapOpen && !menuOpen) canvas.focus();
@@ -5480,21 +5573,75 @@
     const css = bmc.clientWidth; if (!css) return;
     const px = Math.round(css * Math.min(devicePixelRatio || 1, 2));
     if (bmc.width !== px) bmc.width = bmc.height = px;
-    const s = px / WORLD;
-    bctx.setTransform(s, 0, 0, s, 0, 0);
-    bctx.drawImage(baseMap, 0, 0, WORLD, WORLD);
+    if (!realMap) buildRealMap();
+    clampView();
+    const s = px / WORLD * bmView.zoom;
+    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.fillStyle = '#2f4a2a'; bctx.fillRect(0, 0, px, px);
+    bctx.setTransform(s, 0, 0, s, px / 2 - bmView.cx * s, px / 2 - bmView.cy * s);
+    bctx.imageSmoothingQuality = 'high';
+    bctx.drawImage(realMap, 0, 0, WORLD, WORLD);
     mapOverlay(bctx, s, true, time);
+    // компас и масштаб
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    const u = px / 600;
+    bctx.fillStyle = 'rgba(15,20,28,.75)'; bctx.beginPath(); bctx.arc(px - 40 * u, 40 * u, 26 * u, 0, 7); bctx.fill();
+    bctx.fillStyle = '#e53935'; bctx.beginPath(); bctx.moveTo(px - 40 * u, 20 * u); bctx.lineTo(px - 47 * u, 40 * u); bctx.lineTo(px - 33 * u, 40 * u); bctx.fill();
+    bctx.fillStyle = '#eceff1'; bctx.beginPath(); bctx.moveTo(px - 40 * u, 60 * u); bctx.lineTo(px - 47 * u, 40 * u); bctx.lineTo(px - 33 * u, 40 * u); bctx.fill();
+    bctx.fillStyle = '#fff'; bctx.font = `bold ${11 * u}px sans-serif`; bctx.textAlign = 'center'; bctx.fillText('N', px - 40 * u, 13 * u);
+    const meters = [50, 100, 200, 500, 1000].find(m => m * 10 * s > 70 * u) || 1000, bw = meters * 10 * s;   // 10 единиц игры ≈ 1 метр
+    bctx.fillStyle = 'rgba(15,20,28,.75)'; bctx.fillRect(14 * u, px - 34 * u, bw + 20 * u, 22 * u);
+    bctx.fillStyle = '#fff'; bctx.fillRect(24 * u, px - 20 * u, bw, 3 * u); bctx.fillRect(24 * u, px - 26 * u, 2 * u, 9 * u); bctx.fillRect(24 * u + bw - 2 * u, px - 26 * u, 2 * u, 9 * u);
+    bctx.font = `bold ${10 * u}px sans-serif`; bctx.textAlign = 'center'; bctx.fillText(meters + ' м', 24 * u + bw / 2, px - 25 * u);
+    bctx.fillStyle = 'rgba(15,20,28,.6)'; bctx.font = `600 ${10 * u}px "Segoe UI", sans-serif`; bctx.textAlign = 'left';
+    bctx.fillText(t('mapZoomHint'), 14 * u, 16 * u);
   }
   mmEl.addEventListener('click', () => toggleMap(true));
   document.getElementById('bmClose').addEventListener('click', () => toggleMap(false));
   document.getElementById('bmClear').addEventListener('click', () => { dest = null; toggleMap(false); });
+  // карта: тянуть — двигать, колёсико / щипок — приблизить, короткое нажатие — поставить метку
+  const bmPtr = new Map(); let bmMoved = 0, bmPinch = 0;
+  const bmWorld = (cx, cy) => { const r = bmc.getBoundingClientRect(), z = bmView.zoom; return [bmView.cx + ((cx - r.left) / r.width - .5) * WORLD / z, bmView.cy + ((cy - r.top) / r.height - .5) * WORLD / z]; };
+  function zoomAt(f, cx, cy) {
+    const before = cx === undefined ? null : bmWorld(cx, cy);
+    bmView.zoom *= f; clampView();
+    if (before) { const after = bmWorld(cx, cy); bmView.cx += before[0] - after[0]; bmView.cy += before[1] - after[1]; clampView(); }
+  }
   bmc.addEventListener('pointerdown', e => {
-    e.preventDefault();
-    const r = bmc.getBoundingClientRect();
-    dest = snapToRoad((e.clientX - r.left) / r.width * WORLD, (e.clientY - r.top) / r.height * WORLD);
-    showMsg(t('destSet'), 2200);
-    toggleMap(false);
+    e.preventDefault(); bmc.setPointerCapture?.(e.pointerId);
+    bmPtr.set(e.pointerId, [e.clientX, e.clientY]); bmMoved = 0; bmc.classList.add('drag');
+    if (bmPtr.size === 2) { const [a, b] = [...bmPtr.values()]; bmPinch = Math.hypot(a[0] - b[0], a[1] - b[1]); }
   });
+  bmc.addEventListener('pointermove', e => {
+    const prev = bmPtr.get(e.pointerId); if (!prev) return;
+    const r = bmc.getBoundingClientRect();
+    if (bmPtr.size === 1) {
+      const dx = e.clientX - prev[0], dy = e.clientY - prev[1];
+      bmMoved += Math.abs(dx) + Math.abs(dy);
+      bmView.cx -= dx / r.width * WORLD / bmView.zoom; bmView.cy -= dy / r.height * WORLD / bmView.zoom; clampView();
+    }
+    bmPtr.set(e.pointerId, [e.clientX, e.clientY]);
+    if (bmPtr.size === 2) {
+      const [a, b] = [...bmPtr.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      if (bmPinch > 0) zoomAt(d / bmPinch, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+      bmPinch = d; bmMoved += 99;
+    }
+  });
+  const bmUp = e => {
+    if (!bmPtr.has(e.pointerId)) return;
+    const was = bmPtr.size; bmPtr.delete(e.pointerId); bmPinch = 0;
+    if (!bmPtr.size) bmc.classList.remove('drag');
+    if (e.type === 'pointerup' && was === 1 && bmMoved < 8) {            // это было нажатие, а не перетаскивание — ставим метку
+      const [wx, wy] = bmWorld(e.clientX, e.clientY);
+      dest = snapToRoad(Math.max(0, Math.min(WORLD, wx)), Math.max(0, Math.min(WORLD, wy)));
+      showMsg(t('destSet'), 2200);
+      toggleMap(false);
+    }
+  };
+  bmc.addEventListener('pointerup', bmUp); bmc.addEventListener('pointercancel', bmUp);
+  bmc.addEventListener('wheel', e => { e.preventDefault(); zoomAt(Math.exp(-e.deltaY * .0015), e.clientX, e.clientY); }, { passive: false });
+  document.getElementById('bmIn').addEventListener('click', () => zoomAt(1.5));
+  document.getElementById('bmOut').addEventListener('click', () => zoomAt(1 / 1.5));
+  document.getElementById('bmMe').addEventListener('click', centerOnMe);
   // маяк в месте назначения — видно издалека
   const beacon = new THREE.Group();
   {
