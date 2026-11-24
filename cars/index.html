@@ -1114,6 +1114,7 @@
   const SHOPS = [];      // магазины: еда, одежда, покраска
   const HOMES = [];      // дома с гаражами: у каждого игрока свой
   const HOME_LOTS = ['0,0', (NB - 1) + ',0', '0,' + (NB - 1), (NB - 1) + ',' + (NB - 1), (NB >> 1) + ',' + (NB - 1), (NB - 1) + ',' + (NB >> 1)];
+  const SHOP_LOTS = ['1,0', (NB - 3) + ',2', '2,' + (NB - 3), (NB - 3) + ',' + (NB - 3), (NB >> 1) + ',2', '2,' + (NB >> 1)];   // торговые ряды по всему городу
   let HOME = null;       // твой дом
   const tall = [];       // объекты с высотой (здания, деревья, фонари)
   const parked = [];     // припаркованные машины
@@ -1212,7 +1213,7 @@
     else if (d === 2 || d === 3) type = r < .4 ? 'office' : r < .6 ? 'parking' : r < .8 ? 'park' : 'downtown';
     else type = r < .55 ? 'residential' : r < .72 ? 'lake' : r < .88 ? 'park' : 'parking';
     if (HOME_LOTS.includes(i + ',' + j)) type = 'home';        // дома игроков
-    if (i === 1 && j === 0) type = 'shops';                    // магазины рядом с домом
+    if (SHOP_LOTS.includes(i + ',' + j)) type = 'shops';      // торговые ряды в разных частях города
     if ((type === 'office' || type === 'parking') && (i + 2 * j) % 3 === 0) type = 'roofpark';   // дом с заездом на крышу
     const b = { x, y, lx, ly, type, ops: [] };
     const op = f => b.ops.push(f);
@@ -2736,9 +2737,21 @@
   // ---------- 3D: магазины ----------
   const SHOP_INFO = { food: { icon: '🏪', wall: '#2e7d32', sign: '#43a047', key: 'shSignFood' }, clothes: { icon: '👕', wall: '#6a1b9a', sign: '#ab47bc', key: 'shSignClothes' }, paint: { icon: '🎨', wall: '#d84315', sign: '#ff7043', key: 'shSignPaint' }, guns: { icon: '🔫', wall: '#37474f', sign: '#c62828', key: 'shSignGuns' } };
   const shopMarkers = [];
+  const SHOP_TEX = {};
+  // большой светящийся значок над магазином — видно издалека, как в GTA
+  const blipTex = kind => SHOP_TEX['blip:' + kind] || (SHOP_TEX['blip:' + kind] = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(66, 68, 56, 0, 7); g.fill();
+    g.fillStyle = SHOP_INFO[kind].sign; g.beginPath(); g.arc(64, 64, 56, 0, 7); g.fill();
+    g.lineWidth = 8; g.strokeStyle = '#fff'; g.stroke();
+    g.font = '64px "Segoe UI Emoji", "Apple Color Emoji", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(SHOP_INFO[kind].icon, 64, 70);
+    const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx;
+  })());
+  const poleMat = new THREE.MeshStandardMaterial({ color: '#cfd8dc', metalness: .6, roughness: .4 });
   for (const S of SHOPS) {
     const info = SHOP_INFO[S.kind];
-    const ct = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = maxAniso; return tx; };
+    const ct0 = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = maxAniso; return tx; };
+    let ctN = 0; const ct = (w, h, draw) => { const key = S.kind + ':' + (ctN++); return SHOP_TEX[key] || (SHOP_TEX[key] = ct0(w, h, draw)); };   // одинаковые магазины — общие картинки
     const frontTex = ct(256, 96, (g, w, h) => {
       g.fillStyle = info.wall; g.fillRect(0, 0, w, h);
       g.fillStyle = '#fff8e1'; g.fillRect(10, 30, 92, 60); g.fillRect(154, 30, 92, 60);           // витрины (внутри горит свет)
@@ -2773,7 +2786,10 @@
     disc.position.y = .8; mk.add(disc);
     const icoTex = ct(128, 128, (g) => { g.font = '96px "Segoe UI Emoji", "Apple Color Emoji", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(info.icon, 64, 70); });
     const ico = new THREE.Sprite(new THREE.SpriteMaterial({ map: icoTex, depthWrite: false })); ico.scale.set(16, 16, 1); ico.position.y = 20; mk.add(ico);
-    shopMarkers.push({ ico, ring });
+    const blip = new THREE.Sprite(new THREE.SpriteMaterial({ map: blipTex(S.kind), depthWrite: false, fog: false }));
+    blip.scale.set(34, 34, 1); blip.position.set(S.mx, S.H + 52, S.y0 + 20); blip.renderOrder = 4; scene.add(blip);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 34, 6), poleMat); pole.position.set(S.mx, S.H + 17, S.y0 + 20); scene.add(pole);
+    shopMarkers.push({ ico, ring, blip, base: S.H + 52, ph: S.mx * .01 });
   }
 
   // ---------- 3D: дома и гаражи игроков ----------
@@ -5198,7 +5214,7 @@
 
   let promptTxt = '', exitIco = '';
   function updateShops(time) {
-    for (const m of shopMarkers) { m.ico.position.y = 20 + Math.sin(time / 300) * 2; m.ring.material.opacity = .35 + Math.sin(time / 250) * .12; }
+    for (const m of shopMarkers) { m.ico.position.y = 20 + Math.sin(time / 300) * 2; m.ring.material.opacity = .35 + Math.sin(time / 250) * .12; m.blip.position.y = m.base + Math.sin(time / 500 + m.ph) * 3; }
     let txt = '', ico = '🚪';
     if (!menuOpen && !garageOpen && !shopOpen && !mapOpen && !sleepT) {
       const k = IS_TOUCH ? '🛒' : 'E';
@@ -5487,6 +5503,19 @@
       g.beginPath(); g.moveTo(dest[0], dest[1]); g.lineTo(dest[0] - pr * .8, dest[1] - pr * 1.4); g.arc(dest[0], dest[1] - pr * 1.9, pr, Math.PI * .8, Math.PI * .2); g.closePath(); g.fill(); g.stroke();
       g.fillStyle = '#fff'; g.beginPath(); g.arc(dest[0], dest[1] - pr * 1.9, pr * .38, 0, 7); g.fill();
     }
+    // магазины: цветные значки с картинкой
+    {
+      const r = (full ? 11 : 9) / s;
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      for (const S of SHOPS) {
+        if (!full && Math.hypot(S.mx - car.x, S.my - car.y) > 900) continue;
+        const x = S.x0 + S.w / 2, y = S.y0 + S.h / 2, info = SHOP_INFO[S.kind];
+        g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(x + 1.5 / s, y + 1.5 / s, r, 0, 7); g.fill();
+        g.fillStyle = info.sign; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+        g.strokeStyle = '#fff'; g.lineWidth = 2 / s; g.stroke();
+        g.font = `${r * 1.15}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`; g.fillStyle = '#000'; g.fillText(info.icon, x, y + r * .08);
+      }
+    }
     for (const c of coins) if (!c.taken) {
       g.fillStyle = '#ffd54f'; g.strokeStyle = '#7a5600'; g.lineWidth = 1.5 / s;
       g.beginPath(); g.arc(c.x, c.y, (full ? 4.5 : 4) / s, 0, 7); g.fill(); g.stroke();
@@ -5563,7 +5592,10 @@
     ['lgParking', '🅿️', 'background:#8a919b'],
     ['lgDowntown', '🏢', 'background:#c3cad6'],
     ['lgHomes', '🏠', 'background:#b6da9d'],
-    ['lgShops', '🛍️', 'background:#ffcc80'],
+    ['shFood', '', 'background:#43a047;border-radius:50%;width:14px;height:14px;border:2px solid #fff'],
+    ['shClothes', '', 'background:#ab47bc;border-radius:50%;width:14px;height:14px;border:2px solid #fff'],
+    ['shPaint', '', 'background:#ff7043;border-radius:50%;width:14px;height:14px;border:2px solid #fff'],
+    ['shGuns', '', 'background:#c62828;border-radius:50%;width:14px;height:14px;border:2px solid #fff'],
   ];
   function renderLegend() {
     document.getElementById('legend').innerHTML = '<h4>' + t('lgTitle') + '</h4>' +
