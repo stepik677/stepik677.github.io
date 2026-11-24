@@ -179,6 +179,10 @@
   .frow input { flex: 1; min-width: 0; min-height: 42px; padding: 6px 12px; border-radius: 12px; border: 2px solid rgba(255,255,255,.25); background: rgba(0,0,0,.35);
     color: #fff; font: 700 17px "Segoe UI", sans-serif; -webkit-user-select: text; user-select: text; outline: none; }
   .frow input:focus { border-color: #ffd54f; }
+  #mNick h3 { margin: 6px 0 8px; font-size: 24px; }
+  #nickIn { font-size: 20px; text-align: center; }
+  #nickErr { min-height: 20px; color: #ff8a80; font-weight: 700; font-size: 14px; }
+  #nickGo { margin: 8px 0 4px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-start; }
   .chips button { min-height: 34px; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font: 600 14px "Segoe UI", sans-serif; cursor: pointer; }
   .chips button.on { background: #ffd54f; color: #3a2a00; border-color: #ffd54f; }
@@ -442,6 +446,13 @@
       </div>
       <div id="rotateHint" data-i18n="rotate"></div>
     </div>
+    <div class="mpanel" id="mNick">
+      <h3 data-i18n="nickTitle"></h3>
+      <p class="fhint" data-i18n="nickHint"></p>
+      <div class="frow"><span class="fdot" style="background:#4fc3f7"></span><input id="nickIn" maxlength="16" autocomplete="off" data-i18n-ph="nickPh"></div>
+      <div id="nickErr"></div>
+      <button class="go" id="nickGo" data-i18n="nickGo"></button>
+    </div>
     <div class="mpanel" id="mHow">
       <div class="howto">
         <h3 data-i18n="hKeys"></h3><p data-i18n="keys1"></p><p data-i18n="helpExtra"></p><p data-i18n="fightHelp"></p><p data-i18n="driftHelp"></p>
@@ -663,10 +674,14 @@
     const FRT = {
       ru: { phTitle: '📱 Контакты', phCall: '📞 Позвонить', phBye: '👋 Пока', phCalling: 'Звоним…', phHint: '1 / 2 — выбрать · 3 — позвонить · 6 — закрыть',
         frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
-        frComing: '📞 {n}: Уже еду к тебе! 🚗', frHere: '👋 {n}: Я тут! Поехали!', frLeave: '📱 {n}: Ладно, поеду покатаюсь. Звони!', frBye: '👋 {n}: Давай, пока! Звони, если что!' },
+        nickTitle: '✏️ Придумай себе никнейм', nickHint: 'Так тебя будут видеть другие игроки и так будет подписан твой дом. Не пиши настоящую фамилию.',
+        nickPh: 'Например: Гонщик777', nickGo: 'Готово — играть! 🚗', nickShort: 'Никнейм должен быть хотя бы из 3 букв', nickBad: 'Придумай свой никнейм, а не «Игрок»',
+      frComing: '📞 {n}: Уже еду к тебе! 🚗', frHere: '👋 {n}: Я тут! Поехали!', frLeave: '📱 {n}: Ладно, поеду покатаюсь. Звони!', frBye: '👋 {n}: Давай, пока! Звони, если что!' },
       en: { phTitle: '📱 Contacts', phCall: '📞 Call', phBye: '👋 Bye', phCalling: 'Calling…', phHint: '1 / 2 — pick · 3 — call · 6 — close',
         frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
-        frComing: '📞 {n}: On my way! 🚗', frHere: '👋 {n}: I’m here! Let’s go!', frLeave: '📱 {n}: OK, I’m off for a drive. Call me!', frBye: '👋 {n}: See ya! Call me anytime!' },
+        nickTitle: '✏️ Choose your nickname', nickHint: 'Other players will see this name, and it will be on your house sign. Don’t use your real surname.',
+        nickPh: 'For example: Racer777', nickGo: 'Done — play! 🚗', nickShort: 'Your nickname needs at least 3 letters', nickBad: 'Make up your own nickname, not “Player”',
+      frComing: '📞 {n}: On my way! 🚗', frHere: '👋 {n}: I’m here! Let’s go!', frLeave: '📱 {n}: OK, I’m off for a drive. Call me!', frBye: '👋 {n}: See ya! Call me anytime!' },
     };
     for (const k in I18N) Object.assign(I18N[k], FRT[k] || FRT.en);
   }
@@ -1637,6 +1652,7 @@
   let menuOpen = true;                                     // при входе в игру открыто главное меню
   function hideStart() {                                    // «Играть» / «Продолжить»
     if (!menuOpen) return;
+    if (window.__needNick?.()) { window.__askNick?.(); return; }   // сначала — никнейм
     menuOpen = false;
     startEl.style.display = 'none';
     document.documentElement.classList.remove('menuOpen');
@@ -4693,7 +4709,34 @@
     if (!others.length) rows.push(`<div class="netRow"><b>${esc(t('netNone'))}</b></div>`);
     document.getElementById('netList').innerHTML = rows.join('');
   }
-  document.getElementById('netNick').addEventListener('input', e => { save.nick = e.target.value.slice(0, 16) || t('netGuest'); persist(); });
+  document.getElementById('netNick').addEventListener('input', e => { save.nick = e.target.value.slice(0, 16) || t('netGuest'); if (!isGuestNick(save.nick) && save.nick.trim().length >= 3) save.nickSet = true; persist(); });
+  // ---------- обязательный никнейм при первом входе ----------
+  function isGuestNick(v) {
+    v = (v || '').trim();
+    return !v || Object.keys(I18N).some(k => { const g = I18N[k].netGuest; return g && (v === g || (v.startsWith(g + ' ') && /^\d+$/.test(v.slice(g.length + 1)))); });
+  }
+  if (typeof save.nickSet !== 'boolean') { save.nickSet = !isGuestNick(save.nick); persist(); }
+  const nickIn = document.getElementById('nickIn'), nickErr = document.getElementById('nickErr');
+  function askNick() {
+    showPanel('mNick'); nickErr.textContent = '';
+    if (!nickIn.value && !isGuestNick(save.nick)) nickIn.value = save.nick;
+    setTimeout(() => nickIn.focus(), 50);
+  }
+  function submitNick() {
+    const v = nickIn.value.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+    if (v.length < 3) { nickErr.textContent = t('nickShort'); nickIn.focus(); return; }
+    if (isGuestNick(v)) { nickErr.textContent = t('nickBad'); nickIn.focus(); return; }
+    save.nick = v; save.nickSet = true; persist();
+    document.getElementById('netNick').value = v;
+    showPanel('mMain');
+    if (window.__gameReady) hideStart();
+  }
+  document.getElementById('nickGo').addEventListener('click', submitNick);
+  nickIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitNick(); } });
+  nickIn.addEventListener('input', () => { nickErr.textContent = ''; });
+  window.__needNick = () => !save.nickSet;
+  window.__askNick = askNick;
+  if (!save.nickSet && menuOpen) askNick();
   document.getElementById('netRoom').addEventListener('change', e => {
     const old = roomTopic();
     save.roomCode = e.target.value.trim().slice(0, 20); persist();
