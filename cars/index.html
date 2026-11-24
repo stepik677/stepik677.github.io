@@ -675,7 +675,7 @@
     const FRT = {
       ru: { phTitle: '📱 Контакты', phCall: '📞 Позвонить', phBye: '👋 Пока', phCalling: 'Звоним…', phHint: '1 / 2 — выбрать · 3 — позвонить · 6 — закрыть',
         frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
-        flyLand: '🛬 Сначала приземлись на землю!', flyHeli: '🚁 Пробел — вверх, S — вниз, W — вперёд, A/D — поворот', flyPlane: '✈️ W — газ, разгонись и жми пробел — взлёт. Shift — вниз',
+        flyLand: '🛬 Сначала приземлись на землю!', flyHeli: '🚁 Пробел — вверх, S — вниз, W — вперёд, A/D — поворот', flyPlane: '✈️ W — газ, разгонись и жми пробел — взлёт. S / ▼ (тормоз) — вниз',
       mapMe: '🎯 Где я', mapZoomHint: 'Колёсико или ➕➖ — приблизить, тяни мышкой — двигать карту',
         streetsH: 'Проспект Мира|ул. Гонщиков|Садовая ул.|Центральный пр.|ул. Победы|Солнечная ул.|Лесная ул.|ул. Трамплинов|Морская ул.|Новая ул.|Парковая ул.|Речная ул.|ул. Строителей|Школьная ул.',
         streetsV: 'ул. Ленина|Зелёная ул.|Кленовая ул.|Вокзальная ул.|Мостовая ул.|ул. Гагарина|Озёрная ул.|Широкая ул.|Звёздная ул.|ул. Механиков|Яблочная ул.|Тихая ул.|Восточная ул.|Полевая ул.',
@@ -685,7 +685,7 @@
       frComing: '📞 {n}: Уже еду к тебе! 🚗', frHere: '👋 {n}: Я тут! Поехали!', frLeave: '📱 {n}: Ладно, поеду покатаюсь. Звони!', frBye: '👋 {n}: Давай, пока! Звони, если что!' },
       en: { phTitle: '📱 Contacts', phCall: '📞 Call', phBye: '👋 Bye', phCalling: 'Calling…', phHint: '1 / 2 — pick · 3 — call · 6 — close',
         frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
-        flyLand: '🛬 Land on the ground first!', flyHeli: '🚁 Space — up, S — down, W — forward, A/D — turn', flyPlane: '✈️ W — throttle, speed up and press Space to take off. Shift — down',
+        flyLand: '🛬 Land on the ground first!', flyHeli: '🚁 Space — up, S — down, W — forward, A/D — turn', flyPlane: '✈️ W — throttle, speed up and press Space to take off. S / ▼ (brake) — down',
       mapMe: '🎯 Where am I', mapZoomHint: 'Wheel or ➕➖ — zoom, drag with the mouse — move the map',
         streetsH: 'Peace Ave|Racer St|Garden St|Central Ave|Victory St|Sunny St|Forest St|Ramp St|Ocean St|New St|Park St|River St|Builders St|School St',
         streetsV: 'Main St|Green St|Maple St|Station St|Bridge St|Star St|Lake St|Broadway|Comet St|Mechanic St|Apple St|Quiet St|East St|Field St',
@@ -3393,16 +3393,16 @@
       F.pitch += (-fwd / spec.max * .28 - F.pitch) * Math.min(1, 4 * dt);       // наклон носом вперёд, когда летит
       F.bank += (steerIn * Math.min(1, Math.abs(fwd) / 120) * .3 - F.bank) * Math.min(1, 4 * dt);
     } else {
-      // самолёт: W — газ, S — тормоз, пробел — вверх, Shift — вниз
+      // самолёт: W — газ, S/▼ — на земле тормоз, в воздухе вниз; пробел — вверх
       F.rotor = Math.min(1, F.rotor + dt * .6);
-      if (up) F.spd += spec.accel * dt; else if (down) F.spd -= spec.accel * 1.4 * dt; else F.spd -= (onGround ? 60 : 12) * dt;
+      if (up) F.spd += spec.accel * dt; else if (down && onGround) F.spd -= spec.accel * 1.4 * dt; else F.spd -= (onGround ? 60 : 12) * dt;   // в воздухе тормоз — снижение
       F.spd = Math.max(0, Math.min(spec.max, F.spd));
       const TAKEOFF = spec.max * .45;
       car.angle += steerIn * spec.turn * dt * (onGround ? Math.min(1, F.spd / 80) * .7 : 1);
       let tvz;
       if (onGround) tvz = brake && F.spd > TAKEOFF ? 120 : 0;
       else if (F.spd < TAKEOFF * .7) tvz = -200;                                 // слишком медленно — падает
-      else tvz = brake ? 150 : run ? -170 : -22;
+      else tvz = brake ? 150 : (run || down) ? -170 : -22;
       F.vz += (tvz - F.vz) * Math.min(1, 2.5 * dt);
       car.vx = Math.cos(car.angle) * F.spd; car.vy = Math.sin(car.angle) * F.spd;
       F.pitch += (Math.max(-.35, Math.min(.35, F.vz / 420)) - F.pitch) * Math.min(1, 4 * dt);
