@@ -675,7 +675,8 @@
     const FRT = {
       ru: { phTitle: '📱 Контакты', phCall: '📞 Позвонить', phBye: '👋 Пока', phCalling: 'Звоним…', phHint: '1 / 2 — выбрать · 3 — позвонить · 6 — закрыть',
         frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
-        mapMe: '🎯 Где я', mapZoomHint: 'Колёсико или ➕➖ — приблизить, тяни мышкой — двигать карту',
+        flyLand: '🛬 Сначала приземлись на землю!', flyHeli: '🚁 Пробел — вверх, S — вниз, W — вперёд, A/D — поворот', flyPlane: '✈️ W — газ, разгонись и жми пробел — взлёт. Shift — вниз',
+      mapMe: '🎯 Где я', mapZoomHint: 'Колёсико или ➕➖ — приблизить, тяни мышкой — двигать карту',
         streetsH: 'Проспект Мира|ул. Гонщиков|Садовая ул.|Центральный пр.|ул. Победы|Солнечная ул.|Лесная ул.|ул. Трамплинов|Морская ул.|Новая ул.|Парковая ул.|Речная ул.|ул. Строителей|Школьная ул.',
         streetsV: 'ул. Ленина|Зелёная ул.|Кленовая ул.|Вокзальная ул.|Мостовая ул.|ул. Гагарина|Озёрная ул.|Широкая ул.|Звёздная ул.|ул. Механиков|Яблочная ул.|Тихая ул.|Восточная ул.|Полевая ул.',
         dCenter: 'ЦЕНТР', dPark: 'Парк', dLake: 'Озеро', dParking: 'Парковка', dShops: 'Магазины', dHome: 'Дом',
@@ -684,7 +685,8 @@
       frComing: '📞 {n}: Уже еду к тебе! 🚗', frHere: '👋 {n}: Я тут! Поехали!', frLeave: '📱 {n}: Ладно, поеду покатаюсь. Звони!', frBye: '👋 {n}: Давай, пока! Звони, если что!' },
       en: { phTitle: '📱 Contacts', phCall: '📞 Call', phBye: '👋 Bye', phCalling: 'Calling…', phHint: '1 / 2 — pick · 3 — call · 6 — close',
         frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
-        mapMe: '🎯 Where am I', mapZoomHint: 'Wheel or ➕➖ — zoom, drag with the mouse — move the map',
+        flyLand: '🛬 Land on the ground first!', flyHeli: '🚁 Space — up, S — down, W — forward, A/D — turn', flyPlane: '✈️ W — throttle, speed up and press Space to take off. Shift — down',
+      mapMe: '🎯 Where am I', mapZoomHint: 'Wheel or ➕➖ — zoom, drag with the mouse — move the map',
         streetsH: 'Peace Ave|Racer St|Garden St|Central Ave|Victory St|Sunny St|Forest St|Ramp St|Ocean St|New St|Park St|River St|Builders St|School St',
         streetsV: 'Main St|Green St|Maple St|Station St|Bridge St|Star St|Lake St|Broadway|Comet St|Mechanic St|Apple St|Quiet St|East St|Field St',
         dCenter: 'DOWNTOWN', dPark: 'Park', dLake: 'Lake', dParking: 'Parking', dShops: 'Shops', dHome: 'Home',
@@ -1142,7 +1144,7 @@
       b.details.push({ x: rr(x + 12, x + w - dw - 12), y: rr(y + 12, y + h - dh - 12), w: dw, h: dh });
     }
     tall.push(b);
-    addObs({ t: "r", x, y, w, h, tall: true });
+    addObs({ t: "r", x, y, w, h, tall: true, H });
   }
 
   function addHouse(x, y, w, h) {
@@ -1154,7 +1156,7 @@
       roofA: shade(roof, 1.1), roofB: shade(roof, .72), ridge: shade(roof, .55),
       chimney: rnd() < .6,
     });
-    addObs({ t: "r", x, y, w, h, tall: true });
+    addObs({ t: "r", x, y, w, h, tall: true, H: H1 + 22 });
   }
 
   function addTree(x, y, r = rr(16, 24), solid = true) {
@@ -2193,7 +2195,17 @@
       color: '#1e40af', accent: '#0b1120', max: 565, accel: 442, turn: 2.0, grip: 14, width: 23.5, wheelR: 5, wheelX: 14.5,
       body: [[-23, 3], [23, 3], [23.8, 7], [14, 10], [-18, 11.5], [-23, 9.5]],
       cabin: [[-12, 11], [10, 9.8], [-1, 17.5], [-10, 17]], head: 7.5, tail: 9, wing: true },
+    // --- воздух: вертолёты и самолёты ---
+    { id: 'strekoza', kind: 'heli', name: 'Вертолёт «Стрекоза»', desc: 'Маленький вертолёт. Взлетай прямо с места и садись на крыши!', price: 15000,
+      color: '#ffb300', max: 300, accel: 260, turn: 1.7, grip: 12, size: 1, colL: 40, colW: 20 },
+    { id: 'kukuruznik', kind: 'plane', name: 'Самолёт «Кукурузник»', desc: 'Старый добрый биплан. Разгонись по дороге и взлетай!', price: 20000,
+      color: '#2e7d32', color2: '#e8e0c8', max: 430, accel: 200, turn: 1.1, grip: 12, colL: 44, colW: 26 },
+    { id: 'kasatka', kind: 'heli', name: 'Вертолёт «Касатка»', desc: 'Большой и быстрый вертолёт, как у спасателей.', price: 30000,
+      color: '#c62828', max: 400, accel: 320, turn: 1.6, grip: 13, size: 1.3, colL: 52, colW: 26 },
+    { id: 'strela', kind: 'plane', name: 'Реактивный самолёт «Стрела»', desc: 'Самый быстрый в городе! Реактивный двигатель и огонь из сопла.', price: 50000,
+      color: '#90a4ae', jet: true, max: 720, accel: 330, turn: 1.25, grip: 14, colL: 56, colW: 30 },
   ];
+  const isAirSpec = c => c.kind === 'heli' || c.kind === 'plane';
 
   function extrudeProfile(points, width, bevel = 1.2) {
     const shape = new THREE.Shape(points.map(([x, y]) => new THREE.Vector2(x, y)));
@@ -2203,7 +2215,89 @@
     return geo;
   }
 
-  function buildVehicle(spec) { return spec.kind === 'moto' ? buildMoto(spec) : buildCar(spec); }
+  function buildVehicle(spec) { return spec.kind === 'moto' ? buildMoto(spec) : spec.kind === 'heli' ? buildHeli(spec) : spec.kind === 'plane' ? buildPlane(spec) : buildCar(spec); }
+  function airBase(spec) {
+    const root = new THREE.Group();
+    const tg = new THREE.Group(); tg.position.y = 12; root.add(tg);
+    const inner = new THREE.Group(); inner.position.y = -12; tg.add(inner);
+    const body = new THREE.Group(); inner.add(body);
+    const env = scene.userData.env;
+    const paint = new THREE.MeshPhysicalMaterial({ color: spec.color, metalness: .45, roughness: .32, clearcoat: 1, clearcoatRoughness: .06, envMap: env, envMapIntensity: 1 });
+    const dark = new THREE.MeshStandardMaterial({ color: '#1c1f22', roughness: .7 });
+    const metal = new THREE.MeshStandardMaterial({ color: '#b0b8c0', metalness: .7, roughness: .3, envMap: env, envMapIntensity: .6 });
+    const glass = new THREE.MeshStandardMaterial({ color: '#7fb3d5', metalness: .5, roughness: .05, envMap: env, envMapIntensity: .9, transparent: true, opacity: .55, depthWrite: false });
+    const tailMat = new THREE.MeshStandardMaterial({ color: '#8a0d0d', emissive: '#ff1a1a', emissiveIntensity: .3 });
+    const add = (geo, m, x, y, z, parent = body) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; parent.add(o); return o; };
+    // пилот
+    const driver = new THREE.Group(); body.add(driver);
+    const pilot = (x, y, z) => {
+      add(new THREE.BoxGeometry(4, 5, 5), new THREE.MeshStandardMaterial({ color: '#455a64', roughness: .8 }), x - .5, y, z, driver);
+      add(new THREE.SphereGeometry(2.4, 12, 10), new THREE.MeshStandardMaterial({ color: '#f1c27d', roughness: .7 }), x, y + 4.2, z, driver);
+      add(new THREE.SphereGeometry(2.6, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#eceff1', roughness: .4 }), x, y + 4.5, z, driver);
+    };
+    return { root, tg, inner, body, paint, dark, metal, glass, tailMat, add, driver, pilot };
+  }
+  function buildHeli(spec) {
+    const B = airBase(spec), { add, paint, dark, metal, glass, body } = B;
+    body.scale.setScalar(spec.size || 1);
+    const cab = add(new THREE.SphereGeometry(10, 20, 14), paint, 0, 13, 0); cab.scale.set(1.45, 1, 1);
+    const win = add(new THREE.SphereGeometry(8.4, 18, 12, 0, Math.PI, 0, Math.PI * .62), glass, 4.5, 14.2, 0); win.rotation.y = -Math.PI / 2; win.scale.set(1.25, 1, 1);
+    B.pilot(4, 9.5, -3);
+    const boom = add(new THREE.CylinderGeometry(2.6, 1.3, 30, 10), paint, -24, 15, 0); boom.rotation.z = Math.PI / 2 - .06;
+    add(new THREE.BoxGeometry(7, 11, 1), paint, -38, 20, 0);                                        // хвостовой киль
+    add(new THREE.BoxGeometry(6, .8, 12), paint, -33, 15.5, 0);                                     // стабилизатор
+    const tailRotor = new THREE.Group(); tailRotor.position.set(-38, 20, 1.6); body.add(tailRotor);
+    for (const a of [0, Math.PI / 2]) { const bl = add(new THREE.BoxGeometry(1.2, 13, .5), dark, 0, 0, 0, tailRotor); bl.rotation.z = a; }
+    for (const z of [-7.5, 7.5]) {                                                                   // полозья
+      const sk = add(new THREE.CylinderGeometry(.8, .8, 32, 8), metal, 1, 1.2, z); sk.rotation.z = Math.PI / 2;
+      for (const x of [-7, 8]) add(new THREE.BoxGeometry(1, 6, 1), metal, x, 4, z * .85);
+    }
+    add(new THREE.CylinderGeometry(1.4, 1.8, 5, 8), dark, 0, 24, 0);                                // вал
+    const rotor = new THREE.Group(); rotor.position.set(0, 26.5, 0); body.add(rotor);
+    add(new THREE.CylinderGeometry(2.4, 2.4, 1.6, 10), dark, 0, 0, 0, rotor);
+    for (const a of [0, Math.PI / 2]) { const bl = add(new THREE.BoxGeometry(70, .5, 3.2), dark, 0, 0, 0, rotor); bl.rotation.y = a; }
+    const headMat = new THREE.MeshStandardMaterial({ color: '#fffbe8', emissive: '#fff3c0', emissiveIntensity: 2.2 });
+    add(new THREE.SphereGeometry(1.4, 8, 6), headMat, 14, 7, 0);
+    add(new THREE.SphereGeometry(1, 8, 6), B.tailMat, -38, 26, 0);
+    return { root: B.root, tg: B.tg, body, wheels: [], pivots: [], tailMat: B.tailMat, r: 1, driver: B.driver, paint, rotors: [rotor], tailRotor };
+  }
+  function buildPlane(spec) {
+    const B = airBase(spec), { add, paint, dark, metal, glass, body } = B;
+    const paint2 = new THREE.MeshStandardMaterial({ color: spec.color2 || '#eceff1', roughness: .5 });
+    const prop = new THREE.Group();
+    if (spec.jet) {
+      const fus = add(new THREE.CylinderGeometry(3.8, 2.6, 52, 14), paint, 0, 11, 0); fus.rotation.z = Math.PI / 2;
+      const nose = add(new THREE.ConeGeometry(3.8, 14, 14), paint, 33, 11, 0); nose.rotation.z = -Math.PI / 2;
+      const can = add(new THREE.SphereGeometry(4, 14, 10), glass, 11, 14, 0); can.scale.set(2.4, 1, .9);
+      B.pilot(10, 11.5, 0);
+      const wingShape = side => { const sh = new THREE.Shape([new THREE.Vector2(8, 0), new THREE.Vector2(-10, side * 30), new THREE.Vector2(-17, side * 30), new THREE.Vector2(-12, 0)]); const g = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); g.rotateX(Math.PI / 2); return g; };
+      for (const sd of [-1, 1]) { add(wingShape(sd), paint, 0, 10, 0); }
+      const tailShape = side => { const sh = new THREE.Shape([new THREE.Vector2(-16, 0), new THREE.Vector2(-24, side * 11), new THREE.Vector2(-28, side * 11), new THREE.Vector2(-26, 0)]); const g = new THREE.ExtrudeGeometry(sh, { depth: .8, bevelEnabled: false }); g.rotateX(Math.PI / 2); return g; };
+      for (const sd of [-1, 1]) add(tailShape(sd), paint, 0, 11.5, 0);
+      const fin = new THREE.Shape([new THREE.Vector2(-15, 0), new THREE.Vector2(-25, 13), new THREE.Vector2(-29, 13), new THREE.Vector2(-27, 0)]);
+      add(new THREE.ExtrudeGeometry(fin, { depth: .9, bevelEnabled: false }).translate(0, 0, -.45), paint, 0, 13, 0);
+      const noz = add(new THREE.CylinderGeometry(2.4, 2.8, 3, 12), dark, -27, 11, 0); noz.rotation.z = Math.PI / 2;
+      const flame = add(new THREE.ConeGeometry(2.2, 9, 10), B.tailMat, -32.5, 11, 0); flame.rotation.z = Math.PI / 2;
+      B.tailMat.color.set('#ff9800'); B.tailMat.emissive.set('#ff6d00');
+      for (const [x, z] of [[18, 0], [-4, -6], [-4, 6]]) { add(new THREE.BoxGeometry(1, 6, 1), metal, x, 4.5, z); const w = add(new THREE.CylinderGeometry(2.2, 2.2, 1.6, 12), dark, x, 2.2, z); w.rotation.x = Math.PI / 2; }
+    } else {
+      const fus = add(new THREE.CylinderGeometry(4.6, 2.8, 40, 14), paint, 0, 13, 0); fus.rotation.z = Math.PI / 2;
+      const cowl = add(new THREE.CylinderGeometry(4.8, 4.8, 5, 14), dark, 20.5, 13, 0); cowl.rotation.z = Math.PI / 2;
+      prop.position.set(24, 13, 0); body.add(prop);
+      add(new THREE.SphereGeometry(1.6, 8, 6), metal, 0, 0, 0, prop);
+      for (const a of [0, Math.PI / 2]) { const bl = add(new THREE.BoxGeometry(.6, 20, 2), dark, 0, 0, 0, prop); bl.rotation.x = a; }
+      add(new THREE.BoxGeometry(11, 1.2, 74), paint2, 5, 7.5, 0);                                 // нижнее крыло
+      add(new THREE.BoxGeometry(11, 1.2, 78), paint2, 6, 23, 0);                                  // верхнее крыло
+      for (const z of [-24, 24, -9, 9]) add(new THREE.BoxGeometry(1, 15, 1), metal, 5, 15.3, z);  // стойки
+      add(new THREE.BoxGeometry(7, .9, 24), paint2, -18, 14, 0);                                  // хвост
+      add(new THREE.BoxGeometry(7, 10, .9), paint, -18.5, 18.5, 0);
+      add(new THREE.BoxGeometry(8, 1.5, 7), dark, -3, 17.4, 0);                                   // кабина
+      B.pilot(-3, 15, 0);
+      for (const z of [-6.5, 6.5]) { add(new THREE.BoxGeometry(1, 8, 1), metal, 9, 5, z); const w = add(new THREE.CylinderGeometry(3.4, 3.4, 2, 14), dark, 9, 3.4, z); w.rotation.x = Math.PI / 2; }
+      const tw = add(new THREE.CylinderGeometry(1.4, 1.4, 1.2, 10), dark, -19, 3.5, 0); tw.rotation.x = Math.PI / 2;
+    }
+    return { root: B.root, tg: B.tg, body, wheels: [], pivots: [], tailMat: B.tailMat, r: 1, driver: B.driver, paint, rotors: [], prop: spec.jet ? null : prop };
+  }
   function buildMoto(spec) {
     const root = new THREE.Group();
     const tg = new THREE.Group(); tg.position.y = 10; root.add(tg);
@@ -2356,6 +2450,8 @@
     save.current = spec.id; persist();
     if (player) scene.remove(player.root);
     player = buildVehicle(spec);
+    if (!isAirSpec(spec) && !car.onFoot && car.z > 30) { car.z = groundHeight(car.x, car.y, 0); car.air = false; }   // пересел с вертолёта на машину — ставим на землю
+    if (car.fly) { car.fly.pitch = car.fly.bank = car.fly.vz = 0; car.fly.spd = 0; }
     if (car.onFoot && player.driver) player.driver.visible = false;
     scene.add(player.root);
     applyPaint();
@@ -2376,7 +2472,9 @@
     for (const c of CARS) {
       const m = buildVehicle(c);
       m.root.rotation.y = -0.15;
-      if (c.kind === 'moto') { tc.position.set(58, 40, 72); tc.lookAt(0, 17, 0); } else { tc.position.set(62, 38, 78); tc.lookAt(0, 7, 0); }
+      if (c.kind === 'moto') { tc.position.set(58, 40, 72); tc.lookAt(0, 17, 0); }
+      else if (isAirSpec(c)) { const k = c.kind === 'heli' ? (c.size || 1) * 1.15 : 1.1; tc.position.set(78 * k, 52 * k, 98 * k); tc.lookAt(0, 13, 0); }
+      else { tc.position.set(62, 38, 78); tc.lookAt(0, 7, 0); }
       ts.add(m.root);
       tr.render(ts, tc);
       thumbs[c.id] = tr.domElement.toDataURL();
@@ -2392,8 +2490,8 @@
   const fmt = n => n.toLocaleString(t('locale')) + ' €';
   const carName = c => (I18N[LANG].cars || {})[c.id]?.[0] ?? c.name;
   const carDesc = c => (I18N[LANG].cars || {})[c.id]?.[1] ?? c.desc;
-  const TOP = { max: Math.max(...CARS.map(c => c.max)), accel: Math.max(...CARS.map(c => c.accel)), hand: Math.max(...CARS.map(c => c.turn * c.grip)) };
-  function bar(label, v) { return `<div class="stat"><span>${label}</span><i><b style="width:${Math.round(v * 100)}%"></b></i></div>`; }
+  const TOP = { max: Math.max(...CARS.filter(c => !isAirSpec(c)).map(c => c.max)), accel: Math.max(...CARS.filter(c => !isAirSpec(c)).map(c => c.accel)), hand: Math.max(...CARS.filter(c => !isAirSpec(c)).map(c => c.turn * c.grip)) };
+  function bar(label, v) { return `<div class="stat"><span>${label}</span><i><b style="width:${Math.round(Math.min(1, v) * 100)}%"></b></i></div>`; }
   function renderGarage() {
     document.getElementById('gMoney').textContent = fmt(save.money);
     gridEl.innerHTML = CARS.map(c => {
@@ -2405,7 +2503,7 @@
       else btn = `<button class="no" disabled>${t('needMore', { p: fmt(c.price - save.money) })}</button>`;
       return `<div class="card ${cur ? 'cur' : ''}">
         <img src="${thumbs[c.id]}" alt="">
-        <h3>${c.kind === 'moto' ? '🏍' : '🚗'} ${carName(c)}</h3>
+        <h3>${c.kind === 'moto' ? '🏍' : c.kind === 'heli' ? '🚁' : c.kind === 'plane' ? '✈️' : '🚗'} ${carName(c)}</h3>
         <div class="price">${c.price ? fmt(c.price) : t('free')}</div>
         <p>${carDesc(c)}</p>
         ${bar(t('speed'), c.max / TOP.max)}${bar(t('accel'), c.accel / TOP.accel)}${bar(t('handling'), c.turn * c.grip / TOP.hand)}
@@ -2421,7 +2519,8 @@
       save.money -= c.price; save.owned.push(c.id); persist();
       setCar(c.id);
       showMsg(t('newCar', { n: carName(c) }), 2500);
-    } else if (b.dataset.pick) setCar(b.dataset.pick);
+      if (isAirSpec(c)) setTimeout(() => showMsg(t(c.kind === 'heli' ? 'flyHeli' : 'flyPlane'), 5000), 2600);
+    } else if (b.dataset.pick) { setCar(b.dataset.pick); if (isAirSpec(spec)) showMsg(t(spec.kind === 'heli' ? 'flyHeli' : 'flyPlane'), 5000); }
     renderGarage();
   });
   function toggleGarage(force) {
@@ -2544,6 +2643,14 @@
   }
   // Твёрдо ли в точке с учётом высоты машины (в полёте можно перелететь деревья и фонари, под мостом — проехать)
   let climbTol = 12;                                       // на сколько машина может «шагнуть» вверх за кадр (растёт со скоростью)
+  const FLY = { on: false };                               // летим — у домов есть настоящая высота, над ними можно пролететь
+  function roofAt(x, y, z) {                               // крыша дома под вертолётом — на неё можно сесть
+    let best = 0;
+    if (x < 0 || y < 0 || x >= WORLD || y >= WORLD) return 0;
+    for (const o of grid[((y / CELL) | 0) * GN + ((x / CELL) | 0)])
+      if (o.t === 'r' && o.H && x > o.x && x < o.x + o.w && y > o.y && y < o.y + o.h && o.H <= z + 14 && o.H > best) best = o.H;
+    return best;
+  }
   function solidAtZ(px, py, zz) {
     const tol = zz === undefined ? climbTol : 12;
     if (px < 2 || py < 2 || px > WORLD - 2 || py > WORLD - 2) return true;
@@ -2557,7 +2664,7 @@
       if (inside(p, u, v) && platH(p, u) > z + tol && p.bot < z + 18) return true;
     }
     for (const o of grid[((py / CELL) | 0) * GN + ((px / CELL) | 0)]) {
-      const top = o.top ?? (o.tall ? 1e9 : 28), bot = o.bot ?? 0;
+      const top = o.top ?? (o.tall ? (FLY.on && o.H ? o.H : 1e9) : 28), bot = o.bot ?? 0;
       if (z >= top || z + 18 <= bot) continue;
       if (o.t === 'r') { if (px > o.x && px < o.x + o.w && py > o.y && py < o.y + o.h) return true; }
       else if (o.t === 'c') { if ((px - o.x) ** 2 + (py - o.y) ** 2 < o.r * o.r) return true; }
@@ -3260,9 +3367,73 @@
     return false;
   }
   const carHitAt = (x, y, gz) => { const z0 = car.z; car.z = gz; const c = collides(x, y, car.angle); car.z = z0; return c; };
+  // ================== Полёт: вертолёты и самолёты ==================
+  const isFly = () => isAirSpec(spec);
+  const airFloor = (x, y, z) => Math.max(groundHeight(x, y, z), roofAt(x, y, z));
+  function flyUpdate(dt) {
+    const F = car.fly || (car.fly = { pitch: 0, bank: 0, vz: 0, spd: 0, rotor: 0 });
+    const { up, down, left, right, brake, run } = keys;
+    car.air = false; car.ramp = null; car.stun = 0; car.loop = null;
+    const floor = airFloor(car.x, car.y, car.z), onGround = car.z <= floor + .6;
+    const steerIn = (right ? 1 : 0) - (left ? 1 : 0);
+    car.steer = steerIn;
+    let tvx, tvy;
+    if (spec.kind === 'heli') {
+      F.rotor = Math.min(1, F.rotor + dt * .8);
+      const climb = brake ? 1 : (down || run) ? -1 : 0;               // пробел — вверх, S / Shift — вниз
+      const liftOK = F.rotor > .45;
+      F.vz += ((liftOK ? climb * 170 : -60) - F.vz) * Math.min(1, 3 * dt);
+      car.angle += steerIn * spec.turn * dt * (onGround && climb <= 0 ? .4 : 1);
+      const go = !onGround && up ? spec.max : 0;
+      tvx = Math.cos(car.angle) * go; tvy = Math.sin(car.angle) * go;
+      const k = Math.min(1, (go ? spec.accel / spec.max : 1.4) * dt);
+      car.vx += (tvx - car.vx) * k; car.vy += (tvy - car.vy) * k;
+      if (onGround && climb <= 0) { car.vx *= .8; car.vy *= .8; }
+      const fwd = car.vx * Math.cos(car.angle) + car.vy * Math.sin(car.angle);
+      F.pitch += (-fwd / spec.max * .28 - F.pitch) * Math.min(1, 4 * dt);       // наклон носом вперёд, когда летит
+      F.bank += (steerIn * Math.min(1, Math.abs(fwd) / 120) * .3 - F.bank) * Math.min(1, 4 * dt);
+    } else {
+      // самолёт: W — газ, S — тормоз, пробел — вверх, Shift — вниз
+      F.rotor = Math.min(1, F.rotor + dt * .6);
+      if (up) F.spd += spec.accel * dt; else if (down) F.spd -= spec.accel * 1.4 * dt; else F.spd -= (onGround ? 60 : 12) * dt;
+      F.spd = Math.max(0, Math.min(spec.max, F.spd));
+      const TAKEOFF = spec.max * .45;
+      car.angle += steerIn * spec.turn * dt * (onGround ? Math.min(1, F.spd / 80) * .7 : 1);
+      let tvz;
+      if (onGround) tvz = brake && F.spd > TAKEOFF ? 120 : 0;
+      else if (F.spd < TAKEOFF * .7) tvz = -200;                                 // слишком медленно — падает
+      else tvz = brake ? 150 : run ? -170 : -22;
+      F.vz += (tvz - F.vz) * Math.min(1, 2.5 * dt);
+      car.vx = Math.cos(car.angle) * F.spd; car.vy = Math.sin(car.angle) * F.spd;
+      F.pitch += (Math.max(-.35, Math.min(.35, F.vz / 420)) - F.pitch) * Math.min(1, 4 * dt);
+      F.bank += ((onGround ? 0 : steerIn * .55) - F.bank) * Math.min(1, 3 * dt);
+    }
+    // движение и столкновения (дома имеют высоту — над ними можно пролететь)
+    FLY.on = true;
+    const nx = car.x + car.vx * dt, ny = car.y + car.vy * dt;
+    let nz = car.z + F.vz * dt;
+    const hw = (spec.colW || 20) / 2, hl = (spec.colL || 40) / 2, ca = Math.cos(car.angle), sa = Math.sin(car.angle);
+    const hitAt = (x, y, z) => [[hl, 0], [-hl, 0], [0, hw], [0, -hw], [hl * .6, hw * .6], [hl * .6, -hw * .6]].some(([fx, fy]) => solidAtZ(x + fx * ca - fy * sa, y + fx * sa + fy * ca, z + 2));
+    if (!hitAt(nx, ny, nz)) { car.x = nx; car.y = ny; }
+    else {
+      const imp = Math.hypot(car.vx, car.vy);
+      if (imp > 120) { shake = Math.min(6, imp / 70); for (let i = 0; i < 10; i++) emit(car.x + ca * hl, car.z + 10, car.y + sa * hl, '#ffd27a', 1.6, .35, (Math.random() - .5) * 160, Math.random() * 80, (Math.random() - .5) * 160, 0, 1); }
+      car.vx *= -.3; car.vy *= -.3; F.spd *= .25;
+      if (hitAt(car.x, car.y, nz)) { nz = car.z; F.vz = Math.min(F.vz, 0); }
+    }
+    const fl = airFloor(car.x, car.y, Math.max(nz, car.z));
+    if (nz <= fl) { if (F.vz < -260) shake = 4; nz = fl; F.vz = Math.max(0, F.vz); }
+    car.z = Math.min(1600, nz);
+    edgeBounce();
+    collectCoins();
+    roll = pitch = lean = 0; curFwd = Math.hypot(car.vx, car.vy);
+    shake *= .85;
+  }
   function update(dt) {
     if (garageOpen || menuOpen || mapOpen) return;
+    FLY.on = false;
     if (car.onFoot) { walkUpdate(dt); return; }
+    if (isFly()) { flyUpdate(dt); return; }
     if (car.loop) { loopUpdate(dt); return; }
     edgeBounce();
     if (!car.air && collides(car.x, car.y, car.angle) && unstick(carHitAt)) { car.vx *= .3; car.vy *= .3; car.ramp = null; car.stun = 0; }
@@ -4193,6 +4364,7 @@
     if (nearBed()) { goSleep(); return; }                                     // у своей кровати — ложимся спать
     if (!car.onFoot) {
       if (car.air || car.loop || Math.hypot(car.vx, car.vy) > 45) return;          // на ходу не выпрыгнешь
+      if (isFly() && car.z > groundHeight(car.x, car.y, car.z) + 3) { showMsg(t('flyLand'), 1800); return; }   // в воздухе не выпрыгнешь
       Object.assign(vstate, { x: car.x, y: car.y, z: car.z, angle: car.angle });
       const lx = Math.sin(car.angle), ly = -Math.cos(car.angle);
       let px = car.x + lx * 30, py = car.y + ly * 30;
@@ -5706,12 +5878,12 @@
     let d = car.angle - camAng; d = Math.atan2(Math.sin(d), Math.cos(d));
     camAng += d * (snap ? 1 : Math.min(1, 3.2 * dt));
     const speed = Math.hypot(car.vx, car.vy);
-    const footK = car.onFoot ? .55 : 1;
+    const footK = car.onFoot ? .55 : isFly() ? 1.55 : 1;
     let dist = (96 + speed * .02) * CAM_K * footK, height = (45 + speed * .01) * CAM_K * footK;
     const cx = Math.cos(camAng), cy = Math.sin(camAng);
     let want = dist;
     for (let t = .2; t <= 1.001; t += .1) {
-      if (solidTallAt(car.x - cx * dist * t, car.y - cy * dist * t)) { want = Math.max(car.onFoot ? 24 : 34, dist * (t - .12)); break; }
+      if (!(isFly() && !car.onFoot && car.z > 40) && solidTallAt(car.x - cx * dist * t, car.y - cy * dist * t)) { want = Math.max(car.onFoot ? 24 : 34, dist * (t - .12)); break; }
     }
     if (snap || !camDistS) camDistS = want;
     camDistS += (want - camDistS) * Math.min(1, (want < camDistS ? 10 : 2.5) * dt);   // приближается быстро, отъезжает плавно
@@ -5719,11 +5891,11 @@
     const tx = car.x - cx * dist, tz = car.y - cy * dist;
     const k = snap ? 1 : Math.min(1, 9 * dt);
     camPos.x += (tx - camPos.x) * k; camPos.z += (tz - camPos.z) * k;
-    let camY = height + car.z * .7;
+    let camY = height + car.z * (isFly() && !car.onFoot ? 1 : .7);
     const ceil = Math.min(ceilingAt(car.x, car.y, car.z), ceilingAt(camPos.x, camPos.z, car.z));
     if (ceil < 1e8) camY = Math.min(camY, ceil - 5);
     camPos.y += (camY - camPos.y) * (ceil < 1e8 ? Math.min(1, 14 * dt) : k);
-    camLook.set(car.x + cx * 55 * (car.onFoot ? .5 : 1), (car.onFoot ? 16 : 14) + car.z * .85, car.y + cy * 55 * (car.onFoot ? .5 : 1));
+    camLook.set(car.x + cx * 55 * (car.onFoot ? .5 : 1), (car.onFoot ? 16 : 14) + car.z * (isFly() && !car.onFoot ? 1 : .85), car.y + cy * 55 * (car.onFoot ? .5 : 1));
     const sh = shake * shakeK;
     camera.position.set(camPos.x + (Math.random() - .5) * sh, camPos.y + (Math.random() - .5) * sh, camPos.z + (Math.random() - .5) * sh);
     camera.lookAt(camLook);
@@ -5757,7 +5929,8 @@
       hpFill.style.width = Math.round(foot.hp) + '%';
       const fg = groundHeight(car.x, car.y, car.z);
       footBlob.position.set(car.x, fg + .5, car.y); footBlob.material.opacity = Math.max(0, .9 - (car.z - fg) / 60);
-    } else if (car.loop) slopePitch = 0;
+    } else if (isFly()) slopePitch = 0;
+    else if (car.loop) slopePitch = 0;
     else if (!car.air) {
       const fx = Math.cos(car.angle) * 20, fy = Math.sin(car.angle) * 20;
       const target = Math.atan2(groundHeight(car.x + fx, car.y + fy) - groundHeight(car.x - fx, car.y - fy), 40);
@@ -5765,6 +5938,13 @@
     } else slopePitch += (0 - slopePitch) * Math.min(1, 1.5 * dt);
     player.tg.rotation.z = slopePitch + trick.pitch;
     player.tg.rotation.x = trick.roll + (spec.kind === 'moto' ? lean : 0);   // мотоцикл наклоняется в поворот
+    if (isFly() && car.fly) {                                                // вертолёт / самолёт: наклоны и винты
+      player.tg.rotation.z = car.fly.pitch; player.tg.rotation.x = car.fly.bank;
+      const on = !car.onFoot, spin = (on ? car.fly.rotor : Math.max(0, (car.fly.rotor -= dt * .3))) * dt;
+      for (const r of player.rotors || []) r.rotation.y += spin * 32;
+      if (player.tailRotor) player.tailRotor.rotation.z += spin * 45;
+      if (player.prop) player.prop.rotation.x += spin * (8 + car.fly.spd * .12);
+    }
     player.root.rotation.y = -V.angle;
     player.body.rotation.x = spec.kind === 'moto' ? 0 : roll;
     player.body.rotation.z = pitch;
