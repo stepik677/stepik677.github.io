@@ -4159,7 +4159,7 @@
   // попадание пули полиции: всегда минус 15% жизни
   function shotPlayer(dmg, fromX, fromY) {
     if (car.onFoot && foot.ko > 0) return;
-    foot.hp -= 15;                                          // каждое попадание полиции — минус 15% жизни
+    foot.hp -= car.onFoot ? 15 : 7;                         // пешком — минус 15% жизни, в машине или самолёте — 7%
     foot.sinceHit = 0; shake = Math.max(shake, 1.5);
     hurtEl.classList.add('on'); setTimeout(() => hurtEl.classList.remove('on'), 110);
     if (foot.hp <= 0) busted();
@@ -4285,7 +4285,7 @@
 
   // столкновения игрока с машинами на дороге и полицией
   function collideVehicles() {
-    if (car.z > 20) return;
+    if (car.z > 20 || isFly()) return;                     // самолёт и вертолёт не застревают в машинах
     for (const o of traffic.concat(chase.cops, netCars())) {
       if (Math.abs((o.z || 0) - car.z) > 20 || o.ghost > 0) continue;
       const dx = car.x - o.x, dy = car.y - o.y, d = Math.hypot(dx, dy);
@@ -4897,7 +4897,7 @@
     if (mbRadar) mbRadar.rotation.y += dt * 1.6;
     if (mbBar) { const near = Math.hypot(car.x - GC, car.y - MB.y1) < 260; mbBar.rotation.z += ((near ? 1.35 : 0) - mbBar.rotation.z) * Math.min(1, dt * 3); }   // шлагбаум поднимается
     const alarm = base.alerted && wanted > 0;
-    if (milZone() && wanted > 0) { base.spawnT -= dt; if (base.spawnT <= 0 && chase.cops.length < COPS_BY_STAR[wanted] + 3) { base.spawnT = 2.2; spawnCopFar(); } }   // подкрепление военных
+    if (milZone() && wanted > 0) { base.spawnT -= dt; if (base.spawnT <= 0 && chase.cops.length < COPS_BY_STAR[wanted] + 1) { base.spawnT = 4.5; spawnCopFar(); } }   // подкрепление военных
     // танки поворачивают башню и стреляют
     for (const tk of MB_TANKS) {
       if (!tk.active) continue;
