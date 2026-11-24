@@ -3979,11 +3979,13 @@
   }
 
   // ================== Розыск (звёзды) и полиция ==================
-  let wanted = 0;                                          // 0…5 звёзд, как в GTA
-  const COPS_BY_STAR = [0, 1, 2, 3, 4, 6];
+  let wanted = 0, heat = 0;                                // 0…6 звёзд; «жар» — сколько ты натворил
+  const MAX_STARS = 6;
+  const COPS_BY_STAR = [0, 1, 2, 3, 5, 6, 8];
+  const STAR_HEAT = [0, 1, 5, 12, 24, 40, 60];               // как в GTA: каждая следующая звезда — всё труднее
   const starsEl = document.getElementById('stars');
   function drawStars(flash) {
-    const html = [0, 1, 2, 3, 4].map(i => `<i class="${i < wanted ? 'on' : ''}">★</i>`).join('');
+    const html = [0, 1, 2, 3, 4, 5].map(i => `<i class="${i < wanted ? 'on' : ''}">★</i>`).join('');
     if (starsEl.dataset.k !== wanted + '' ) { starsEl.innerHTML = html; starsEl.dataset.k = wanted + ''; }
     starsEl.classList.toggle('flash', !!flash);
   }
@@ -4000,7 +4002,9 @@
   // преступление — добавляем звёзды и полицейских
   function addWanted(n) {
     const before = wanted;
-    wanted = Math.min(5, wanted + n);
+    heat += n;
+    let w = 0; while (w < MAX_STARS && heat >= STAR_HEAT[w + 1]) w++;
+    wanted = Math.max(wanted, w);
     chase.farT = 0;
     if (!chase.active) {
       chase.active = true;
@@ -4022,7 +4026,7 @@
   }
   function endChase() {
     for (const c of chase.cops) { scene.remove(c.m.root); scene.remove(c.officer.root); }
-    chase.cops = []; chase.active = false; chase.cool = 0; wanted = 0;
+    chase.cops = []; chase.active = false; chase.cool = 0; wanted = 0; heat = 0;
     wantedEl.classList.remove('on'); sirenEl.classList.remove('on');
     document.documentElement.classList.remove('wantedOn');
     drawStars(false);
