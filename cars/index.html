@@ -677,6 +677,7 @@
         frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
         flyLand: '🛬 Сначала приземлись на землю!', flyHeli: '🚁 Пробел — вверх, S — вниз, W — вперёд, A/D — поворот', flyPlane: '✈️ W — газ, разгонись и жми пробел — взлёт. S / ▼ (тормоз) — вниз',
       mapRoad: '🗺 Схема', mapSat: '🛰 Спутник',
+      mbSign1: 'ВОЕННАЯ БАЗА', mbSign2: 'ВХОД ЗАПРЕЩЁН', jetHint: 'Q / 4 / клик — ракеты 🚀',
       stealPrompt: 'Нажми {k} — угнать: {n}', stoleMil: '🚨 Ты угнал военную технику! Армия гонится за тобой!', stoleAir: '🚨 Угон в аэропорту! Полиция уже едет!',
       baseAlert: '⚠️ Военная база! Тебя заметили солдаты!', drowned: '🌊 Утонул! Выплываешь на пляж…',
       lgAirport: '✈️ Аэропорт', lgBase: '🪖 Военная база', lgBeach: '🏖 Пляж', lgMount: '⛰ Гора Орлиная', lgOcean: 'Океан', lgHighway: 'Кольцевое шоссе',
@@ -691,6 +692,7 @@
         frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
         flyLand: '🛬 Land on the ground first!', flyHeli: '🚁 Space — up, S — down, W — forward, A/D — turn', flyPlane: '✈️ W — throttle, speed up and press Space to take off. S / ▼ (brake) — down',
       mapRoad: '🗺 Road map', mapSat: '🛰 Satellite',
+      mbSign1: 'MILITARY BASE', mbSign2: 'NO ENTRY', jetHint: 'Q / 4 / click — missiles 🚀',
       stealPrompt: 'Press {k} — steal: {n}', stoleMil: '🚨 You stole military equipment! The army is after you!', stoleAir: '🚨 Theft at the airport! The police are coming!',
       baseAlert: '⚠️ Military base! The soldiers spotted you!', drowned: '🌊 You drowned! Swimming back to the beach…',
       lgAirport: '✈️ Airport', lgBase: '🪖 Military base', lgBeach: '🏖 Beach', lgMount: '⛰ Eagle Mountain', lgOcean: 'Ocean', lgHighway: 'Ring highway',
@@ -2285,6 +2287,8 @@
       color: '#2e7d32', color2: '#e8e0c8', max: 430, accel: 200, turn: 1.1, grip: 12, colL: 44, colW: 26 },
     { id: 'kasatka', kind: 'heli', name: 'Вертолёт «Касатка»', desc: 'Большой и быстрый вертолёт, как у спасателей.', price: 30000,
       color: '#c62828', max: 400, accel: 320, turn: 1.6, grip: 13, size: 1.3, colL: 52, colW: 26 },
+    { id: 'istrebitel', kind: 'plane', hidden: true, name: 'Военный истребитель', desc: 'Боевой самолёт с ракетами. Его можно только угнать с военной базы!', price: 0,
+      color: '#5f6b73', jet: true, missiles: true, max: 840, accel: 390, turn: 1.4, grip: 14, colL: 56, colW: 30 },
     { id: 'strela', kind: 'plane', name: 'Реактивный самолёт «Стрела»', desc: 'Самый быстрый в городе! Реактивный двигатель и огонь из сопла.', price: 50000,
       color: '#90a4ae', jet: true, max: 720, accel: 330, turn: 1.25, grip: 14, colL: 56, colW: 30 },
   ];
@@ -2360,6 +2364,7 @@
       const fin = new THREE.Shape([new THREE.Vector2(-15, 0), new THREE.Vector2(-25, 13), new THREE.Vector2(-29, 13), new THREE.Vector2(-27, 0)]);
       add(new THREE.ExtrudeGeometry(fin, { depth: .9, bevelEnabled: false }).translate(0, 0, -.45), paint, 0, 13, 0);
       const noz = add(new THREE.CylinderGeometry(2.4, 2.8, 3, 12), dark, -27, 11, 0); noz.rotation.z = Math.PI / 2;
+      if (spec.missiles) for (const z of [-14, 14, -22, 22]) { const ms = add(new THREE.CylinderGeometry(.9, .9, 12, 8), metal, -4, 8.2, z); ms.rotation.z = Math.PI / 2; const tip = add(new THREE.ConeGeometry(.9, 3, 8), new THREE.MeshStandardMaterial({ color: '#c62828' }), 3.5, 8.2, z); tip.rotation.z = -Math.PI / 2; }
       const flame = add(new THREE.ConeGeometry(2.2, 9, 10), B.tailMat, -32.5, 11, 0); flame.rotation.z = Math.PI / 2;
       B.tailMat.color.set('#ff9800'); B.tailMat.emissive.set('#ff6d00');
       for (const [x, z] of [[18, 0], [-4, -6], [-4, 6]]) { add(new THREE.BoxGeometry(1, 6, 1), metal, x, 4.5, z); const w = add(new THREE.CylinderGeometry(2.2, 2.2, 1.6, 12), dark, x, 2.2, z); w.rotation.x = Math.PI / 2; }
@@ -2577,7 +2582,7 @@
   function bar(label, v) { return `<div class="stat"><span>${label}</span><i><b style="width:${Math.round(Math.min(1, v) * 100)}%"></b></i></div>`; }
   function renderGarage() {
     document.getElementById('gMoney').textContent = fmt(save.money);
-    gridEl.innerHTML = CARS.map(c => {
+    gridEl.innerHTML = CARS.filter(c => !c.hidden).map(c => {
       const owned = save.owned.includes(c.id), cur = save.current === c.id;
       let btn;
       if (cur) btn = `<button class="sel" disabled>${t('selected')}</button>`;
@@ -4032,6 +4037,7 @@
 
   // ================== Полиция ==================
   const policeSpec = { ...CARS.find(c => c.id === 'sedan'), id: 'police', color: '#f5f5f5', police: true };
+  const milSpec = { ...CARS.find(c => c.id === 'bizon'), id: 'army', color: '#4b5a32', stripes: null, police: true };   // военный джип
   const chase = { active: false, farT: 0, cool: 0, cops: [] };
   const wantedEl = document.getElementById('wanted'), sirenEl = document.getElementById('siren');
   function clearLine(x0, y0, x1, y1, z) {
@@ -4074,14 +4080,22 @@
     starsEl.classList.toggle('flash', !!flash);
   }
   function spawnCopFar() {
-    const nodes = [];
-    for (let i = 0; i <= NB; i++) for (let j = 0; j <= NB; j++) {
+    const mil = milZone(), nodes = [];
+    if (!mil) for (let i = 0; i <= NB; i++) for (let j = 0; j <= NB; j++) {
       const x = nodeC(i), y = nodeC(j), d = Math.hypot(x - car.x, y - car.y);
       if (d > 600 && d < 1400) nodes.push([x, y]);
     }
+    if (!nodes.length) for (let k = 0; k < 60 && nodes.length < 10; k++) {      // за городом — подъезжают откуда-нибудь рядом
+      const a = Math.random() * Math.PI * 2, d = 650 + Math.random() * 650, x = car.x + Math.cos(a) * d, y = car.y + Math.sin(a) * d;
+      if (x < F0 + 400 || y < F0 + 400 || x > F1 - 400 || y > F1 - 400) continue;
+      const gz = inCity(x, y) ? 0 : terrainH(x, y); if (gz < 0) continue;   // не в воде
+      if (gz > 200) continue;
+      if (solidAtZ(x, y, gz + 2) || solidAtZ(x + 25, y, gz + 2) || solidAtZ(x - 25, y, gz + 2)) continue;
+      nodes.push([x, y]);
+    }
     if (!nodes.length) return;
     const [x, y] = nodes[Math.floor(Math.random() * nodes.length)];
-    spawnCop(x, y);
+    spawnCop(x, y, mil);
   }
   // преступление — добавляем звёзды и полицейских
   function addWanted(n) {
@@ -4102,10 +4116,10 @@
   }
   function startChase() { addWanted(1); }
   function addCop() { addWanted(1); }
-  function spawnCop(x, y) {
-    const m = buildCar(policeSpec); scene.add(m.root);
-    const officer = buildPerson('#1d4389', '#0d2147', '#0d2147', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac']));
-    chase.cops.push({ x, y, z: 0, h: Math.atan2(car.y - y, car.x - x), v: 0, m, stuck: 0, rev: 0,
+  function spawnCop(x, y, mil = false) {
+    const m = buildCar(mil ? milSpec : policeSpec); scene.add(m.root);
+    const officer = mil ? buildPerson('#556b2f', '#3b4a1a', '#3b4a1a', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac'])) : buildPerson('#1d4389', '#0d2147', '#0d2147', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac']));
+    chase.cops.push({ mil, x, y, z: inCity(x, y) ? 0 : Math.max(0, terrainH(x, y)), h: Math.atan2(car.y - y, car.x - x), v: 0, m, stuck: 0, rev: 0,
       mode: 'drive', officer, ox: 0, oy: 0, oz: 0, oh: 0, odown: 0, ofall: 0, shootCd: 1, aimT: 0, ph: 0 });
   }
   function endChase() {
@@ -4127,6 +4141,7 @@
     clearTimeout(busted.ht); busted.ht = setTimeout(goHome, 1300);                  // пока на экране WASTED — переносим домой
     foot.hp = 100; foot.ko = 0; foot.sinceHit = 9;
     endChase();
+    if (!save.owned.includes(spec.id)) setTimeout(() => { if (!save.owned.includes(spec.id)) setCar(save.current); }, 1400);   // угнанное забирают — дома ждёт своя машина
   }
   // проиграл — просыпаешься дома, а машина стоит в гараже
   function goHome() {
@@ -4144,7 +4159,7 @@
   // попадание пули полиции: всегда минус 15% жизни
   function shotPlayer(dmg, fromX, fromY) {
     if (car.onFoot && foot.ko > 0) return;
-    foot.hp -= 15;                                          // каждое попадание полиции — минус 15% жизни
+    foot.hp -= car.onFoot ? 15 : 7;                         // пешком — минус 15% жизни, в машине или самолёте — 7%
     foot.sinceHit = 0; shake = Math.max(shake, 1.5);
     hurtEl.classList.add('on'); setTimeout(() => hurtEl.classList.remove('on'), 110);
     if (foot.hp <= 0) busted();
@@ -4270,7 +4285,7 @@
 
   // столкновения игрока с машинами на дороге и полицией
   function collideVehicles() {
-    if (car.z > 20) return;
+    if (car.z > 20 || isFly()) return;                     // самолёт и вертолёт не застревают в машинах
     for (const o of traffic.concat(chase.cops, netCars())) {
       if (Math.abs((o.z || 0) - car.z) > 20 || o.ghost > 0) continue;
       const dx = car.x - o.x, dy = car.y - o.y, d = Math.hypot(dx, dy);
@@ -4339,7 +4354,7 @@
     renderer.setPixelRatio(settings.gfx === 'high' ? Math.min(dpr, 2) : settings.gfx === 'mid' ? Math.min(dpr, 1.5) : 1);
     renderer.setSize(innerWidth, innerHeight);
     sun.castShadow = settings.gfx !== 'low';
-    const ms = settings.gfx === 'high' ? 2048 : 1024;
+    const ms = settings.gfx === 'high' ? (IS_TOUCH ? 2048 : 4096) : 1024;   // чёткие тени на высокой графике
     if (sun.shadow.mapSize.x !== ms) { sun.shadow.mapSize.set(ms, ms); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
     setTrafficCount({ few: 90, mid: 170, many: 280 }[settings.traffic] || 170);
     CAM_K = { near: .8, mid: 1, far: 1.3 }[settings.cam] || 1;
@@ -4397,6 +4412,7 @@
   const foot = { ...buildPerson(), vz: 0, ph: 0, hp: 100, ko: 0, punchT: 0, punchCd: 0, sinceHit: 9 };
   const hurtEl = document.getElementById('hurt'), hpFill = document.getElementById('hpFill');
   function punch() {
+    if (!car.onFoot && spec.missiles && !menuOpen && !garageOpen && !mapOpen) { window.__jetFire?.(); return; }   // в истребителе — ракеты
     if (car.onFoot && foot.ko <= 0 && !menuOpen && !garageOpen && !mapOpen && window.__gunOut?.()) { window.__fireDown?.(); return; }   // в руках оружие — стреляем
     if (!car.onFoot || foot.ko > 0 || foot.punchCd > 0 || menuOpen || garageOpen || mapOpen) return;
     foot.punchT = .3; foot.punchCd = .42; fightT = 8;
@@ -4531,6 +4547,15 @@
       cols[i * 3] = col.r; cols[i * 3 + 1] = col.g; cols[i * 3 + 2] = col.b;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(cols, 3)); geo.computeVertexNormals();
+    {   // крутые склоны — камень, низины у воды — песок
+      const nrm = geo.attributes.normal, rock = new THREE.Color('#7d776c'), rock2 = new THREE.Color('#5f5a52');
+      for (let i = 0; i < pos.count; i++) {
+        const ny = nrm.getY(i), h = pos.getY(i); if (h < 20 || ny > .86) continue;
+        col.setRGB(cols[i * 3], cols[i * 3 + 1], cols[i * 3 + 2]).lerp(Math.sin(pos.getX(i) * .02) > 0 ? rock : rock2, Math.min(1, (.86 - ny) * 4));
+        cols[i * 3] = col.r; cols[i * 3 + 1] = col.g; cols[i * 3 + 2] = col.b;
+      }
+      geo.attributes.color.needsUpdate = true;
+    }
     const grassDetail = outerTex(128, 128, (g, w, h) => noiseFill(g, w, h, '#ffffff', ['#d9d9d9', '#c8c8c8', '#ececec'], 2500), 400, 400);
     const terrain = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: grassDetail, roughness: 1 }));
     terrain.receiveShadow = true; scene.add(terrain);
@@ -4540,7 +4565,7 @@
     g.fillStyle = '#2a8cc4'; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 260; i++) { g.strokeStyle = `rgba(255,255,255,${.08 + Math.random() * .14})`; g.lineWidth = 2; const x = Math.random() * w, y = Math.random() * h; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 8, y - 4, x + 18, y); g.stroke(); }
   }, 300, 300);
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(90000, 90000).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: waterTex, color: '#7fc4ee', roughness: .12, metalness: .25, transparent: true, opacity: .9 }));
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(90000, 90000).rotateX(-Math.PI / 2), new THREE.MeshPhysicalMaterial({ map: waterTex, color: '#6fb8e6', bumpMap: waterTex, bumpScale: 2.2, roughness: .05, metalness: .1, clearcoat: 1, clearcoatRoughness: .04, envMap: scene.userData.env, envMapIntensity: 1.4, transparent: true, opacity: .92 }));
   water.position.set(WORLD / 2, SEA, WORLD / 2); scene.add(water);
   // --- дороги-ленты ---
   function ribbon(pts, w, mat, vLen, yOff = .4, closed = false) {
@@ -4657,46 +4682,118 @@
       outerObs.push({ x: WORLD + 1980, y: GC - 1520, w: 250, h: 40, top: 50, bot: 0 }, { x: WORLD + 2080, y: GC - 1615, w: 50, h: 230, top: 26, bot: 16 });
     }
   }
-  // --- военная база ---
-  const MB_TOWERS = [];
+  // --- военная база (въезд через ворота, открытые ангары с истребителями, вышка с радаром, казармы) ---
+  const MB_TOWERS = [], MB_TANKS = [], MB_LAMPS = [];
+  let mbRadar = null, mbBar = null;
+  const MB_RUN_Y = MB.y0 + 850, MB_TAXI_Y = MB.y0 + 1300, MB_HY0 = -2100, MB_HY1 = -1820;   // взлётка, рулёжка, ангары
+  const MB_HANGARS = [2100, 2600, 3100, 3600];
   {
     flat(MB.x0, MB.y0, MB.x1 - MB.x0, MB.y1 - MB.y0, new THREE.MeshStandardMaterial({ map: concreteTex(false), roughness: .95, polygonOffset: true, polygonOffsetFactor: -1 }), .25).material.map.repeat.set(80, 21);
     const L = MB.x1 - MB.x0 - 700;
-    strip((MB.x0 + MB.x1) / 2, MB.y0 + 850, 220, L, runwayTex(L), false, .5);
-    for (const end of [MB.x0 + 580, MB.x1 - 580]) for (let i = -4; i <= 4; i++) if (i) flat(end - 60, MB.y0 + 850 + i * 20 - 6, 120, 12, new THREE.MeshBasicMaterial({ color: '#f4f4f4' }), .6);
-    strip((MB.x0 + MB.x1) / 2, MB.y0 + 1300, 110, L, taxiTex(L), false, .45);
-    // забор с воротами
-    const fenceMat = new THREE.MeshStandardMaterial({ color: '#9aa3ab', roughness: .5, metalness: .4, transparent: true, opacity: .5, side: THREE.DoubleSide, depthWrite: false });
-    const postMat = new THREE.MeshStandardMaterial({ color: '#4a4f55', roughness: .6 });
+    strip((MB.x0 + MB.x1) / 2, MB_RUN_Y, 230, L, runwayTex(L), false, .5);
+    for (const end of [MB.x0 + 580, MB.x1 - 580]) for (let i = -4; i <= 4; i++) if (i) flat(end - 60, MB_RUN_Y + i * 21 - 6, 120, 12, new THREE.MeshBasicMaterial({ color: '#f4f4f4' }), .6);
+    strip((MB.x0 + MB.x1) / 2, MB_TAXI_Y, 120, L, taxiTex(L), false, .45);
+    for (const hx of MB_HANGARS) strip(hx + 210, (MB_TAXI_Y + MB_HY0) / 2, 120, MB_HY0 - MB_TAXI_Y + 60, taxiTex(MB_HY0 - MB_TAXI_Y), true, .46);
+    // дорога от ворот внутрь базы и вдоль ангаров
+    const line = (x0, y0, x1, y1) => { const pts = [], n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 60); for (let i = 0; i <= n; i++) pts.push([x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, .3]); return pts; };
+    ribbon(line(GC, MB.y1 + 30, GC, MB_TAXI_Y + 70), 170, roadMat, 160, .3);
+    ribbon(line(MB.x0 + 250, -1650, MB.x1 - 250, -1650), 140, roadMat, 160, .32);
+    // забор с колючей проволокой и воротами
+    const fenceMat = new THREE.MeshStandardMaterial({ map: outerTex(64, 64, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = 'rgba(190,198,205,.95)'; g.lineWidth = 2; for (let i = -h; i < w; i += 10) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + h, h); g.stroke(); g.beginPath(); g.moveTo(i + h, 0); g.lineTo(i, h); g.stroke(); } }, 1, 1), transparent: true, alphaTest: .3, side: THREE.DoubleSide, roughness: .5, metalness: .5 });
+    const postMat = new THREE.MeshStandardMaterial({ color: '#4a4f55', roughness: .6, metalness: .4 }), wireMat = new THREE.MeshStandardMaterial({ color: '#2b2f33', roughness: .5 });
     const fence = (x0, y0, x1, y1) => {
-      const L = Math.hypot(x1 - x0, y1 - y0), m = new THREE.Mesh(new THREE.PlaneGeometry(L, 40), fenceMat);
-      m.position.set((x0 + x1) / 2, 20, (y0 + y1) / 2); m.rotation.y = -Math.atan2(y1 - y0, x1 - x0); scene.add(m);
-      for (let s = 0; s <= L; s += 160) { const p = new THREE.Mesh(new THREE.BoxGeometry(3, 46, 3), postMat); p.position.set(x0 + (x1 - x0) * s / L, 23, y0 + (y1 - y0) * s / L); scene.add(p); }
-      outerObs.push({ x: Math.min(x0, x1) - 5, y: Math.min(y0, y1) - 5, w: Math.abs(x1 - x0) + 10, h: Math.abs(y1 - y0) + 10, top: 40, bot: 0, fence: true });
+      const L = Math.hypot(x1 - x0, y1 - y0), a = -Math.atan2(y1 - y0, x1 - x0);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(L, 40), fenceMat.clone()); m.material.map = fenceMat.map.clone(); m.material.map.needsUpdate = true; m.material.map.repeat.set(L / 40, 1);
+      m.position.set((x0 + x1) / 2, 20, (y0 + y1) / 2); m.rotation.y = a; scene.add(m);
+      const wire = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, L, 6), wireMat); wire.rotation.z = Math.PI / 2; wire.rotation.y = a; wire.position.set((x0 + x1) / 2, 44, (y0 + y1) / 2); scene.add(wire);
+      const base = new THREE.Mesh(new THREE.BoxGeometry(L, 5, 6), new THREE.MeshStandardMaterial({ color: '#9e9e9e', roughness: .9 })); base.rotation.y = a; base.position.set((x0 + x1) / 2, 2.5, (y0 + y1) / 2); scene.add(base);
+      for (let s = 0; s <= L; s += 120) { const p = new THREE.Mesh(new THREE.BoxGeometry(3, 48, 3), postMat); p.position.set(x0 + (x1 - x0) * s / L, 24, y0 + (y1 - y0) * s / L); scene.add(p); }
+      outerObs.push({ x: Math.min(x0, x1) - 5, y: Math.min(y0, y1) - 5, w: Math.abs(x1 - x0) + 10, h: Math.abs(y1 - y0) + 10, top: 46, bot: 0, fence: true });
     };
-    const g0 = GC - 160, g1 = GC + 160;
+    const g0 = GC - 110, g1 = GC + 110;
     fence(MB.x0, MB.y0, MB.x1, MB.y0); fence(MB.x0, MB.y0, MB.x0, MB.y1); fence(MB.x1, MB.y0, MB.x1, MB.y1);
     fence(MB.x0, MB.y1, g0, MB.y1); fence(g1, MB.y1, MB.x1, MB.y1);
-    box(g0 - 70, MB.y1 + 15, 50, 50, 30, new THREE.MeshStandardMaterial({ color: '#c9b37e' }));             // будка охраны
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(300, 4, 4), new THREE.MeshStandardMaterial({ color: '#e53935' })); bar.position.set(GC, 18, MB.y1); bar.rotation.z = .9; scene.add(bar);
-    const camo = '#5b6b4a';
-    hangar(MB.x0 + 300, MB.y1 - 520, 420, 330, camo, '-y'); hangar(MB.x0 + 800, MB.y1 - 520, 420, 330, '#6b7354', '-y'); hangar(MB.x0 + 1300, MB.y1 - 520, 420, 330, camo, '-y');
-    const bunker = new THREE.MeshStandardMaterial({ map: concreteTex(false), roughness: .9 });
-    box(MB.x1 - 700, MB.y1 - 420, 240, 160, 50, bunker); box(MB.x1 - 700, MB.y1 - 760, 240, 160, 50, bunker);
-    // танки
-    const tankMat = new THREE.MeshStandardMaterial({ color: '#4b5a32', roughness: .7 }), tankDark = new THREE.MeshStandardMaterial({ color: '#2e3520', roughness: .8 });
-    for (const [x, y] of [[MB.x1 - 1300, MB.y1 - 300], [MB.x1 - 1150, MB.y1 - 300], [MB.x1 - 1000, MB.y1 - 300]]) {
+    // КПП: две будки, шлагбаум, мешки с песком, знак
+    const booth = new THREE.MeshStandardMaterial({ map: glassTex('#d7ccc8', '#5d7f9e'), roughness: .6 });
+    box(g0 - 70, MB.y1 - 25, 55, 50, 32, booth); box(g1 + 15, MB.y1 - 25, 55, 50, 32, booth);
+    box(g0 - 75, MB.y1 - 30, 65, 60, 4, new THREE.MeshStandardMaterial({ color: '#c62828' }), 32, false); box(g1 + 10, MB.y1 - 30, 65, 60, 4, new THREE.MeshStandardMaterial({ color: '#c62828' }), 32, false);
+    mbBar = new THREE.Group(); mbBar.position.set(g0 - 10, 16, MB.y1 + 8); scene.add(mbBar);
+    const barMesh = new THREE.Mesh(new THREE.BoxGeometry(215, 4, 4), new THREE.MeshStandardMaterial({ map: outerTex(64, 8, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#ffffff' : '#e53935'; g.fillRect(i * 8, 0, 8, h); } }, 1, 1) }));
+    barMesh.position.x = 108; mbBar.add(barMesh);
+    const sand = new THREE.MeshStandardMaterial({ color: '#b89f6a', roughness: 1 });
+    for (const [x, y, w, h] of [[g0 - 200, MB.y1 - 140, 90, 18], [g1 + 110, MB.y1 - 140, 90, 18], [g0 - 200, MB.y1 - 140, 18, 70], [g1 + 182, MB.y1 - 140, 18, 70]]) box(x, y, w, h, 16, sand);
+    {
+      const sign = new THREE.Mesh(new THREE.PlaneGeometry(150, 40), new THREE.MeshBasicMaterial({ map: outerTex(512, 136, (g, w, h) => { g.fillStyle = '#c62828'; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 8; g.strokeRect(6, 6, w - 12, h - 12); g.fillStyle = '#fff'; g.font = 'bold 44px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t('mbSign1'), w / 2, 48); g.font = 'bold 30px "Segoe UI", sans-serif'; g.fillText(t('mbSign2'), w / 2, 96); }, 1, 1) }));
+      sign.position.set(g1 + 230, 34, MB.y1 + 20); sign.rotation.y = Math.PI; scene.add(sign);
+      for (const dx of [-60, 60]) { const p = new THREE.Mesh(new THREE.BoxGeometry(3, 34, 3), postMat); p.position.set(g1 + 230 + dx, 17, MB.y1 + 21); scene.add(p); }
+    }
+    // открытые ангары: можно заехать внутрь, там стоят истребители
+    const camoTex = col => outerTex(128, 128, (g, w, h) => { g.fillStyle = col; g.fillRect(0, 0, w, h); for (let i = 0; i < 26; i++) { g.fillStyle = ['#4a5a3a', '#6b7354', '#3d4a2f', '#7a7a5a'][i % 4]; g.beginPath(); g.ellipse(Math.random() * w, Math.random() * h, 8 + Math.random() * 16, 5 + Math.random() * 10, Math.random() * 3, 0, 7); g.fill(); } }, 4, 2);
+    const lightStrip = new THREE.MeshStandardMaterial({ color: '#fffbe8', emissive: '#fff3c0', emissiveIntensity: 1.6 });
+    for (const hx of MB_HANGARS) {
+      const w = 420, h = MB_HY1 - MB_HY0, wallM = new THREE.MeshStandardMaterial({ map: camoTex('#5b6b4a'), roughness: .8, side: THREE.DoubleSide });
+      box(hx, MB_HY1 - 12, w, 12, 75, wallM); box(hx, MB_HY0, 12, h, 75, wallM); box(hx + w - 12, MB_HY0, 12, h, 75, wallM);
+      const rg = new THREE.CylinderGeometry(w / 2, w / 2, h, 28, 1, true, Math.PI / 2, Math.PI); rg.rotateX(Math.PI / 2); const roof = new THREE.Mesh(rg, wallM); roof.scale.set(1, .42, 1);
+      roof.position.set(hx + w / 2, 75, (MB_HY0 + MB_HY1) / 2); roof.castShadow = true; scene.add(roof);
+      const back = new THREE.Mesh(new THREE.CircleGeometry(w / 2, 28, 0, Math.PI), wallM); back.scale.set(1, .42, 1); back.position.set(hx + w / 2, 75, MB_HY1 - 6); scene.add(back);   // задняя стенка арки
+      outerObs.push({ x: hx, y: MB_HY0, w, h, top: 75 + w / 2 * .42, bot: 75 });
+      flat(hx + 12, MB_HY0, w - 24, h - 12, new THREE.MeshStandardMaterial({ color: '#9da3a8', roughness: .6 }), .7);
+      for (let k = 0; k < 3; k++) { const ls = new THREE.Mesh(new THREE.BoxGeometry(w * .7, 1, 6), lightStrip); ls.position.set(hx + w / 2, 72, MB_HY0 + 60 + k * 80); scene.add(ls); }
+      const num = new THREE.Mesh(new THREE.PlaneGeometry(70, 40), new THREE.MeshBasicMaterial({ map: outerTex(128, 72, (g, ww, hh) => { g.fillStyle = '#2e3520'; g.fillRect(0, 0, ww, hh); g.fillStyle = '#ffd54f'; g.font = 'bold 56px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('' + (MB_HANGARS.indexOf(hx) + 1), ww / 2, hh / 2 + 3); }, 1, 1) }));
+      num.position.set(hx + w / 2, 90, MB_HY0 - 2); num.rotation.y = Math.PI; scene.add(num);
+    }
+    // диспетчерская вышка с крутящимся радаром
+    {
+      const tx = 6200, ty = -2010;
+      box(tx - 35, ty - 35, 70, 70, 140, new THREE.MeshStandardMaterial({ map: glassTex('#8d8f7a', '#3e4a52'), roughness: .7 }));
+      box(tx - 50, ty - 50, 100, 100, 30, new THREE.MeshStandardMaterial({ color: '#4fc3f7', roughness: .08, metalness: .7, transparent: true, opacity: .75 }), 140);
+      box(tx - 56, ty - 56, 112, 112, 5, new THREE.MeshStandardMaterial({ color: '#37474f' }), 170, false);
+      mbRadar = new THREE.Group(); mbRadar.position.set(tx, 178, ty); scene.add(mbRadar);
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(26, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3.2), new THREE.MeshStandardMaterial({ color: '#eceff1', metalness: .5, roughness: .3, side: THREE.DoubleSide }));
+      dish.rotation.x = Math.PI / 2.4; dish.position.y = 14; mbRadar.add(dish);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(2, 3, 14, 8), postMat); mast.position.y = 6; mbRadar.add(mast);
+    }
+    // казармы
+    const barr = new THREE.MeshStandardMaterial({ map: glassTex('#a1887f', '#37474f'), roughness: .8 });
+    for (const by of [-1800, -2020, -2240]) { box(7650, by, 440, 130, 42, barr); box(7645, by - 5, 450, 140, 5, new THREE.MeshStandardMaterial({ color: '#5d4037' }), 42, false); }
+    // топливные баки
+    const tankSilver = new THREE.MeshStandardMaterial({ color: '#d9dde0', metalness: .6, roughness: .3 });
+    for (const [x, y] of [[1820, -1640], [1960, -1640], [2100, -1640]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(55, 55, 80, 24), tankSilver); c.position.set(x, 40, y); c.castShadow = true; scene.add(c); outerObs.push({ x: x - 50, y: y - 50, w: 100, h: 100, top: 80, bot: 0 }); }
+    // грузовики
+    const olive = new THREE.MeshStandardMaterial({ color: '#4b5a32', roughness: .7 }), canvasM = new THREE.MeshStandardMaterial({ color: '#6b6b4a', roughness: 1 }), tire = new THREE.MeshStandardMaterial({ color: '#1c1f22' });
+    for (const x of [5500, 5620, 5740, 5860]) {
+      const tr = new THREE.Group();
+      const cab = new THREE.Mesh(new THREE.BoxGeometry(26, 24, 30), olive); cab.position.set(0, 16, -34); tr.add(cab);
+      const bed = new THREE.Mesh(new THREE.BoxGeometry(30, 30, 62), canvasM); bed.position.set(0, 21, 12); tr.add(bed);
+      for (const [a, b] of [[-15, -34], [15, -34], [-15, 10], [15, 10], [-15, 30], [15, 30]]) { const w2 = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 5, 12), tire); w2.rotation.z = Math.PI / 2; w2.position.set(a, 6, b); tr.add(w2); }
+      tr.traverse(o => { if (o.isMesh) o.castShadow = true; }); tr.position.set(x, 0, -1560); scene.add(tr);
+      outerObs.push({ x: x - 16, y: -1610, w: 32, h: 100, top: 36, bot: 0 });
+    }
+    // вертолётные площадки
+    const padTex = outerTex(256, 256, (g, w, h) => { g.fillStyle = '#3d4246'; g.fillRect(0, 0, w, h); g.strokeStyle = '#ffd54f'; g.lineWidth = 12; g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 14, 0, 7); g.stroke(); g.fillStyle = '#fff'; g.font = 'bold 150px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('H', w / 2, h / 2 + 8); }, 1, 1);
+    for (const [x, y] of [[6800, -1800], [7250, -1800]]) { const pd = new THREE.Mesh(new THREE.CircleGeometry(80, 32).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: padTex, roughness: .8, polygonOffset: true, polygonOffsetFactor: -4 })); pd.position.set(x, .8, y); scene.add(pd); }
+    // танки (два из них стреляют, если поднять тревогу)
+    const tankMat = new THREE.MeshStandardMaterial({ map: camoTex('#4b5a32'), roughness: .7 }), tankDark = new THREE.MeshStandardMaterial({ color: '#2e3520', roughness: .8 });
+    for (const [x, y, active] of [[4250, -1560, true], [4430, -1560, true], [4610, -1560, false]]) {
       const tk = new THREE.Group();
       const hull = new THREE.Mesh(new THREE.BoxGeometry(72, 16, 42), tankMat); hull.position.y = 14; tk.add(hull);
       for (const z of [-20, 20]) { const tr = new THREE.Mesh(new THREE.BoxGeometry(76, 12, 10), tankDark); tr.position.set(0, 7, z); tk.add(tr); }
-      const tur = new THREE.Mesh(new THREE.BoxGeometry(34, 12, 28), tankMat); tur.position.set(-4, 28, 0); tk.add(tur);
-      const gun = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 46, 8), tankDark); gun.rotation.z = Math.PI / 2; gun.position.set(30, 29, 0); tk.add(gun);
-      tk.traverse(o => { if (o.isMesh) o.castShadow = true; }); tk.position.set(x, 0, y); tk.rotation.y = Math.PI / 2; scene.add(tk);
-      outerObs.push({ x: x - 22, y: y - 38, w: 44, h: 76, top: 34, bot: 0 });
+      const tur = new THREE.Group(); tur.position.set(-4, 28, 0); tk.add(tur);
+      const tb = new THREE.Mesh(new THREE.BoxGeometry(34, 12, 28), tankMat); tur.add(tb);
+      const gun = new THREE.Mesh(new THREE.CylinderGeometry(2, 2.4, 50, 8), tankDark); gun.rotation.z = Math.PI / 2; gun.position.set(32, 1, 0); tur.add(gun);
+      tk.traverse(o => { if (o.isMesh) o.castShadow = true; }); tk.position.set(x, 0, y); scene.add(tk);
+      outerObs.push({ x: x - 38, y: y - 22, w: 76, h: 44, top: 34, bot: 0 });
+      MB_TANKS.push({ x, y, tur, active, cd: 3 + Math.random() * 2 });
+    }
+    // прожекторы
+    const lampHead = new THREE.MeshStandardMaterial({ color: '#fffde7', emissive: '#fff3c0', emissiveIntensity: 2.5 });
+    for (let x = MB.x0 + 400; x < MB.x1; x += 900) for (const y of [MB.y0 + 60, MB.y1 - 60]) {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(2, 3, 90, 8), postMat); p.position.set(x, 45, y); scene.add(p);
+      const hd = new THREE.Mesh(new THREE.BoxGeometry(14, 6, 10), lampHead); hd.position.set(x, 92, y + (y < -2000 ? 6 : -6)); scene.add(hd); MB_LAMPS.push(hd);
     }
     // вышки охраны с солдатами
-    const legMat = new THREE.MeshStandardMaterial({ color: '#5d4037', roughness: .8 }), cabMat = new THREE.MeshStandardMaterial({ color: '#6d6447', roughness: .8 });
-    for (const [x, y] of [[MB.x0 + 120, MB.y0 + 120], [MB.x1 - 120, MB.y0 + 120], [MB.x0 + 120, MB.y1 - 120], [MB.x1 - 120, MB.y1 - 120], [g0 - 200, MB.y1 - 140], [g1 + 200, MB.y1 - 140], [(MB.x0 + MB.x1) / 2, MB.y0 + 120]]) {
+    const legMat = new THREE.MeshStandardMaterial({ color: '#5d4037', roughness: .8 }), cabMat = new THREE.MeshStandardMaterial({ map: camoTex('#6d6447'), roughness: .8 });
+    for (const [x, y] of [[MB.x0 + 120, MB.y0 + 120], [MB.x1 - 120, MB.y0 + 120], [MB.x0 + 120, MB.y1 - 120], [MB.x1 - 120, MB.y1 - 120], [g0 - 330, MB.y1 - 150], [g1 + 330, MB.y1 - 150], [(MB.x0 + MB.x1) / 2, MB.y0 + 120]]) {
       for (const [a, b] of [[-14, -14], [14, -14], [-14, 14], [14, 14]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(3, 80, 3), legMat); l.position.set(x + a, 40, y + b); scene.add(l); }
       box(x - 20, y - 20, 40, 40, 14, cabMat, 80); box(x - 23, y - 23, 46, 46, 3, legMat, 94, false);
       outerObs.push({ x: x - 16, y: y - 16, w: 32, h: 32, top: 80, bot: 0, fence: true });
@@ -4733,7 +4830,11 @@
     const inst = (geo, mat, list, sc) => { const m = new THREE.InstancedMesh(geo, mat, list.length); list.forEach((p, i) => { const k = sc[i]; M4.compose(P.set(p[0], p[2] - 1, p[1]), Q.setFromAxisAngle(Yax, k * 40), S.set(k, k, k)); m.setMatrixAt(i, M4); }); m.castShadow = true; m.receiveShadow = true; scene.add(m); return m; };
     const ps = pine.map(() => .75 + Math.random() * .7), pl = palm.map(() => .85 + Math.random() * .4);
     inst(new THREE.CylinderGeometry(2.2, 3.2, 20, 6).translate(0, 10, 0), new THREE.MeshStandardMaterial({ color: '#5d4037', roughness: .9 }), pine, ps);
-    inst(new THREE.ConeGeometry(17, 58, 7).translate(0, 46, 0), new THREE.MeshStandardMaterial({ color: '#2f5d34', roughness: .85 }), pine, ps);
+    const crowns = [inst(new THREE.ConeGeometry(18, 46, 8).translate(0, 38, 0), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .85 }), pine, ps),
+      inst(new THREE.ConeGeometry(13, 36, 8).translate(0, 62, 0), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .85 }), pine, ps)];
+    const pc = new THREE.Color();
+    pine.forEach((p, i) => { pc.setHSL(.3 + Math.random() * .06, .45 + Math.random() * .2, .2 + Math.random() * .1); for (const c of crowns) c.setColorAt(i, pc); });   // разные оттенки хвои
+    for (const c of crowns) c.instanceColor.needsUpdate = true;
     inst(new THREE.CylinderGeometry(1.8, 2.8, 48, 6).translate(0, 24, 0), new THREE.MeshStandardMaterial({ color: '#8d6e4a', roughness: .9 }), palm, pl);
     inst(new THREE.ConeGeometry(26, 12, 8).translate(0, 50, 0), new THREE.MeshStandardMaterial({ color: '#4caf50', roughness: .8 }), palm, pl);
   }
@@ -4750,11 +4851,10 @@
   placeParked('kukuruznik', AP.x0 + 700, GC + 1500, 0, 'airport');
   placeParked('strela', AP.x0 + 800, GC - 250, 0, 'airport');
   placeParked('strekoza', AP.x0 + 650, GC + 1000, 0, 'airport');
-  placeParked('strela', MB.x0 + 2600, MB.y1 - 330, 0, 'military');
-  placeParked('strela', MB.x0 + 3000, MB.y1 - 330, 0, 'military');
-  placeParked('strela', MB.x0 + 3400, MB.y1 - 330, 0, 'military');
-  placeParked('kasatka', MB.x0 + 4300, MB.y1 - 330, Math.PI / 2, 'military');
-  placeParked('kasatka', MB.x0 + 4750, MB.y1 - 330, Math.PI / 2, 'military');
+  for (const hx of MB_HANGARS) placeParked('istrebitel', hx + 210, (MB_HY0 + MB_HY1) / 2 + 20, -Math.PI / 2, 'military');   // истребители в ангарах
+  placeParked('strela', 4600, MB_TAXI_Y + 120, 0, 'military');
+  placeParked('kasatka', 6800, -1800, Math.PI / 2, 'military');
+  placeParked('kasatka', 7250, -1800, Math.PI / 2, 'military');
   function nearParked() {
     if (!car.onFoot) return null;
     let best = null, bd = Infinity;
@@ -4773,11 +4873,19 @@
     foot.root.visible = false; footBlob.visible = false; setOnFootClass(); camAng = car.angle;
     if (pv.zone === 'military') { addWanted(Math.max(1, STAR_HEAT[4] - heat)); showMsg(t('stoleMil'), 3000); }
     else if (pv.zone === 'airport') { addWanted(Math.max(1, STAR_HEAT[2] - heat)); showMsg(t('stoleAir'), 2600); }
-    if (isAirSpec(spec)) setTimeout(() => showMsg(t(spec.kind === 'heli' ? 'flyHeli' : 'flyPlane'), 5000), pv.zone ? 3000 : 0);
+    if (isAirSpec(spec)) setTimeout(() => showMsg(t(spec.kind === 'heli' ? 'flyHeli' : 'flyPlane') + (spec.missiles ? ' · ' + t('jetHint') : ''), 6000), pv.zone ? 3000 : 0);
   }
   // солдаты на вышках базы
   const soldiers = MB_TOWERS.map(([x, y, z]) => { const p = buildPerson('#556b2f', '#3b4a1a', '#3b4a1a', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac'])); p.root.visible = true; p.root.position.set(x, z, y); p.limbs[2].rotation.z = 1.4; p.limbs[3].rotation.z = 1.4; return { x, y, z, p, cd: 1 + Math.random() }; });
-  const base = { alerted: false };
+  // солдаты, которые ходят по базе и бегут к тебе
+  for (const [x, y] of [[GC - 300, -1560], [GC + 300, -1560], [3000, -2000], [5200, -1900], [6500, -2150], [7400, -1700], [8400, -2100], [2400, -1700]]) {
+    const p = buildPerson('#556b2f', '#3b4a1a', '#3b4a1a', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac'])); p.root.visible = true;
+    soldiers.push({ x, y, z: 0, p, cd: 1 + Math.random(), ground: true, hx: x, hy: y, tx: x, ty: y, ph: 0, down: 0 });
+  }
+  const base = { alerted: false, spawnT: 0 };
+  const shells = [];                                          // снаряды танков
+  const shellGeo = new THREE.SphereGeometry(2.6, 8, 6), shellMat = new THREE.MeshBasicMaterial({ color: '#ffcc80' });
+  function milZone() { return base.alerted && car.x > MB.x0 - 2500 && car.x < MB.x1 + 2500 && car.y > MB.y0 - 2000 && car.y < MB.y1 + 2500; }
   let drownT = 0;
   function updateOuter(dt) {
     waterTex.offset.x += dt * .006; waterTex.offset.y += dt * .004;
@@ -4786,13 +4894,54 @@
     if (inBase && !base.alerted) { base.alerted = true; if (wanted < 3) addWanted(Math.max(1, STAR_HEAT[3] - heat)); showMsg(t('baseAlert'), 3000); }
     if (!inBase && wanted === 0) base.alerted = false;
     const spd = Math.hypot(car.vx, car.vy);
+    if (mbRadar) mbRadar.rotation.y += dt * 1.6;
+    if (mbBar) { const near = Math.hypot(car.x - GC, car.y - MB.y1) < 260; mbBar.rotation.z += ((near ? 1.35 : 0) - mbBar.rotation.z) * Math.min(1, dt * 3); }   // шлагбаум поднимается
+    const alarm = base.alerted && wanted > 0;
+    if (milZone() && wanted > 0) { base.spawnT -= dt; if (base.spawnT <= 0 && chase.cops.length < COPS_BY_STAR[wanted] + 1) { base.spawnT = 4.5; spawnCopFar(); } }   // подкрепление военных
+    // танки поворачивают башню и стреляют
+    for (const tk of MB_TANKS) {
+      if (!tk.active) continue;
+      const dx = car.x - tk.x, dy = car.y - tk.y, d = Math.hypot(dx, dy);
+      const want = Math.atan2(dy, dx); tk.tur.rotation.y += angDiff(-want, tk.tur.rotation.y) * Math.min(1, dt * 1.5);
+      tk.cd -= dt;
+      if (alarm && d < 1100 && d > 120 && (car.z || 0) < 90 && tk.cd <= 0) {
+        tk.cd = 4 + Math.random() * 2;
+        const lead = Math.min(.9, d / 700), tx = car.x + car.vx * lead, ty = car.y + car.vy * lead, a = Math.atan2(ty - tk.y, tx - tk.x);
+        const m = new THREE.Mesh(shellGeo, shellMat); m.position.set(tk.x + Math.cos(a) * 36, 29, tk.y + Math.sin(a) * 36); scene.add(m);
+        shells.push({ m, x: tk.x + Math.cos(a) * 36, y: tk.y + Math.sin(a) * 36, z: 29, vx: Math.cos(a) * 650, vy: Math.sin(a) * 650, left: Math.hypot(tx - tk.x, ty - tk.y) - 36 });
+        for (let k = 0; k < 10; k++) emit(tk.x + Math.cos(a) * 40, 30, tk.y + Math.sin(a) * 40, k % 2 ? '#ffd54f' : '#9e9e9e', 4, .4, Math.cos(a) * 80 + (Math.random() - .5) * 40, 20, Math.sin(a) * 80 + (Math.random() - .5) * 40, 20, .9);
+        shake = Math.max(shake, 2);
+      }
+    }
+    for (let i = shells.length - 1; i >= 0; i--) {
+      const sh = shells[i], st = 650 * dt; sh.left -= st;
+      const nx = sh.x + sh.vx * dt, ny = sh.y + sh.vy * dt;
+      emit(sh.x, sh.z, sh.y, '#bdbdbd', 2, .3, 0, 6, 0, 10, .5);
+      if (sh.left <= 0 || solidAtZ(nx, ny, sh.z - 6)) { explode(sh.x, sh.y, Math.max(0, sh.z - 18), 'enemy'); scene.remove(sh.m); shells.splice(i, 1); continue; }
+      sh.x = nx; sh.y = ny; sh.m.position.set(sh.x, sh.z, sh.y);
+    }
     for (const so of soldiers) {
+      if (so.down > 0) { so.down -= dt; so.p.root.rotation.z = Math.min(Math.PI / 2, so.p.root.rotation.z + dt * 8); if (so.down <= 0) so.p.root.rotation.z = 0; continue; }
+      if (so.ground) {                                        // ходит по базе; при тревоге бежит к тебе
+        const dd = Math.hypot(car.x - so.x, car.y - so.y);
+        if (alarm && dd < 900) { if (dd > 200) { so.tx = car.x; so.ty = car.y; } else { so.tx = so.x; so.ty = so.y; } }
+        else if (Math.hypot(so.tx - so.x, so.ty - so.y) < 10) { so.tx = so.hx + (Math.random() - .5) * 300; so.ty = so.hy + (Math.random() - .5) * 200; }
+        const mx = so.tx - so.x, my = so.ty - so.y, md = Math.hypot(mx, my), sp = alarm ? 150 : 50;
+        let moving = false;
+        if (md > 6) { const nx = so.x + mx / md * sp * dt, ny = so.y + my / md * sp * dt; if (!solidAtZ(nx, ny, 0)) { so.x = nx; so.y = ny; moving = true; } else { so.tx = so.x; so.ty = so.y; } }
+        so.ph += moving ? dt * (alarm ? 14 : 8) : 0;
+        const sw = moving ? Math.sin(so.ph) * .7 : 0;
+        so.p.limbs[0].rotation.z = sw; so.p.limbs[1].rotation.z = -sw;
+        so.p.limbs[2].rotation.z = alarm && !moving ? 1.4 : -sw * .8; so.p.limbs[3].rotation.z = alarm && !moving ? 1.4 : sw * .8;
+        so.p.root.position.set(so.x, 0, so.y);
+        if (!alarm || moving) { if (md > 6) so.p.root.rotation.y = -Math.atan2(my, mx); if (!alarm) continue; }
+      }
       const dx = car.x - so.x, dy = car.y - so.y, d = Math.hypot(dx, dy);
       so.p.root.rotation.y = -Math.atan2(dy, dx);
       so.cd -= dt;
-      if (base.alerted && wanted > 0 && d < 700 && so.cd <= 0) {
-        so.cd = .8 + Math.random() * .6;
-        const hit = Math.random() < Math.max(.1, .5 - spd / 900 - d / 2200);
+      if (alarm && d < (so.ground ? 520 : 650) && so.cd <= 0) {
+        so.cd = 1.5 + Math.random() * 1.2;
+        const hit = Math.random() < Math.max(.05, .3 - spd / 700 - d / 2400) * (car.onFoot ? 1 : .7);
         tracer(so.x + Math.cos(Math.atan2(dy, dx)) * 8, so.z + 18, so.y + Math.sin(Math.atan2(dy, dx)) * 8, car.x + (hit ? 0 : (Math.random() - .5) * 60), (car.z || 0) + 12, car.y + (hit ? 0 : (Math.random() - .5) * 60));
         emit(so.x, so.z + 18, so.y, '#ffd54f', 2, .08, 0, 0, 0, 10, 1);
         if (hit) shotPlayer(15, so.x, so.y);
@@ -5646,6 +5795,7 @@
     for (const pp of people) if (!pp.inactive && pp.mode !== 'down' && pp.mode !== 'fly') consider(pp, pp.x, pp.y, 'person', 14);
     for (const c of chase.cops) { if (c.mode !== 'drive' && !(c.odown > 0)) consider(c, c.ox, c.oy, 'cop', 14); else if (c.mode === 'drive') consider(c, c.x, c.y, 'copcar', 8); }
     for (const tc of traffic) if (!(tc.crash > 0)) consider(tc, tc.x, tc.y, 'car', 8);
+    for (const so of soldiers) if (!(so.down > 0)) consider(so, so.x, so.y, 'soldier', so.ground ? 14 : so.z + 14);
     return out.sort((a, b) => a.score - b.score);
   }
   function hitTarget(tg, W, mult = 1) {
@@ -5653,6 +5803,7 @@
     emit(tg.x, 14, tg.y, '#ffffff', 1.6, .25, (Math.random() - .5) * 90, Math.random() * 60, (Math.random() - .5) * 90, 0, .9);
     if (tg.kind === 'person') { shootPerson(tg.o, ux, uy, W.push * mult); gunWanted(1); }
     else if (tg.kind === 'cop') { tg.o.odown = 5; tg.o.ofall = 0; gunWanted(1); }
+    else if (tg.kind === 'soldier') { tg.o.down = 7; tg.o.p.root.rotation.z = 0; gunWanted(1); }
     else if (tg.kind === 'car') {
       for (let k = 0; k < 4; k++) emit(tg.x, 10, tg.y, '#ffd54f', 1.2, .2, (Math.random() - .5) * 140, Math.random() * 90, (Math.random() - .5) * 140, 0, 1);
       const was = tg.o.dmg || 0;
@@ -5695,11 +5846,21 @@
   const rocketGeo = new THREE.CylinderGeometry(1.1, 1.1, 7, 8).rotateZ(Math.PI / 2), rocketMat = new THREE.MeshStandardMaterial({ color: '#eceff1', emissive: '#ff6f00', emissiveIntensity: .3 });
   const rockets = [];
   const boomLight = new THREE.PointLight('#ffab40', 0, 420, 1.5); scene.add(boomLight);
-  function fireRocket(x, z, y, a) {
+  function fireRocket(x, z, y, a, vz = 0, spd = 620) {
     const m = new THREE.Mesh(rocketGeo, rocketMat); m.position.set(x, z, y); m.rotation.y = -a; scene.add(m);
-    rockets.push({ m, x, y, z, vx: Math.cos(a) * 620, vy: Math.sin(a) * 620, life: 1000 / 620 });
+    rockets.push({ m, x, y, z, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, vz, life: (spd > 700 ? 2200 : 1000) / spd });
   }
-  function explode(x, y, z) {
+  let jetCd = 0, jetSide = 1;
+  function jetFire() {                                        // ракеты истребителя
+    if (jetCd > 0 || !car.fly) return;
+    jetCd = .45; jetSide = -jetSide;
+    const ca = Math.cos(car.angle), sa = Math.sin(car.angle), ox = -sa * 18 * jetSide, oy = ca * 18 * jetSide;
+    const spd = (car.fly.spd || 0) + 900;
+    fireRocket(car.x + ca * 30 + ox, car.z + 8, car.y + sa * 30 + oy, car.angle, car.fly.vz - 60 + Math.sin(car.fly.pitch) * spd, spd);
+    shake = Math.max(shake, 1.2);
+  }
+  window.__jetFire = jetFire;
+  function explode(x, y, z, src) {
     shake = Math.max(shake, 6);
     boomLight.position.set(x, z + 20, y); boomLight.intensity = 9;
     for (let k = 0; k < 34; k++) {
@@ -5725,7 +5886,8 @@
     }
     const pd = Math.hypot(car.x - x, car.y - y);
     if (pd < 90) { if (car.onFoot) hurtPlayer(35 * (1 - pd / 90) + 10, x, y); else { car.vx += (car.x - x) / (pd || 1) * 250; car.vy += (car.y - y) / (pd || 1) * 250; } }
-    gunWanted(hit ? 2 : 1);
+    for (const so of soldiers) if (Math.hypot(so.x - x, so.y - y) < R && !(so.down > 0)) { so.down = 7; so.p.root.rotation.z = 0; hit = true; }
+    if (src !== 'enemy') gunWanted(hit ? 2 : 1);
   }
   // ---------- взрывы машин ----------
   const booms = [];                                           // взрывы по очереди — цепная реакция, как в GTA
@@ -5797,7 +5959,7 @@
     if (fireNear && fireD < 700) { fireLight.position.set(fireNear.x, (fireNear.z || 0) + 22, fireNear.y); fireLight.intensity = 2.2 + Math.random() * 1.6; }
     else fireLight.intensity = 0;
     fireNear = null; fireD = Infinity;
-    gun.cd -= dt; gun.wantedCd -= dt; gun.recoil = Math.max(0, gun.recoil - dt * 3);
+    gun.cd -= dt; gun.wantedCd -= dt; gun.recoil = Math.max(0, gun.recoil - dt * 3); jetCd -= dt;
     const W = curW();
     if (gun.fire && W && W.auto) tryShoot();                                        // автомат стреляет, пока держишь
     if (boomLight.intensity > 0) boomLight.intensity = Math.max(0, boomLight.intensity - dt * 20);
@@ -5806,12 +5968,13 @@
       r.life -= dt;
       const nx = r.x + r.vx * dt, ny = r.y + r.vy * dt;
       emit(r.x, r.z, r.y, Math.random() < .5 ? '#ffb74d' : '#9e9e9e', 2.2, .45, (Math.random() - .5) * 20, 10, (Math.random() - .5) * 20, 14, .6);   // дымный след
-      let boom = r.life <= 0 || solidAtZ(nx, ny, r.z - 4);
-      if (!boom) for (const pp of people) if (!pp.inactive && pp.mode !== 'fly' && Math.hypot(pp.x - nx, pp.y - ny) < 16) { boom = true; break; }
-      if (!boom) for (const tc of traffic) if (Math.hypot(tc.x - nx, tc.y - ny) < 26) { boom = true; break; }
-      if (!boom) for (const c of chase.cops) if (Math.hypot((c.mode === 'drive' ? c.x : c.ox) - nx, (c.mode === 'drive' ? c.y : c.oy) - ny) < 24) { boom = true; break; }
-      if (boom) { explode(r.x, r.y, Math.max(0, r.z - 14)); scene.remove(r.m); rockets.splice(i, 1); continue; }
-      r.x = nx; r.y = ny; r.m.position.set(r.x, r.z, r.y);
+      const nz = r.z + (r.vz || 0) * dt, low = nz < 60;
+      let boom = r.life <= 0 || solidAtZ(nx, ny, nz - 4) || nz <= groundHeight(nx, ny, nz) + 2;
+      if (!boom && low) for (const pp of people) if (!pp.inactive && pp.mode !== 'fly' && Math.hypot(pp.x - nx, pp.y - ny) < 16) { boom = true; break; }
+      if (!boom && low) for (const tc of traffic) if (Math.hypot(tc.x - nx, tc.y - ny) < 26) { boom = true; break; }
+      if (!boom) for (const c of chase.cops) if (Math.abs(nz - (c.z || 0) - 12) < 50 && Math.hypot((c.mode === 'drive' ? c.x : c.ox) - nx, (c.mode === 'drive' ? c.y : c.oy) - ny) < 24) { boom = true; break; }
+      if (boom) { explode(r.x, r.y, nz - 14); scene.remove(r.m); rockets.splice(i, 1); continue; }
+      r.x = nx; r.y = ny; r.z = nz; r.m.position.set(r.x, r.z, r.y);
     }
   }
 
