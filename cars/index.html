@@ -820,7 +820,7 @@
   };
   for (const k in MENU_TEXT) MENU_KEYS.forEach((key, i) => { I18N[k][key] = MENU_TEXT[k][i]; });
   // переключение разделов меню
-  function showPanel(id) { document.querySelectorAll('.mpanel').forEach(pn => pn.classList.toggle('on', pn.id === id)); }
+  function showPanel(id) { if (id === 'mMain' && window.__needNick?.()) id = 'mNick'; document.querySelectorAll('.mpanel').forEach(pn => pn.classList.toggle('on', pn.id === id)); }
   document.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => showPanel(b.dataset.open)));
   document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => showPanel('mMain')));
   document.documentElement.classList.add('menuOpen');
