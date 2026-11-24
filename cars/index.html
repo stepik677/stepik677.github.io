@@ -225,7 +225,7 @@
   :root { --mm: 170px; }
   #hud { left: calc(24px + var(--mm) + var(--sl)); top: calc(14px + var(--st)); flex-wrap: wrap; max-width: calc(100vw - var(--mm) - 230px); }
   #minimap { position: fixed; left: calc(14px + var(--sl)); top: calc(14px + var(--st)); width: var(--mm); height: var(--mm); z-index: 4;
-    border-radius: 18px; border: 3px solid rgba(255,255,255,.85); box-shadow: 0 6px 20px rgba(0,0,0,.35); cursor: pointer; background: #2f5d2a; }
+    border-radius: 14px; border: 3px solid rgba(10,12,16,.9); outline: 2px solid rgba(255,255,255,.35); box-shadow: 0 6px 20px rgba(0,0,0,.45); cursor: pointer; background: #2b3036; }
   #bigmap { position: fixed; inset: 0; z-index: 22; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
     background: rgba(5,10,18,.82); backdrop-filter: blur(4px); padding: calc(10px + var(--st)) 10px calc(10px + var(--sb)); box-sizing: border-box; }
   #bigmap.on { display: flex; }
@@ -384,7 +384,7 @@
 <div id="driftMeter"></div>
 <canvas id="minimap"></canvas>
 <div id="bigmap">
-  <div class="bmTop"><b data-i18n="mapTitle"></b><button id="bmIn" title="+">➕</button><button id="bmOut" title="−">➖</button><button id="bmMe" data-i18n="mapMe"></button><button id="bmClear" data-i18n="mapClear"></button><button id="bmClose">✕</button></div>
+  <div class="bmTop"><b data-i18n="mapTitle"></b><button id="bmIn" title="+">➕</button><button id="bmOut" title="−">➖</button><button id="bmMe" data-i18n="mapMe"></button><button id="bmStyle"></button><button id="bmClear" data-i18n="mapClear"></button><button id="bmClose">✕</button></div>
   <div class="bmBody"><canvas id="bigmapCanvas"></canvas><div class="legend" id="legend"></div></div>
 </div>
 <div id="actPrompt"></div>
@@ -676,6 +676,7 @@
       ru: { phTitle: '📱 Контакты', phCall: '📞 Позвонить', phBye: '👋 Пока', phCalling: 'Звоним…', phHint: '1 / 2 — выбрать · 3 — позвонить · 6 — закрыть',
         frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
         flyLand: '🛬 Сначала приземлись на землю!', flyHeli: '🚁 Пробел — вверх, S — вниз, W — вперёд, A/D — поворот', flyPlane: '✈️ W — газ, разгонись и жми пробел — взлёт. S / ▼ (тормоз) — вниз',
+      mapRoad: '🗺 Схема', mapSat: '🛰 Спутник',
       mapMe: '🎯 Где я', mapZoomHint: 'Колёсико или ➕➖ — приблизить, тяни мышкой — двигать карту',
         streetsH: 'Проспект Мира|ул. Гонщиков|Садовая ул.|Центральный пр.|ул. Победы|Солнечная ул.|Лесная ул.|ул. Трамплинов|Морская ул.|Новая ул.|Парковая ул.|Речная ул.|ул. Строителей|Школьная ул.',
         streetsV: 'ул. Ленина|Зелёная ул.|Кленовая ул.|Вокзальная ул.|Мостовая ул.|ул. Гагарина|Озёрная ул.|Широкая ул.|Звёздная ул.|ул. Механиков|Яблочная ул.|Тихая ул.|Восточная ул.|Полевая ул.',
@@ -686,6 +687,7 @@
       en: { phTitle: '📱 Contacts', phCall: '📞 Call', phBye: '👋 Bye', phCalling: 'Calling…', phHint: '1 / 2 — pick · 3 — call · 6 — close',
         frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
         flyLand: '🛬 Land on the ground first!', flyHeli: '🚁 Space — up, S — down, W — forward, A/D — turn', flyPlane: '✈️ W — throttle, speed up and press Space to take off. S / ▼ (brake) — down',
+      mapRoad: '🗺 Road map', mapSat: '🛰 Satellite',
       mapMe: '🎯 Where am I', mapZoomHint: 'Wheel or ➕➖ — zoom, drag with the mouse — move the map',
         streetsH: 'Peace Ave|Racer St|Garden St|Central Ave|Victory St|Sunny St|Forest St|Ramp St|Ocean St|New St|Park St|River St|Builders St|School St',
         streetsV: 'Main St|Green St|Maple St|Station St|Bridge St|Star St|Lake St|Broadway|Comet St|Mechanic St|Apple St|Quiet St|East St|Field St',
@@ -5512,6 +5514,45 @@
     }
     realMap = c;
   }
+  // ---------- тёмная карта-схема: дороги, кварталы, дома, парки, вода ----------
+  let roadMap = null, bmStyle = 'road';
+  function buildRoadMap() {
+    const PX = IS_TOUCH ? 2048 : 4096, k = PX / WORLD;
+    const c = document.createElement('canvas'); c.width = c.height = PX;
+    const g = c.getContext('2d'); g.setTransform(k, 0, 0, k, 0, 0);
+    const rr = (x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
+    g.fillStyle = '#62686f'; g.fillRect(0, 0, WORLD, WORLD);                        // асфальт
+    g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = 5; g.setLineDash([60, 60]); g.beginPath();
+    for (let kk = 0; kk <= NB; kk++) for (let li = 1; li < ROAD_W / T; li++) { if (li === ROAD_W / T / 2) continue; const cc = roadPos(kk) + li * T; g.moveTo(cc, 0); g.lineTo(cc, WORLD); g.moveTo(0, cc); g.lineTo(WORLD, cc); }
+    g.stroke(); g.setLineDash([]);
+    g.strokeStyle = 'rgba(255,255,255,.22)'; g.lineWidth = 9; g.beginPath();
+    for (let kk = 0; kk <= NB; kk++) { const cc = nodeC(kk); g.moveTo(cc, 0); g.lineTo(cc, WORLD); g.moveTo(0, cc); g.lineTo(WORLD, cc); }
+    g.stroke();
+    const LOT = { park: '#33553a', lake: '#33553a', residential: '#363c38', parking: '#3c4148', shops: '#3a3e45', home: '#383d3a' };
+    for (const b of blocks) {
+      g.fillStyle = '#2a2e34'; rr(b.x, b.y, BS, BS, CR); g.fill();                    // тротуар
+      g.fillStyle = LOT[b.type] || '#33383f'; rr(b.lx, b.ly, LS, LS, CR - SW); g.fill();
+    }
+    const seen = new Set();
+    for (const cell of grid) for (const o of cell) if (o.t === 'e' && !seen.has(o)) {
+      seen.add(o); g.fillStyle = '#2b5f8e'; g.beginPath(); g.ellipse(o.x, o.y, o.rx, o.ry, 0, 0, 7); g.fill();
+      g.strokeStyle = '#3f79ab'; g.lineWidth = 8; g.stroke();
+    }
+    for (const o of tall) if (o.k === 't' && o.x > 0 && o.y > 0 && o.x < WORLD && o.y < WORLD) { g.fillStyle = '#2d4b33'; g.beginPath(); g.arc(o.x, o.y, o.r * .8, 0, 7); g.fill(); }
+    for (const pc of parked) { g.fillStyle = '#4a5058'; g.fillRect(pc.x - 11, pc.y - 11, 22, 22); }
+    const bld = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); g.strokeStyle = 'rgba(255,255,255,.10)'; g.lineWidth = 3; g.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3); };
+    for (const o of tall) { if (o.k === 'b') bld(o.x, o.y, o.w, o.h, o.H > 250 ? '#565e68' : '#4c535c'); else if (o.k === 'h') bld(o.x, o.y, o.w, o.h, '#4a4f55'); }
+    for (const S of SHOPS) bld(S.x0, S.y0, S.w, S.h, '#4c535c');
+    for (const hm of HOMES) if (hm) { bld(hm.house.x0, hm.house.y0, hm.house.w, hm.house.h, '#4c535c'); bld(hm.gar.x0, hm.gar.y0, hm.gar.w, hm.gar.h, '#4c535c'); }
+    for (const pl of PLATS) {
+      if (pl.home) continue;
+      const w = pl.ux ? pl.L : pl.Wd, h = pl.ux ? pl.Wd : pl.L;
+      g.fillStyle = pl.bot >= 50 ? '#7b828b' : '#555b63'; g.fillRect(pl.cx - w / 2, pl.cy - h / 2, w, h);
+    }
+    for (const r of RAMPS) { const along = Math.abs(r.ux) > .5, w = along ? r.L : r.Wd, h = along ? r.Wd : r.L; g.fillStyle = '#8c3a3a'; g.fillRect(r.cx - w / 2, r.cy - h / 2, w, h); }
+    roadMap = c;
+  }
+  let mapRotInv = 0;                                          // мини-карта повёрнута — значки рисуем ровно
   const bmView = { cx: WORLD / 2, cy: WORLD / 2, zoom: 1 };
   function clampView() {
     bmView.zoom = Math.max(1, Math.min(8, bmView.zoom));
@@ -5689,7 +5730,8 @@
         g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(x + 1.5 / s, y + 1.5 / s, r, 0, 7); g.fill();
         g.fillStyle = info.sign; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
         g.strokeStyle = '#fff'; g.lineWidth = 2 / s; g.stroke();
-        g.font = `${r * 1.15}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`; g.fillStyle = '#000'; g.fillText(info.icon, x, y + r * .08);
+        g.save(); g.translate(x, y); g.rotate(mapRotInv);
+        g.font = `${r * 1.15}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`; g.fillStyle = '#000'; g.fillText(info.icon, 0, r * .08); g.restore();
       }
     }
     for (const c of coins) if (!c.taken) {
@@ -5729,20 +5771,27 @@
     g.restore();
     if (full) mapLabel(g, s, t('lgYou'), car.x, car.y - 28 / s, 14, '#ffffff');
   }
-  const mmEl = document.getElementById('minimap'), mmc = mmEl.getContext('2d');
+  const mmEl = document.getElementById('minimap'), mmc = mmEl.getContext('2d'), mmView = { R: 700 };
   function drawMinimap(time) {
     const css = mmEl.clientWidth; if (!css) return;
     const px = Math.round(css * Math.min(devicePixelRatio || 1, 2));
     if (mmEl.width !== px) mmEl.width = mmEl.height = px;
-    const Rv = 700, s = px / (2 * Rv);
-    mmc.setTransform(1, 0, 0, 1, 0, 0); mmc.fillStyle = '#2f5d2a'; mmc.fillRect(0, 0, px, px);
-    mmc.setTransform(s, 0, 0, s, px / 2 - car.x * s, px / 2 - car.y * s);
-    mmc.drawImage(baseMap, 0, 0, WORLD, WORLD);
+    if (!roadMap) buildRoadMap();
+    const spd = Math.hypot(car.vx, car.vy);
+    mmView.R += ((560 + spd * .9 + (car.z || 0) * 1.2) - mmView.R) * .05;        // на скорости и в воздухе карта отдаляется
+    const Rv = mmView.R, s = px / (2 * Rv), rot = -car.angle - Math.PI / 2, cxp = px / 2, cyp = px * .62;
+    mmc.setTransform(1, 0, 0, 1, 0, 0); mmc.fillStyle = '#262a30'; mmc.fillRect(0, 0, px, px);
+    mmc.translate(cxp, cyp); mmc.rotate(rot); mmc.scale(s, s); mmc.translate(-car.x, -car.y);
+    mmc.drawImage(roadMap, 0, 0, WORLD, WORLD);
+    mapRotInv = -rot;
     mapOverlay(mmc, s, false, time);
+    mapRotInv = 0;
     mmc.setTransform(1, 0, 0, 1, 0, 0);
-    mmc.fillStyle = 'rgba(15,20,28,.7)'; mmc.beginPath(); mmc.arc(px / 2, px * .09, px * .07, 0, 7); mmc.fill();
-    mmc.fillStyle = '#fff'; mmc.font = `bold ${Math.round(px * .09)}px sans-serif`; mmc.textAlign = 'center'; mmc.textBaseline = 'middle';
-    mmc.fillText('N', px / 2, px * .093);
+    // буква N показывает, где север
+    const ex = px / 2 + Math.sin(rot) * px * .4, ey = px / 2 - Math.cos(rot) * px * .4;
+    mmc.fillStyle = 'rgba(15,20,28,.8)'; mmc.beginPath(); mmc.arc(ex, ey, px * .065, 0, 7); mmc.fill();
+    mmc.fillStyle = '#fff'; mmc.font = `bold ${Math.round(px * .08)}px sans-serif`; mmc.textAlign = 'center'; mmc.textBaseline = 'middle';
+    mmc.fillText('N', ex, ey + px * .004);
   }
   const bmEl = document.getElementById('bigmap'), bmc = document.getElementById('bigmapCanvas'), bctx = bmc.getContext('2d');
   function toggleMap(force) {
@@ -5782,13 +5831,14 @@
     const css = bmc.clientWidth; if (!css) return;
     const px = Math.round(css * Math.min(devicePixelRatio || 1, 2));
     if (bmc.width !== px) bmc.width = bmc.height = px;
-    if (!realMap) buildRealMap();
-    clampView();
+    if (bmStyle === 'sat' && !realMap) buildRealMap();
+    if (!roadMap) buildRoadMap();
+    clampView(); mapRotInv = 0;
     const s = px / WORLD * bmView.zoom;
-    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.fillStyle = '#2f4a2a'; bctx.fillRect(0, 0, px, px);
+    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.fillStyle = bmStyle === 'sat' ? '#2f4a2a' : '#262a30'; bctx.fillRect(0, 0, px, px);
     bctx.setTransform(s, 0, 0, s, px / 2 - bmView.cx * s, px / 2 - bmView.cy * s);
     bctx.imageSmoothingQuality = 'high';
-    bctx.drawImage(realMap, 0, 0, WORLD, WORLD);
+    bctx.drawImage(bmStyle === 'sat' ? realMap : roadMap, 0, 0, WORLD, WORLD);
     mapOverlay(bctx, s, true, time);
     // компас и масштаб
     bctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -5853,6 +5903,10 @@
   document.getElementById('bmIn').addEventListener('click', () => zoomAt(1.5));
   document.getElementById('bmOut').addEventListener('click', () => zoomAt(1 / 1.5));
   document.getElementById('bmMe').addEventListener('click', centerOnMe);
+  const bmStyleBtn = document.getElementById('bmStyle');
+  const styleLabel = () => { bmStyleBtn.textContent = t(bmStyle === 'sat' ? 'mapRoad' : 'mapSat'); };
+  bmStyleBtn.addEventListener('click', () => { bmStyle = bmStyle === 'sat' ? 'road' : 'sat'; styleLabel(); });
+  styleLabel(); langHooks.push(styleLabel);
   // маяк в месте назначения — видно издалека
   const beacon = new THREE.Group();
   {
