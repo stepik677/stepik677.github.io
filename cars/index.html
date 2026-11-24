@@ -108,6 +108,8 @@
   .sitem { background: #1f2835; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; border: 2px solid transparent; text-align: center; }
   .sitem.cur { border-color: #ffd54f; }
   .sitem .ic { font-size: 46px; line-height: 1.1; }
+  .sitem .gpic { width: 100%; height: 74px; border-radius: 12px; background: radial-gradient(#e8edf2, #b8c2cc); display: grid; place-items: center; }
+  .sitem .gpic svg { width: 92%; height: 66px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.35)); }
   .sitem .sw { width: 56px; height: 56px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,.4); }
   .sitem h3 { margin: 2px 0; font-size: 16px; }
   .sitem .price { color: #ffd54f; font-weight: 800; }
@@ -680,7 +682,7 @@
         shHotdog: 'Хот-дог', shSoda: 'Газировка', shPizza: 'Пицца', shIce: 'Мороженое', shBurger: 'Бургер', shShirts: 'Футболки', shCaps: 'Кепки', shFactory: 'Заводской цвет', shFree: 'Бесплатно',
         lgShops: 'Магазины', runOver: '💥 Ты сбил человека! Полиция уже едет 🚓', shSignFood: '24/7', shSignClothes: 'ОДЕЖДА', shSignPaint: 'ПОКРАСКА',
         shGuns: '🔫 Оружейный магазин', shGunsHint: 'Купи оружие и патроны. Выйди из машины: 7 — достать оружие, 4 / Q / клик — стрелять', shSignGuns: 'ОРУЖИЕ',
-        wpPistol: 'Пистолет', wpSmg: 'Автомат', wpShotgun: 'Дробовик', wpRocket: 'Ракетница', wpFist: 'Кулаки', wpAmmo: 'Патроны +{n}',
+        wpPistol: 'Пистолет ПМ', wpSmg: 'Узи', wpShotgun: 'Помповый дробовик', wpRocket: 'Базука', wpAk: 'АК-47', wpSniper: 'Снайперская винтовка СВД', wpFist: 'Кулаки', wpAmmo: 'Патроны +{n}',
         wpNoAmmo: 'Нет патронов! Купи их в оружейном магазине 🔫', wpGot: '{w} теперь твой! Выйди из машины и нажми 7', wpOwned: 'Есть ✓' },
       en: { shFood: '🏪 24/7 Store', shClothes: '👕 Clothes Shop', shPaint: '🎨 Paint Shop', shFoodHint: 'Have a snack — it restores your health ❤️', shClothesHint: 'Pick a T-shirt and a cap for your character',
         shPaintHint: 'Repaint your car: {car}', shBuy: 'Buy', shOn: 'Wearing ✓', shNoMoney: 'Not enough money 💶 — collect coins!', shYum: 'Yum! ❤️ +{n}', shDone: 'Done! ✨',
@@ -688,7 +690,7 @@
         shHotdog: 'Hot dog', shSoda: 'Soda', shPizza: 'Pizza', shIce: 'Ice cream', shBurger: 'Burger', shShirts: 'T-shirts', shCaps: 'Caps', shFactory: 'Factory color', shFree: 'Free',
         lgShops: 'Shops', runOver: '💥 You hit a person! The police are coming 🚓', shSignFood: '24/7', shSignClothes: 'CLOTHES', shSignPaint: 'PAINT',
         shGuns: '🔫 Gun Shop', shGunsHint: 'Buy weapons and ammo. Get out of the car: 7 — draw a weapon, 4 / Q / click — shoot', shSignGuns: 'GUNS',
-        wpPistol: 'Pistol', wpSmg: 'SMG', wpShotgun: 'Shotgun', wpRocket: 'Rocket launcher', wpFist: 'Fists', wpAmmo: 'Ammo +{n}',
+        wpPistol: 'PM pistol', wpSmg: 'Uzi', wpShotgun: 'Pump shotgun', wpRocket: 'Bazooka', wpAk: 'AK-47', wpSniper: 'SVD sniper rifle', wpFist: 'Fists', wpAmmo: 'Ammo +{n}',
         wpNoAmmo: 'Out of ammo! Buy some at the gun shop 🔫', wpGot: 'The {w} is yours! Get out of the car and press 7', wpOwned: 'Owned ✓' },
     };
     for (const k in I18N) Object.assign(I18N[k], SH[k] || SH.en);
@@ -4747,7 +4749,7 @@
     else if (shopKind === 'guns') {
       html = WPN_ORDER.map(id => {
         const W = WEAPONS[id], own = save.weapons.owned.includes(id);
-        const card = (name, price, act, extra) => `<div class="sitem">${`<div class="ic">${W.ico}</div>`}<h3>${esc(name)}</h3>${extra || ''}<div class="price">${fmt(price)}</div><button data-act="${act}">${esc(t('shBuy'))}</button></div>`;
+        const card = (name, price, act, extra) => `<div class="sitem"><div class="gpic">${gunPic(id)}</div><h3>${esc(name)}</h3>${extra || ''}<div class="price">${fmt(price)}</div><button data-act="${act}">${esc(t('shBuy'))}</button></div>`;
         return own ? card(t(W.key) + ' · ' + t('wpAmmo', { n: W.pack }), W.ammoPrice, 'ammo:' + id, `<small>${esc(t('wpOwned'))} · 🎯 ${save.weapons.ammo[id] || 0}</small>`)
           : card(t(W.key), W.price, 'gun:' + id, `<small>${'★'.repeat(W.stars)}</small>`);
       }).join('');
@@ -4788,9 +4790,52 @@
     pistol:  { ico: '🔫', key: 'wpPistol', price: 300, ammoPrice: 40, pack: 24, cd: .3, range: 520, acc: .9, pellets: 1, push: 140, stars: 1, len: 4, col: '#37474f' },
     smg:     { ico: '🔫', key: 'wpSmg', price: 1200, ammoPrice: 80, pack: 90, cd: .09, range: 480, acc: .7, pellets: 1, push: 110, auto: true, stars: 2, len: 7, col: '#263238' },
     shotgun: { ico: '💥', key: 'wpShotgun', price: 2000, ammoPrice: 80, pack: 16, cd: .85, range: 300, acc: 1, pellets: 3, push: 260, stars: 3, len: 9, col: '#6d4c41' },
-    rocket:  { ico: '🚀', key: 'wpRocket', price: 6000, ammoPrice: 300, pack: 4, cd: 1.3, range: 1000, rocket: true, stars: 5, len: 11, col: '#558b2f' },
+    ak47:    { ico: '🔫', key: 'wpAk', price: 3500, ammoPrice: 120, pack: 90, cd: .11, range: 650, acc: .8, pellets: 1, push: 190, auto: true, stars: 3, len: 9, col: '#2b2f33' },
+    sniper:  { ico: '🎯', key: 'wpSniper', price: 5000, ammoPrice: 150, pack: 10, cd: 1.2, range: 1500, acc: 1, pellets: 1, push: 320, sniper: true, stars: 4, len: 12, col: '#2b2f33' },
+    rocket:  { ico: '🚀', key: 'wpRocket', price: 7000, ammoPrice: 300, pack: 4, cd: 1.3, range: 1000, rocket: true, stars: 5, len: 11, col: '#556b2f' },
   };
-  const WPN_ORDER = ['pistol', 'smg', 'shotgun', 'rocket'];
+  const WPN_ORDER = ['pistol', 'smg', 'shotgun', 'ak47', 'sniper', 'rocket'];
+  // картинки оружия (вид сбоку) для магазина
+  const GUN_SVG = (() => {
+    const M = '#2b2f33', M2 = '#454b52', WD = '#8d5a2b', WD2 = '#6d4220';
+    return {
+    pistol: `<rect x="36" y="22" width="112" height="19" rx="3" fill="${M2}"/><rect x="30" y="27" width="9" height="9" fill="#111"/>
+      ${[0, 1, 2, 3, 4, 5].map(k => `<rect x="${124 + k * 4}" y="24" width="2" height="15" fill="${M}"/>`).join('')}
+      <rect x="48" y="16" width="5" height="6" fill="${M}"/><rect x="138" y="17" width="6" height="5" fill="${M}"/>
+      <rect x="56" y="41" width="92" height="8" fill="${M}"/><path d="M104 47 H146 L140 78 H108 Z" fill="#4e342e"/>
+      ${[0, 1, 2, 3, 4].map(k => `<rect x="${110 + k * 1}" y="${52 + k * 5}" width="26" height="1.6" fill="#3e2723"/>`).join('')}
+      <path d="M78 49 H104 V58 Q90 70 78 58 Z" fill="none" stroke="${M}" stroke-width="4"/><rect x="92" y="49" width="3" height="9" fill="${M}"/>`,
+    smg: `<rect x="34" y="24" width="118" height="22" rx="3" fill="${M2}"/><rect x="14" y="31" width="22" height="7" fill="${M}"/>
+      <rect x="40" y="19" width="6" height="6" fill="${M}"/><rect x="132" y="18" width="12" height="7" fill="${M}"/>
+      ${[0, 1, 2, 3, 4, 5, 6].map(k => `<rect x="${48 + k * 9}" y="28" width="5" height="14" rx="2" fill="${M}"/>`).join('')}
+      <rect x="92" y="46" width="20" height="34" fill="${M}"/><rect x="95" y="74" width="14" height="6" fill="#111"/>
+      <path d="M72 46 H92 V55 Q82 64 72 55 Z" fill="none" stroke="${M}" stroke-width="4"/>
+      <path d="M152 28 L190 28 L190 34 L158 34 L158 44 L152 44 Z" fill="${M}"/><rect x="186" y="26" width="6" height="20" fill="${M}"/>`,
+    shotgun: `<rect x="4" y="27" width="128" height="7" rx="2" fill="${M}"/><rect x="26" y="35" width="104" height="7" fill="${M2}"/>
+      <rect x="40" y="32" width="46" height="14" rx="4" fill="${WD}"/>${[0, 1, 2, 3, 4, 5].map(k => `<rect x="${44 + k * 7}" y="33" width="2" height="12" fill="${WD2}"/>`).join('')}
+      <rect x="128" y="23" width="34" height="21" rx="2" fill="${M2}"/><path d="M138 44 H156 V52 Q147 60 138 52 Z" fill="none" stroke="${M}" stroke-width="4"/>
+      <path d="M160 24 L198 32 L198 54 L190 56 L162 44 Z" fill="${WD}"/><rect x="194" y="32" width="5" height="23" fill="#222"/>`,
+    ak47: `<rect x="2" y="29" width="44" height="4" fill="${M}"/><rect x="2" y="26" width="5" height="9" fill="${M}"/><rect x="30" y="21" width="4" height="8" fill="${M}"/>
+      <rect x="40" y="22" width="50" height="5" fill="${M}"/><rect x="44" y="27" width="44" height="12" rx="2" fill="${WD}"/>
+      <rect x="88" y="23" width="58" height="17" rx="2" fill="${M2}"/><rect x="96" y="27" width="34" height="3" fill="${M}"/>
+      <path d="M100 40 Q101 66 116 80 L130 73 Q118 62 118 40 Z" fill="${M}"/>
+      <path d="M132 40 L146 40 L140 66 L128 63 Z" fill="${WD}"/><path d="M140 40 H128 V48 Q122 54 116 48" fill="none" stroke="${M}" stroke-width="3"/>
+      <path d="M144 25 L198 34 L198 54 L190 54 L146 40 Z" fill="${WD}"/><rect x="194" y="34" width="5" height="20" fill="#222"/>`,
+    sniper: `<rect x="0" y="33" width="72" height="3" fill="${M}"/><rect x="0" y="31" width="7" height="7" fill="${M}"/>
+      <rect x="62" y="29" width="42" height="11" rx="3" fill="${WD}"/>${[0, 1, 2, 3].map(k => `<rect x="${68 + k * 8}" y="31" width="4" height="7" rx="1" fill="${WD2}"/>`).join('')}
+      <rect x="102" y="27" width="46" height="13" rx="2" fill="${M2}"/>
+      <rect x="96" y="10" width="50" height="10" rx="4" fill="${M}"/><rect x="92" y="8" width="10" height="14" rx="3" fill="${M}"/><rect x="141" y="9" width="9" height="12" rx="3" fill="${M}"/>
+      <rect x="110" y="20" width="5" height="7" fill="${M}"/><rect x="128" y="20" width="5" height="7" fill="${M}"/><circle cx="94" cy="15" r="3" fill="#4fc3f7"/>
+      <rect x="112" y="40" width="15" height="16" fill="${M}"/><path d="M128 40 H142 V46 Q135 52 128 46" fill="none" stroke="${M}" stroke-width="3"/>
+      <path d="M146 27 L198 30 L198 58 L186 58 L172 44 L150 42 Z" fill="${WD}"/><circle cx="166" cy="38" r="5" fill="#d7dde3"/><rect x="194" y="30" width="5" height="28" fill="#222"/>`,
+    rocket: `<rect x="12" y="26" width="168" height="16" rx="5" fill="#556b2f"/><rect x="4" y="22" width="14" height="24" rx="3" fill="#3e4f22"/>
+      <rect x="174" y="21" width="18" height="26" rx="3" fill="#3e4f22"/><rect x="60" y="25" width="70" height="3" fill="#6b8e23"/>
+      <rect x="70" y="16" width="10" height="10" fill="${M}"/><rect x="72" y="12" width="6" height="4" fill="${M}"/>
+      <rect x="92" y="42" width="11" height="24" rx="2" fill="${M}"/><path d="M80 42 H92 V50 Q86 56 80 50" fill="none" stroke="${M}" stroke-width="3"/>
+      <rect x="56" y="42" width="9" height="15" rx="2" fill="${M}"/>
+      <path d="M4 34 L-10 28 L-10 40 Z" fill="#8d6e63"/><rect x="40" y="24" width="4" height="20" fill="#3e4f22"/><rect x="140" y="24" width="4" height="20" fill="#3e4f22"/>`,
+  }; })();
+  const gunPic = id => `<svg viewBox="-12 0 214 84" xmlns="http://www.w3.org/2000/svg">${GUN_SVG[id]}</svg>`;
   if (!save.weapons || typeof save.weapons !== 'object' || !Array.isArray(save.weapons.owned)) save.weapons = { owned: [], ammo: {}, cur: null };
   if (!save.weapons.ammo || typeof save.weapons.ammo !== 'object') save.weapons.ammo = {};
   save.weapons.owned = save.weapons.owned.filter(id => WEAPONS[id]);
@@ -4806,6 +4851,10 @@
     if (W.rocket) { add(new THREE.CylinderGeometry(1.6, 1.6, W.len, 10), mat, 0, -9.5, 0); add(new THREE.CylinderGeometry(2, 1.6, 1.5, 10), dark, 0, -9.5 - W.len / 2, 0); }
     else { add(new THREE.BoxGeometry(1.3, W.len, 1.3), mat, 0, -8.6 - W.len / 2 + 1.5, 0); add(new THREE.BoxGeometry(2.6, 1.2, 1.1), dark, -1.4, -8.4, 0); }
     if (id === 'smg') add(new THREE.BoxGeometry(2.2, 1, 1), dark, -1.6, -11.5, 0);          // магазин автомата
+    const wood = new THREE.MeshStandardMaterial({ color: '#8d5a2b', roughness: .7 });
+    if (id === 'ak47') { add(new THREE.BoxGeometry(1.7, 4, 1.5), wood, -.3, -11.5, 0); add(new THREE.BoxGeometry(1.8, 3.5, 1.4), wood, -.2, -6.4, 0); const mg = add(new THREE.BoxGeometry(3, 1.1, 1), dark, -2.3, -10, 0); mg.rotation.z = .35; }
+    if (id === 'sniper') { add(new THREE.CylinderGeometry(.75, .75, 5, 8), dark, 1.5, -11, 0); add(new THREE.BoxGeometry(1.8, 3.8, 1.4), wood, -.2, -6.2, 0); add(new THREE.BoxGeometry(1.5, 4, 1.4), wood, -.1, -12.5, 0); }
+    if (id === 'shotgun') add(new THREE.BoxGeometry(1.8, 3.5, 1.4), wood, -.2, -6.4, 0);
     g.visible = false; foot.limbs[3].add(g); wpnMesh[id] = g;
   }
   function poseWeapon() {
@@ -4813,7 +4862,7 @@
     for (const id of WPN_ORDER) wpnMesh[id].visible = !!W && save.weapons.cur === id;
     if (!W || foot.ko > 0) return;
     foot.limbs[3].rotation.z = 1.5 - gun.recoil;                      // рука с оружием вытянута вперёд
-    if (W.pellets > 1 || W.rocket || W.auto) foot.limbs[2].rotation.z = 1.2 - gun.recoil * .5;   // тяжёлое — держим двумя руками
+    if (W.pellets > 1 || W.rocket || W.auto || W.sniper) foot.limbs[2].rotation.z = 1.2 - gun.recoil * .5;   // тяжёлое — держим двумя руками
   }
   const wpnPill = document.getElementById('wpnPill');
   function updateWpnPill() {
@@ -4877,12 +4926,12 @@
     if (!(save.weapons.ammo[id] > 0)) { gun.cd = .5; showMsg(t('wpNoAmmo'), 1600); return; }
     save.weapons.ammo[id]--; gun.cd = W.cd; gun.recoil = W.rocket ? .5 : W.pellets > 1 ? .45 : .25; fightT = 8;
     if (save.weapons.ammo[id] % 5 === 0) persist();
-    const targets = findTargets(W.range, W.pellets > 1 ? .8 : .55);
+    const targets = findTargets(W.range, W.pellets > 1 ? .8 : W.sniper ? .9 : .55);
     if (targets.length) car.angle = Math.atan2(targets[0].y - car.y, targets[0].x - car.x);   // поворачиваемся к цели
     const fx = Math.cos(car.angle), fy = Math.sin(car.angle);
     const gx = car.x + fx * 13, gy = car.y + fy * 13, gz = car.z + 18;
     emit(gx, gz, gy, '#ffd54f', W.rocket ? 5 : 2.6, .08, 0, 0, 0, 12, 1);       // вспышка у ствола
-    shake = Math.max(shake, W.rocket ? 2.5 : W.pellets > 1 ? 1.6 : .5);
+    shake = Math.max(shake, W.rocket ? 2.5 : W.pellets > 1 || W.sniper ? 1.6 : .5);
     if (W.rocket) { fireRocket(gx, gz, gy, car.angle); updateWpnPill(); return; }
     if (wanted < 1 && people.some(pp => !pp.inactive && Math.hypot(pp.x - car.x, pp.y - car.y) < 300) && Math.random() < .12) gunWanted(1);   // кто-то услышал выстрел
     const shots = W.pellets > 1 ? targets.slice(0, W.pellets) : targets.slice(0, 1);
