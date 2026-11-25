@@ -3148,7 +3148,7 @@
     const z = zz ?? (car.z || 0);
     for (const r of RAMPS) {
       const [u, v] = rampLocal(r, px, py);
-      if (inside(r, u, v) && rampH(r, u) > z + tol && r.base < z + 18) return true;
+      if (!r.curve && inside(r, u, v) && rampH(r, u) > z + tol && r.base < z + 18) return true;   // на изогнутую рампу можно заехать до самого верха
     }
     for (const p of PLATS) {
       const [u, v] = rampLocal(p, px, py);
