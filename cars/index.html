@@ -742,6 +742,10 @@
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
       skMalta: 'Скейт-парк «Бастион»', skCyprus: 'Скейт-парк «Солнечный»', skFiji: 'Скейт-парк «Лагуна»', skCosta: 'Скейт-парк «Вулкан»', skIceland: 'Скейт-парк «Ледяной»',
+      m5: 'Война банд', m6: 'Захват склада', m7: 'Засада', mGoFight: 'Езжай на место — там банда!', mFightStart: '⚔️ Бой начался! Друзья с тобой!',
+      mWave: 'Волна {w} из 3 — осталось бандитов: {n}', mWaveIn: '⚠️ Волна {w}! Бандиты идут!', mStorm: 'Захвати склад! Осталось бандитов: {n} (снайперы на крышах!)',
+      mAmbush: 'Продержись! Побеждено: {k} · осталось {s} с', mLeft: '❌ Ты убежал с места засады. Миссия провалена.', mBossDown: '💥 Босс банды повержен!',
+      mGun: '🔫 Тебе выдали пистолет для миссии!', mWinCombat: '🎉 Миссия пройдена! Награда: {m} и {w}!', mWinAgain2: '🎉 Миссия пройдена снова! +10 000 €',
       m1: 'Гонка по городу', m2: 'Секретная банда', m3: 'Угон бронеавтомобиля', m4: 'Секретная доставка', mStart: 'Нажми {k} — миссия «{n}»',
       mRace: 'Проедь через все кольца! {i} / {n}', mGangGo: 'Езжай к логову банды', mGang: 'Победи банду! Осталось: {n}', mArmorGo: 'Угони бронеавтомобиль (подойди и нажми E)', mArmorHome: 'Отвези бронеавтомобиль в свой гараж 🏠',
       mDeliver: 'Довези секретный пакет до аэропорта!', mTime: '⏱ {s} с', mWin: '🎉 Миссия пройдена! Награда — секретная машина «{c}». Она уже в гараже!', mWinAgain: '🎉 Миссия пройдена снова! +5 000 €',
@@ -783,6 +787,10 @@
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
       skMalta: 'Bastion Skatepark', skCyprus: 'Sunny Skatepark', skFiji: 'Lagoon Skatepark', skCosta: 'Volcano Skatepark', skIceland: 'Ice Skatepark',
+      m5: 'Gang War', m6: 'Warehouse Raid', m7: 'Ambush', mGoFight: 'Drive to the spot — the gang is there!', mFightStart: '⚔️ The fight is on! Your friends are with you!',
+      mWave: 'Wave {w} of 3 — gangsters left: {n}', mWaveIn: '⚠️ Wave {w}! Gangsters are coming!', mStorm: 'Take the warehouse! Gangsters left: {n} (snipers on the roofs!)',
+      mAmbush: 'Hold on! Defeated: {k} · {s} s left', mLeft: '❌ You ran away from the ambush. Mission failed.', mBossDown: '💥 The gang boss is down!',
+      mGun: '🔫 You got a pistol for the mission!', mWinCombat: '🎉 Mission complete! Reward: {m} and the {w}!', mWinAgain2: '🎉 Mission complete again! +10,000 €',
       m1: 'City Race', m2: 'Secret Gang', m3: 'Armored Car Heist', m4: 'Secret Delivery', mStart: 'Press {k} — mission “{n}”',
       mRace: 'Drive through all the rings! {i} / {n}', mGangGo: 'Drive to the gang hideout', mGang: 'Defeat the gang! Left: {n}', mArmorGo: 'Steal the armored car (walk up and press E)', mArmorHome: 'Drive the armored car to your garage 🏠',
       mDeliver: 'Deliver the secret package to the airport!', mTime: '⏱ {s} s', mWin: '🎉 Mission complete! Reward — secret car “{c}”. It’s in your garage!', mWinAgain: '🎉 Mission complete again! +5,000 €',
@@ -4923,7 +4931,7 @@
     if (!car.onFoot && spec.rocketBoost && !menuOpen && !garageOpen && !mapOpen) { window.__boost?.(); return; }   // ракетный ускоритель
     if (car.onFoot && foot.ko <= 0) for (const so of (window.__gangList?.() || [])) {   // удар по бандиту
       const dx = so.x - car.x, dy = so.y - car.y, d = Math.hypot(dx, dy);
-      if (!(so.down > 0) && d < 34 && (dx * Math.cos(car.angle) + dy * Math.sin(car.angle)) / (d || 1) > .25) { foot.punchT = .3; foot.punchCd = .42; so.down = 999; shake = 1.2; return; }
+      if (!(so.down > 0) && d < 34 && (dx * Math.cos(car.angle) + dy * Math.sin(car.angle)) / (d || 1) > .25) { foot.punchT = .3; foot.punchCd = .42; window.__hitGang?.(so, 1); shake = 1.2; return; }
     }
     if (!car.onFoot && spec.missiles && !menuOpen && !garageOpen && !mapOpen) { window.__jetFire?.(); return; }   // в истребителе — ракеты
     if (car.onFoot && foot.ko <= 0 && !menuOpen && !garageOpen && !mapOpen && window.__gunOut?.()) { window.__fireDown?.(); return; }   // в руках оружие — стреляем
@@ -5790,7 +5798,7 @@
       so.cd -= dt;
       if (alarm2 && d < (so.ground ? 520 : 650) && so.cd <= 0) {
         so.cd = 1.5 + Math.random() * 1.2;
-        const hit = Math.random() < Math.max(.05, .3 - spd / 700 - d / 2400) * (car.onFoot ? 1 : .7);
+        const hit = Math.random() < Math.max(.05, .3 - spd / 700 - d / 2400) * (car.onFoot ? 1 : .7) * (so.gang ? (so.boss ? .7 : .4) : 1);
         tracer(so.x + Math.cos(Math.atan2(dy, dx)) * 8, so.z + 18, so.y + Math.sin(Math.atan2(dy, dx)) * 8, car.x + (hit ? 0 : (Math.random() - .5) * 60), (car.z || 0) + 12, car.y + (hit ? 0 : (Math.random() - .5) * 60));
         emit(so.x, so.z + 18, so.y, '#ffd54f', 2, .08, 0, 0, 0, 10, 1);
         if (hit) shotPlayer(15, so.x, so.y);
@@ -5964,7 +5972,8 @@
     fightT -= dt;
     const on = save.friends.on;
     const rage = people.some(pp => pp.driverOf && !pp.inactive && pp.mode !== 'return' && Math.hypot(pp.x - car.x, pp.y - car.y) < 450);
-    const wantFoot = car.onFoot || rage;
+    const gangNear = (window.__gangList?.() || []).some(so => so.active && !(so.down > 0) && Math.hypot(so.x - car.x, so.y - car.y) < 550);
+    const wantFoot = car.onFoot || rage || gangNear;                      // в бою с бандой друзья выходят из машины
     for (const f of friends) {
       f.m.root.visible = on; f.blob.visible = on; f.label.sp.visible = on;
       f.person.root.visible = on && f.onFoot;
@@ -5998,6 +6007,14 @@
         let enemy = null, ed = fightT > 0 ? 420 : 300;
         for (const pp of people) if (pp.mode === 'fight') { const d = Math.hypot(pp.x - car.x, pp.y - car.y); if (d < ed) { ed = d; enemy = pp; } }
         for (const c of chase.cops) if (c.mode !== 'drive' && !(c.odown > 0)) { const d = Math.hypot(c.ox - car.x, c.oy - car.y); if (d < ed) { ed = d; enemy = { cop: c, x: c.ox, y: c.oy }; } }
+        for (const so of (window.__gangList?.() || [])) if (so.active && !(so.down > 0) && so.ground) { const d = Math.hypot(so.x - f.px, so.y - f.py); if (d < Math.max(ed, 800)) { ed = d; enemy = { gang: so, x: so.x, y: so.y }; } }
+        f.shootCd = (f.shootCd || 0) - dt;
+        if (enemy && enemy.gang && f.shootCd <= 0 && Math.hypot(enemy.x - f.px, enemy.y - f.py) < 300) {   // друг стреляет по бандиту
+          f.shootCd = .9 + Math.random() * .6; const hitIt = Math.random() < .55;
+          tracer(f.px, f.pz + 18, f.py, enemy.x + (hitIt ? 0 : (Math.random() - .5) * 40), 14, enemy.y + (hitIt ? 0 : (Math.random() - .5) * 40));
+          emit(f.px, f.pz + 18, f.py, '#ffd54f', 2, .08, 0, 0, 0, 10, 1);
+          if (hitIt) window.__hitGang?.(enemy.gang, 1);
+        }
         // ты дерёшься с прохожим, а он ещё лежит — друг подбегает и ждёт рядом
         if (!enemy && fightT > 0) for (const pp of people) if (pp.mode === 'down') { const d = Math.hypot(pp.x - car.x, pp.y - car.y); if (d < 200) { enemy = null; f.guard = pp; break; } }
         if (enemy && !f.engaged) { f.engaged = true; showMsg(t('helpYou', { n: (save.friends.names[f.i] || '').trim() || (f.i ? 'Кинан' : 'Армин') }), 1600); }
@@ -6015,6 +6032,7 @@
           if (f.punchCd <= 0) {
             f.punchT = .3; f.punchCd = .6;
             if (enemy.cop) { enemy.cop.odown = 4; enemy.cop.ofall = 0; }
+            else if (enemy.gang) window.__hitGang?.(enemy.gang, 2);
             else {
               enemy.kos = (enemy.kos || 0) + 1;
               enemy.mode = 'down'; enemy.downT = 2.6; enemy.fallA = 0; enemy.punchT = 0;
@@ -6821,6 +6839,7 @@
   whRing.addEventListener('click', e => { const it = e.target.closest('.whItem'); if (it) pickWheel(+it.dataset.i); });
   wheelEl.addEventListener('click', e => { if (e.target === wheelEl) toggleWheel(false); });
   wpnPill.addEventListener('click', () => toggleWheel());
+  window.__updateWpnPill = updateWpnPill;
   window.__toggleWheel = toggleWheel;
   window.__wheelOpen = () => wheelOpen;
   window.__wheelKey = a => {
@@ -6864,7 +6883,7 @@
     emit(tg.x, 14, tg.y, '#ffffff', 1.6, .25, (Math.random() - .5) * 90, Math.random() * 60, (Math.random() - .5) * 90, 0, .9);
     if (tg.kind === 'person') { shootPerson(tg.o, ux, uy, W.push * mult); gunWanted(1); }
     else if (tg.kind === 'cop') { tg.o.odown = 5; tg.o.ofall = 0; gunWanted(1); }
-    else if (tg.kind === 'soldier') { tg.o.down = 7; tg.o.p.root.rotation.z = 0; gunWanted(1); }
+    else if (tg.kind === 'soldier') { if (tg.o.gang) window.__hitGang?.(tg.o, Math.max(1, Math.round(W.dmg / 9 * mult))); else { tg.o.down = 7; tg.o.p.root.rotation.z = 0; gunWanted(1); } }
     else if (tg.kind === 'car') {
       for (let k = 0; k < 4; k++) emit(tg.x, 10, tg.y, '#ffd54f', 1.2, .2, (Math.random() - .5) * 140, Math.random() * 90, (Math.random() - .5) * 140, 0, 1);
       const was = tg.o.dmg || 0;
@@ -7746,7 +7765,11 @@
     { id: 'gang', key: 'm2', reward: 'klin', at: [nodeC(8), nodeC(3)] },
     { id: 'armor', key: 'm3', reward: 'raketa', at: [nodeC(2), nodeC(8)] },
     { id: 'deliver', key: 'm4', reward: 'kometa', at: [nodeC(9), nodeC(9)] },
+    { id: 'war', key: 'm5', combat: true, money: 50000, weapon: 'ak47', ammo: 180, at: [nodeC(6), nodeC(6)] },
+    { id: 'storm', key: 'm6', combat: true, money: 100000, weapon: 'rocket', ammo: 6, at: [nodeC(11), nodeC(6)] },
+    { id: 'ambush', key: 'm7', combat: true, money: 60000, weapon: 'shotgun', ammo: 32, at: [nodeC(4), nodeC(10)] },
   ];
+  const rewardText = m => m.reward ? carName(CARS.find(c => c.id === m.reward)) : fmt(m.money) + ' + ' + t(WEAPONS[m.weapon].key);
   const missionName = id => t((MISSIONS.find(m => m.id === id) || {}).key || 'm1');
   // маркеры миссий: жёлтый столб света и звезда
   const mkTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#ffd54f'; g.beginPath(); g.arc(64, 64, 58, 0, 7); g.fill(); g.lineWidth = 8; g.strokeStyle = '#fff'; g.stroke(); g.fillStyle = '#3a2a00'; g.font = 'bold 74px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('★', 64, 70); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
@@ -7762,11 +7785,29 @@
   const missionEl = document.getElementById('mission');
   let M = null, boostT = 0, boostCd = 0;
   const RACE_CPS = [[2, 1], [5, 1], [8, 1], [9, 4], [9, 7], [6, 9], [3, 8], [1, 5], [2, 1]].map(([i, j]) => [nodeC(i), nodeC(j)]);
-  function gangMember(x, y) {
-    const p = buildPerson('#b71c1c', '#212121', '#212121', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac'])); p.root.visible = true; p.root.position.set(x, 0, y);
-    const so = { x, y, z: 0, p, cd: 1 + Math.random() * 2, ground: true, hx: x, hy: y, tx: x, ty: y, ph: 0, down: 0, gang: true, active: false };
+  function gangMember(x, y, o = {}) {
+    const skin = pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac']);
+    const p = o.boss ? buildPerson('#111111', '#b71c1c', '#111111', skin) : buildPerson(pickR(['#b71c1c', '#c62828', '#8e0000']), '#212121', '#212121', skin);
+    p.root.visible = true; const z = o.z || 0; p.root.position.set(x, z, y);
+    if (o.boss) p.root.scale.setScalar(1.35);
+    const so = { x, y, z, p, cd: 1 + Math.random() * 2, ground: !o.sniper, hx: x, hy: y, tx: x, ty: y, ph: 0, down: 0, gang: true, active: !!o.active, hp: o.hp || 1, boss: !!o.boss };
+    if (o.sniper) { p.limbs[2].rotation.z = 1.4; p.limbs[3].rotation.z = 1.4; }
     soldiers.push(so); M.gang.push(so); return so;
   }
+  function hitGang(so, n = 1) {                                             // попадание по бандиту: у боссов больше жизни
+    if (!so || so.down > 0) return;
+    so.hp -= n;
+    for (let k = 0; k < 6; k++) emit(so.x, (so.z || 0) + 18, so.y, '#fff59d', 1.4, .3, (Math.random() - .5) * 100, Math.random() * 70, (Math.random() - .5) * 100, 0, 1);
+    if (so.hp <= 0) { so.down = 999; so.p.root.rotation.z = 0; if (so.boss) showMsg(t('mBossDown'), 2500); }
+    else { so.p.root.rotation.z = .35; setTimeout(() => { if (!(so.down > 0)) so.p.root.rotation.z = 0; }, 220); }   // пошатнулся
+  }
+  window.__hitGang = hitGang;
+  function giveLoadout() {                                                  // на боевую миссию — с пистолетом
+    if (!save.weapons.owned.includes('pistol')) { save.weapons.owned.push('pistol'); showMsg(t('mGun'), 2600); }
+    save.weapons.ammo.pistol = Math.max(save.weapons.ammo.pistol || 0, 48); if (!save.weapons.cur) save.weapons.cur = 'pistol';
+    persist(); window.__updateWpnPill?.();
+  }
+  const ringAround = (cx, cy, n, r0, r1, o) => { for (let k = 0; k < n; k++) { let x, y, tries = 0; do { const a = Math.random() * Math.PI * 2, r = r0 + Math.random() * (r1 - r0); x = cx + Math.cos(a) * r; y = cy + Math.sin(a) * r; } while (solidAtZ(x, y, 0) && ++tries < 30); gangMember(x, y, o); } };   // не внутри домов
   function nearMission() {
     if (M || !window.__started) return null;
     if (!car.onFoot && Math.hypot(car.vx, car.vy) > 45) return null;
@@ -7784,6 +7825,18 @@
       M.van = [nodeC(1) + 140, nodeC(10) - 120];
       placeParked('bronevik', M.van[0], M.van[1], 0, 'mission'); dest = M.van;
       for (let k = 0; k < 4; k++) gangMember(M.van[0] - 60 + k * 40, M.van[1] + 70);
+    } else if (def.id === 'war') {                                          // война банд: три волны, в последней — босс
+      giveLoadout(); M.spot = [def.at[0] + 900, def.at[1]]; dest = M.spot; M.wave = 0;
+      if (save.friends.on) { for (const f of friends) callFriend(f); setTimeout(() => showMsg(t('mFriends'), 2600), 2600); }
+    } else if (def.id === 'storm') {                                        // захват склада: охрана, снайперы на крышах ангаров, босс
+      giveLoadout(); M.spot = [AP.x0 + 240, AP.y0 + 560]; dest = M.spot;
+      ringAround(M.spot[0] + 150, M.spot[1], 9, 120, 420, {});
+      for (const [x, y] of [[AP.x0 + 240, AP.y0 + 350], [AP.x0 + 240, AP.y0 + 770], [AP.x0 + 240, AP.y1 - 370]]) gangMember(x, y, { sniper: true, z: 146, hp: 2 });
+      gangMember(M.spot[0] + 320, M.spot[1], { boss: true, hp: 8 });
+      if (save.friends.on) { for (const f of friends) callFriend(f); setTimeout(() => showMsg(t('mFriends'), 2600), 2600); }
+    } else if (def.id === 'ambush') {                                       // засада: продержись, бандиты лезут со всех сторон
+      giveLoadout(); M.spot = [def.at[0], def.at[1] - 700]; dest = M.spot; M.time = 0; M.kills = 0; M.spawnT = 0;
+      if (save.friends.on) { for (const f of friends) callFriend(f); setTimeout(() => showMsg(t('mFriends'), 2600), 2600); }
     } else if (def.id === 'deliver') {
       M.time = 150; M.to = [AP.x0 + 600, GC + 700]; dest = M.to;
       addWanted(Math.max(1, STAR_HEAT[3] - heat)); setTimeout(() => showMsg(t('mPicked'), 3000), 2600);
@@ -7798,6 +7851,16 @@
   }
   function winMission() {
     const def = M.def; cleanupMission();
+    if (def.combat) {                                                       // боевые миссии: деньги и оружие
+      const first = !save.missions.done.includes(def.id);
+      if (first) {
+        save.missions.done.push(def.id); save.money += def.money;
+        if (!save.weapons.owned.includes(def.weapon)) save.weapons.owned.push(def.weapon);
+        save.weapons.ammo[def.weapon] = (save.weapons.ammo[def.weapon] || 0) + def.ammo;
+        persist(); popMoney('+' + fmt(def.money), '#7CFFB2'); showMsg(t('mWinCombat', { m: fmt(def.money), w: t(WEAPONS[def.weapon].key) }), 6000);
+      } else { save.money += 10000; persist(); popMoney('+10 000 €', '#7CFFB2'); showMsg(t('mWinAgain2'), 3500); }
+      window.__updateWpnPill?.(); shake = Math.max(shake, 2); return;
+    }
     if (!save.missions.done.includes(def.id)) {
       save.missions.done.push(def.id);
       if (!save.owned.includes(def.reward)) save.owned.push(def.reward);
@@ -7814,6 +7877,9 @@
     if (d === 'race') obj = t('mRace', { i: M.cp - 1, n: RACE_CPS.length - 1 });
     else if (d === 'gang') { const left = M.gang.filter(so => !(so.down > 0)).length; obj = M.stage ? t('mGang', { n: left }) : t('mGangGo'); }
     else if (d === 'armor') obj = M.stage ? t('mArmorHome') : t('mArmorGo');
+    else if (d === 'war') obj = M.wave ? t('mWave', { w: M.wave, n: M.gang.filter(so => !(so.down > 0)).length }) : t('mGoFight');
+    else if (d === 'storm') obj = M.stage ? t('mStorm', { n: M.gang.filter(so => !(so.down > 0)).length }) : t('mGoFight');
+    else if (d === 'ambush') obj = M.stage ? t('mAmbush', { k: M.kills, s: Math.max(0, Math.ceil(75 - M.hold)) }) : t('mGoFight');
     else obj = t('mDeliver');
     const tm = M.time > 0 ? ' · ' + t('mTime', { s: Math.ceil(M.time) }) : '';
     missionEl.innerHTML = `<b>⭐ ${esc(t(M.def.key))}</b><span>${esc(obj)}${tm}</span><button id="mCancel">✖</button>`;
@@ -7832,6 +7898,38 @@
     if (document.documentElement.classList.contains('isWasted')) { failMission(); return; }
     if (M.time > 0) { M.time -= dt; if (M.time <= 0) { failMission(t('mLate')); return; } }
     const d = M.def.id;
+    for (const so of M.gang) if (so.down > 0 && !so.gone) {                  // побеждённые падают и исчезают
+      so.goneT = (so.goneT ?? 2.2) - dt; if (so.goneT <= 0) { so.gone = true; scene.remove(so.p.root); }
+    }
+    if (d === 'war' || d === 'storm' || d === 'ambush') {
+      for (const so of M.gang) {
+        if (so.down > 0) { so.down = 999; continue; }
+        if (Math.hypot(car.x - so.x, car.y - so.y) < 700) so.active = true;
+        if (so.ground && !car.onFoot && Math.hypot(car.vx, car.vy) > 60 && Math.hypot(car.x - so.x, car.y - so.y) < 26) hitGang(so, 99);   // сбил машиной
+      }
+      const alive = M.gang.filter(so => !(so.down > 0));
+      if (M.stage && alive.length && alive.length <= 2) { let b = alive[0]; for (const so of alive) if (Math.hypot(so.x - car.x, so.y - car.y) < Math.hypot(b.x - car.x, b.y - car.y)) b = so; dest = [b.x, b.y]; }   // навигатор к последним бандитам
+      else if (M.stage) dest = null;
+      const near = Math.hypot(car.x - M.spot[0], car.y - M.spot[1]) < 700;
+      if (!M.stage && near) { M.stage = 1; dest = null; showMsg(t('mFightStart'), 2200); }
+      if (M.stage) for (const so of alive) if (so.ground && Math.hypot(car.x - so.x, car.y - so.y) < 1400) so.active = true;
+      if (d === 'war' && M.stage) {
+        if (M.gang.every(so => so.down > 0)) {
+          if (M.wave >= 3) { winMission(); return; }
+          M.wave++; showMsg(t('mWaveIn', { w: M.wave }), 2200);
+          ringAround(M.spot[0], M.spot[1], 4 + M.wave * 2, 380, 560, { active: true });
+          if (M.wave === 3) gangMember(M.spot[0] + 450, M.spot[1], { boss: true, hp: 6, active: true });
+        }
+      } else if (d === 'storm' && M.stage) {
+        if (M.gang.every(so => so.down > 0)) { winMission(); return; }
+      } else if (d === 'ambush' && M.stage) {
+        M.hold = (M.hold || 0) + dt; M.kills = M.gang.filter(so => so.down > 0).length;
+        M.spawnT -= dt;
+        if (M.spawnT <= 0 && M.gang.filter(so => !(so.down > 0)).length < 8) { M.spawnT = 2.5; ringAround(M.spot[0], M.spot[1], 2, 480, 620, { active: true }); }
+        if (Math.hypot(car.x - M.spot[0], car.y - M.spot[1]) > 1200) { failMission(t('mLeft')); return; }
+        if (M.hold >= 75) { winMission(); return; }
+      }
+    }
     if (d === 'race') {
       const cp = RACE_CPS[M.cp]; cpRing.visible = true; cpRing.position.set(cp[0], 40, cp[1]); cpRing.rotation.y = time / 800;
       if (Math.hypot(car.x - cp[0], car.y - cp[1]) < 140) {
@@ -7858,7 +7956,7 @@
     mRenderT -= dt; if (mRenderT <= 0) { mRenderT = .25; renderMission(); }
   }
   window.__boost = () => { if (boostCd > 0) return; boostT = 1.5; boostCd = 4; showMsg(t('boostOn'), 1200); shake = Math.max(shake, 1.5); };
-  window.__missionList = () => MISSIONS.map(m => ({ id: m.id, name: t(m.key), reward: carName(CARS.find(c => c.id === m.reward)), done: save.missions.done.includes(m.id), at: m.at }));
+  window.__missionList = () => MISSIONS.map(m => ({ id: m.id, name: t(m.key), reward: rewardText(m), done: save.missions.done.includes(m.id), at: m.at }));
   window.__missionGo = id => { const m = MISSIONS.find(q => q.id === id); if (m) { dest = m.at; showMsg(t('destSet'), 2000); } };
   window.__nearMission = nearMission; window.__startMission = startMission;
   window.__gangList = () => M ? M.gang : [];
