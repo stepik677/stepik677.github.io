@@ -3037,7 +3037,7 @@
       let hmax = -1e9, hmin = 1e9; for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) { const hh = terrainH(sx + i * 60, sy + j * 60); hmax = Math.max(hmax, hh); hmin = Math.min(hmin, hh); }
       const h = hmax + .5; I.skate = { x: sx, y: sy, h, hmin, a };
       const R2 = (dx, dy, d, L, H, Wd, kick, big) => { const ca = Math.cos(a), sa = Math.sin(a), x = sx + dx * ca - dy * sa, y = sy + dx * sa + dy * ca, dd = d + a; RAMPS.push({ cx: x, cy: y, d: dd, L, H, Wd, big, kick, ux: Math.cos(dd), uy: Math.sin(dd), base: h, vzCap: 170, minVz: 60 }); };
-      if (I.kind === 'malta') { R2(-120, 0, Math.PI, 80, 26, 150, true); R2(120, 0, 0, 80, 26, 150, true); R2(0, 0, 0, 110, 16, 70, false); }                 // две «чаши» друг напротив друга и горка
+      if (I.kind === 'malta') { R2(0, -125, -Math.PI / 2, 80, 26, 170, true); R2(0, 125, Math.PI / 2, 80, 26, 170, true); R2(20, 0, 0, 110, 16, 70, false); }                 // две «чаши» друг напротив друга и горка
       else if (I.kind === 'cyprus') { for (const d of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) R2(Math.cos(d) * 70, Math.sin(d) * 70, d, 110, 20, 80, false); R2(-130, -130, Math.PI / 4, 50, 12, 50, true); R2(130, 130, -3 * Math.PI / 4, 50, 12, 50, true); }   // пирамида
       else if (I.kind === 'fiji') { for (let k = 0; k < 6; k++) { const d = k / 6 * Math.PI * 2; R2(Math.cos(d) * 115, Math.sin(d) * 115, d, 60, 13, 50, true); } }                       // кольцо маленьких трамплинов
       else if (I.kind === 'costa') { R2(-90, 0, 0, 180, 62, 100, true, true); R2(140, 0, Math.PI, 150, 40, 110, true); }                                       // мега-трамплин и приземление
@@ -5410,13 +5410,13 @@
       const blk = new THREE.Mesh(new THREE.BoxGeometry(S, K.h - K.hmin + 20, S), [concreteM, concreteM, new THREE.MeshStandardMaterial({ map: tex, roughness: .8 }), concreteM, concreteM, concreteM]);
       blk.position.set(K.x, (K.h + K.hmin - 20) / 2, K.y); blk.rotation.y = -K.a; blk.receiveShadow = true; scene.add(blk);
       const rail = new THREE.MeshStandardMaterial({ color: c1, metalness: .4, roughness: .4 });
-      for (const [dx, dy, L, vert] of [[0, -S / 2, S, false], [0, S / 2, S, false], [-S / 2, 0, S, true]]) {
+      for (const [dx, dy, L, vert] of [[0, -S / 2, S, false], [0, S / 2, S, false], [S / 2, 0, S, true]]) {   // въезд — со стороны вывески
         const m = new THREE.Mesh(new THREE.BoxGeometry(vert ? 4 : L, 8, vert ? L : 4), rail), ca = Math.cos(K.a), sa = Math.sin(K.a);
         m.position.set(K.x + dx * ca - dy * sa, K.h + 4, K.y + dx * sa + dy * ca); m.rotation.y = -K.a; scene.add(m);
       }
       const sign = new THREE.Mesh(new THREE.PlaneGeometry(130, 32), new THREE.MeshBasicMaterial({ map: outerTex(512, 128, (g, w, h) => { g.fillStyle = c2 === '#ffffff' ? c1 : c2; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 8; g.strokeRect(6, 6, w - 12, h - 12); g.fillStyle = '#fff'; g.font = 'bold 46px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🛹 ' + t(I.park), w / 2, h / 2 + 3); }, 1, 1), side: THREE.DoubleSide }));
       const ox = K.x - Math.cos(K.a) * (S / 2 + 20), oy = K.y - Math.sin(K.a) * (S / 2 + 20);
-      sign.position.set(ox, K.h + 40, oy); sign.rotation.y = -K.a + Math.PI / 2; scene.add(sign);
+      sign.position.set(ox, K.h + 40, oy); sign.rotation.y = -K.a - Math.PI / 2; scene.add(sign);
     }
     const forest = (list, trunkGeo, crownGeo, trunkCol, hue, sat, lig) => {
       if (!list.length) return;
