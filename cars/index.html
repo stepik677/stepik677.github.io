@@ -5789,7 +5789,7 @@
   updateHomeOwners();
   setInterval(updateHomeOwners, 1500);
   // ================== Банк Степана ==================
-  const BANK_HASH = '6dad2efb781a1c27a10e91788d7ce2cb318829510ef9603ce49b4424f2f6079e';
+  const BANK_HASH = '600a0c6e5d52d454d8c1723b95f321c02c11dfb5ee12b2d071d4b016e080bbfa';
   const STEPAN_NICKS = ['степанбанан', 'stepanbanan', 'stepanbanam', 'степанбанам'];
   const nickKey = v => (v || '').toLowerCase().replace(/[^a-zа-яё0-9]/g, '');
   const isStepanNick = () => STEPAN_NICKS.includes(nickKey(save.nick));
@@ -5827,7 +5827,7 @@
       html += peers.length ? peers.map(pp => `<div class="bkRow"><b>👤 ${esc(cleanName(pp.presence && pp.presence.nm))}</b><button class="bkBtn" data-pay="${esc(pp.peer)}">${esc(t('bkSend'))} ${fmt(bankAmt)}</button></div>`).join('') : `<p class="ghint">${esc(t(online ? 'bkNoPlayers' : 'bkOffline'))}</p>`;
     } else if (isStepanNick()) {
       document.getElementById('bankHint').textContent = t('bkHintLock');
-      html += `<div class="bkRow"><input id="bankCode" maxlength="20" autocomplete="off" placeholder="${esc(t('bkCode'))}"><button class="bkBtn" data-unlock="1">${esc(t('bkUnlock'))}</button></div>`;
+      html += `<div class="bkRow"><input id="bankCode" maxlength="20" inputmode="numeric" autocomplete="off" placeholder="${esc(t('bkCode'))}"><button class="bkBtn" data-unlock="1">${esc(t('bkUnlock'))}</button></div>`;
     } else {
       document.getElementById('bankHint').textContent = t('bkHintUser');
       const st = online ? (stepanOnline() ? t('bkStepanOn') : t('bkNoStepan')) : t('bkOffline');
