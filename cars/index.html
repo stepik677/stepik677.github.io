@@ -738,6 +738,7 @@
       bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
       stTitle: '🔐 Код Степана', stHint: 'Ты зашёл как Степан Банан. Введи код, чтобы начать игру.', stGo: 'Войти ▶', stBad: '❌ Неверный код', stNotMe: 'Это не я — сменить игрока',
       phHome: '📱 Телефон', phApp1: 'Контакты', phApp2: 'Банк Степана', phApp3: 'Карта', phApp4: 'Гараж', phHintHome: '1 / 2 — выбрать · 3 — открыть · 6 — закрыть',
+      bkLeft: 'Сегодня можно попросить ещё {n} раз(а) из 3.', bkLimit: '⏳ Ты уже 3 раза просил сегодня. Приходи завтра!',
       bkTitle: '🏪 Банк Степана', bkHintUser: 'Здесь можно попросить денег у Степана Банана. Выбери сумму и нажми «Попросить».', bkHintAdmin: 'Ты — Степан! Можешь брать деньги себе и отправлять их другим игрокам.',
       bkHintLock: 'Это банк Степана. Если ты Степан — введи свой секретный код.', bkCode: 'Секретный код', bkUnlock: '🔓 Открыть', bkBadCode: '❌ Неверный код',
       bkSelf: '💶 +200 000 € себе', bkGot: '💶 +200 000 € на твой счёт!', bkPlayers: '👥 Игроки в игре — отправить деньги', bkNoPlayers: 'Сейчас в игре никого нет.', bkSend: 'Отправить',
@@ -769,6 +770,7 @@
       bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
       stTitle: '🔐 Stepan’s code', stHint: 'You signed in as Stepan Banan. Enter the code to start the game.', stGo: 'Enter ▶', stBad: '❌ Wrong code', stNotMe: 'That’s not me — switch player',
       phHome: '📱 Phone', phApp1: 'Contacts', phApp2: 'Stepan’s Bank', phApp3: 'Map', phApp4: 'Garage', phHintHome: '1 / 2 — pick · 3 — open · 6 — close',
+      bkLeft: 'You can ask {n} more time(s) today (3 per day).', bkLimit: '⏳ You already asked 3 times today. Come back tomorrow!',
       bkTitle: '🏪 Stepan’s Bank', bkHintUser: 'Here you can ask Stepan Banan for money. Pick an amount and press “Ask”.', bkHintAdmin: 'You are Stepan! You can take money for yourself and send it to other players.',
       bkHintLock: 'This is Stepan’s bank. If you are Stepan, enter your secret code.', bkCode: 'Secret code', bkUnlock: '🔓 Unlock', bkBadCode: '❌ Wrong code',
       bkSelf: '💶 +200,000 € for me', bkGot: '💶 +200,000 € added!', bkPlayers: '👥 Players online — send money', bkNoPlayers: 'Nobody is online right now.', bkSend: 'Send',
@@ -5841,11 +5843,26 @@
   const bankReqs = [];                                                             // просьбы к Степану: { id, nm, amt }
   const BANK_AMTS = [1000, 10000, 50000, 100000, 200000];
   const stepanOnline = () => netPeers().some(p => p.presence && p.presence.adm);
-  function bankSend(obj) { if (net.room) return false; mqPublish(JSON.stringify({ bank: obj })); return net.mq.some(c => c.ok); }
+  const ASK_LIMIT = 3;                                                             // не больше 3 просьб в день
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+  function asksLeft() { if (!save.bankAsks || save.bankAsks.day !== today()) save.bankAsks = { day: today(), n: 0 }; return Math.max(0, ASK_LIMIT - save.bankAsks.n); }
+  const askLog = (() => { try { const v = JSON.parse(localStorage.getItem('mashinki_bank_asklog')); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();   // у Степана: кто сколько раз просил сегодня
+  function askAllowed(nm) {
+    const k = today() + ':' + nickKey(nm);
+    for (const key of Object.keys(askLog)) if (!key.startsWith(today() + ':')) delete askLog[key];
+    if ((askLog[k] || 0) >= ASK_LIMIT) return false;
+    askLog[k] = (askLog[k] || 0) + 1; try { localStorage.setItem('mashinki_bank_asklog', JSON.stringify(askLog)); } catch (e) {}
+    return true;
+  }
+  function bankSend(obj) { if (net.room) return false; obj.rid = Math.random().toString(36).slice(2, 10); mqPublish(JSON.stringify({ bank: obj })); return net.mq.some(c => c.ok); }
+  const bankSeen = new Set();                                                       // одно сообщение приходит через два сервера — считаем один раз
   function onBank(from, b) {
+    if (typeof b.rid !== 'string' || bankSeen.has(b.rid)) return;
+    bankSeen.add(b.rid); if (bankSeen.size > 500) bankSeen.clear();
     const peer = net.mqPeers.get(from), nm = cleanName(b.nm || (peer && peer.presence && peer.presence.nm));
     const amt = Math.round(+b.amt); if (!(amt > 0) || amt > 1000000) return;
     if (b.t === 'req' && isBanker()) {                                             // Степану пришла просьба
+      if (!askAllowed(nm)) return;                                                 // больше 3 раз за день — не показываем
       if (bankReqs.some(r => r.id === from)) bankReqs.find(r => r.id === from).amt = amt; else bankReqs.push({ id: from, nm, amt });
       if (bankReqs.length > 12) bankReqs.shift();
       showMsg(t('bkIncoming', { n: nm, m: fmt(amt) }), 3500); updateBadge(); if (bankOpen) renderBank();
@@ -5874,7 +5891,9 @@
       document.getElementById('bankHint').textContent = t('bkHintUser');
       const st = online ? (stepanOnline() ? t('bkStepanOn') : t('bkNoStepan')) : t('bkOffline');
       html += `<p class="ghint" style="font-size:16px">${esc(st)}</p><div style="margin:8px 0">${amtButtons(bankAmt, 'amt')}</div>`;
-      html += `<button class="bkBtn big" data-ask="1">${esc(t('bkAsk'))} ${fmt(bankAmt)}</button>`;
+      const left = asksLeft();
+      html += left ? `<button class="bkBtn big" data-ask="1">${esc(t('bkAsk'))} ${fmt(bankAmt)}</button>` : `<button class="bkBtn big no" disabled>${esc(t('bkAsk'))}</button>`;
+      html += `<p class="ghint" style="font-size:15px">${esc(left ? t('bkLeft', { n: left }) : t('bkLimit'))}</p>`;
     }
     if (bankMsg) html += `<p class="ghint" style="font-weight:800;font-size:15px">${esc(bankMsg)}</p>`;
     bankBody.innerHTML = html;
@@ -5891,9 +5910,10 @@
       if (ok) { save.bankOk = BANK_HASH; persist(); } else bankMsg = t('bkBadCode');
     }
     else if (b.dataset.ask) {
-      if (performance.now() - lastAsk < 10000) bankMsg = t('bkWait');
+      if (!asksLeft()) bankMsg = t('bkLimit');
+      else if (performance.now() - lastAsk < 10000) bankMsg = t('bkWait');
       else if (!stepanOnline()) bankMsg = t('bkNoStepan');
-      else { lastAsk = performance.now(); bankSend({ t: 'req', amt: bankAmt, nm: save.nick.slice(0, 16) }); bankMsg = t('bkAsked'); }
+      else { lastAsk = performance.now(); bankSend({ t: 'req', amt: bankAmt, nm: save.nick.slice(0, 16) }); save.bankAsks.n++; persist(); bankMsg = t('bkAsked'); }
     }
     else if (b.dataset.pay && isBanker()) {
       const pp = netPeers().find(q => q.peer === b.dataset.pay);
