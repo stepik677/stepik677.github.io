@@ -259,7 +259,22 @@
   #fsBtn svg { width: 22px; height: 22px; }
   #phoneBtn { width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; font-size: 21px; padding: 0;
     background: rgba(15,20,28,.65); box-shadow: 0 4px 16px rgba(0,0,0,.3); backdrop-filter: blur(6px); }
-  .menuOpen #phoneBtn, .menuOpen #phone, .menuOpen #wheel, .menuOpen #wpnPill { display: none !important; }
+  .menuOpen #phoneBtn, .menuOpen #phone, .menuOpen #wheel, .menuOpen #wpnPill, .menuOpen #bankBtn { display: none !important; }
+  #bankBtn { position: relative; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; font-size: 21px; padding: 0;
+    background: rgba(15,20,28,.65); box-shadow: 0 4px 16px rgba(0,0,0,.3); backdrop-filter: blur(6px); }
+  #bankBadge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; border-radius: 9px; background: #e53935; color: #fff; font: 800 11px/18px sans-serif; font-style: normal; display: none; }
+  #bankBadge.on { display: block; }
+  #bank { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; background: rgba(5,10,18,.7); backdrop-filter: blur(4px); }
+  #bank.on { display: flex; }
+  #bankClose { width: 42px; height: 42px; border-radius: 50%; border: 0; background: #2a3442; color: #fff; font-size: 20px; cursor: pointer; }
+  #bankBody h4 { margin: 14px 0 6px; font-size: 17px; }
+  .bkRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.06); margin: 6px 0; }
+  .bkRow b { flex: 1; min-width: 120px; }
+  .bkBtn { border: 0; border-radius: 10px; padding: 9px 14px; font: 800 14px "Segoe UI", sans-serif; cursor: pointer; color: #fff; background: linear-gradient(#66bb6a, #2e7d32); }
+  .bkBtn.big { font-size: 20px; padding: 14px 22px; background: linear-gradient(#ffd54f, #ffb300); color: #3a2a00; }
+  .bkBtn.no { background: #3d4b5f; }
+  .bkBtn.sel { outline: 3px solid #ffd54f; }
+  #bankCode { min-height: 40px; padding: 6px 12px; border-radius: 10px; border: 2px solid rgba(255,255,255,.25); background: rgba(0,0,0,.35); color: #fff; font: 700 16px monospace; text-transform: uppercase; -webkit-user-select: text; user-select: text; }
   #phone { position: fixed; right: calc(18px + var(--sr)); top: calc(72px + var(--st)); z-index: 12; width: 250px; display: none; flex-direction: column; gap: 8px;
     background: linear-gradient(#1b2433, #0f151f); border: 4px solid #3a4558; border-radius: 30px; padding: 12px 12px 16px; color: #fff;
     font: 600 14px "Segoe UI", sans-serif; box-shadow: 0 14px 40px rgba(0,0,0,.55); animation: phIn .25s ease-out; }
@@ -400,11 +415,17 @@
     <svg class="grow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
     <svg class="shrink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
   </button>
+  <button id="bankBtn" aria-label="bank">🏪<i id="bankBadge"></i></button>
   <button id="phoneBtn" aria-label="phone" title="📱 (6 / P)">📱</button>
   <button id="garageBtn"></button>
   <button id="menuBtn" aria-label="menu">☰</button>
 </div>
 <div id="wheel"><div id="whRing"><div class="whCenter"><b id="whName"></b><small id="whInfo"></small></div></div><div id="whHint"></div></div>
+<div id="bank"><div class="gbox">
+  <div class="ghead"><h2 id="bankTitle"></h2><div class="pill money">💶 <span id="bankMoney">0 €</span></div><button id="bankClose">✕</button></div>
+  <div class="ghint" id="bankHint"></div>
+  <div id="bankBody"></div>
+</div></div>
 <div id="phone"><div class="phTop"><span id="phClock"></span><span>📶 🔋</span></div><div id="phTitle"></div><div id="phList"></div><div id="phHint"></div></div>
 <div id="fsHelp"><div class="box"><h3 data-i18n="fsTitle"></h3><p data-i18n="fsText"></p><button data-i18n="ok" id="fsHelpOk"></button></div></div>
 <div id="garage">
@@ -702,6 +723,12 @@
       profHint: 'Весь прогресс (деньги, машины, оружие, одежда, дом) сохраняется сам. Чтобы играть на другом устройстве — скопируй код и загрузи его там.',
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
+      bkTitle: '🏪 Банк Степана', bkHintUser: 'Здесь можно попросить денег у Степана Банана. Выбери сумму и нажми «Попросить».', bkHintAdmin: 'Ты — Степан! Можешь брать деньги себе и отправлять их другим игрокам.',
+      bkHintLock: 'Это банк Степана. Если ты Степан — введи свой секретный код.', bkCode: 'Секретный код', bkUnlock: '🔓 Открыть', bkBadCode: '❌ Неверный код',
+      bkSelf: '💶 +200 000 € себе', bkGot: '💶 +200 000 € на твой счёт!', bkPlayers: '👥 Игроки в игре — отправить деньги', bkNoPlayers: 'Сейчас в игре никого нет.', bkSend: 'Отправить',
+      bkReqs: '🙏 Просьбы о деньгах', bkNoReqs: 'Пока никто ничего не просит.', bkGive: '✅ Дать', bkDeny: '✖', bkAsks: '{n} просит {m}',
+      bkAsk: '🙏 Попросить', bkAsked: '✅ Просьба отправлена! Жди, когда Степан ответит.', bkNoStepan: '😕 Степана сейчас нет в игре — попробуй позже.', bkStepanOn: '🟢 Степан в игре!',
+      bkWait: 'Подожди немного перед новой просьбой.', bkIncoming: '💬 {n} просит у тебя {m} — открой 🏪', bkPaid: '💶 Степан прислал тебе {m}!', bkSent: '✅ Отправлено {m} игроку {n}', bkOffline: 'Интернета нет — банк работает только в сети.',
       stolenCar: 'чужая машина', stolenPolice: 'полицейская машина', friendCar: 'машина друга {n}',
       jackAngry: '😡 Водитель выскочил и злится!', jackRun: '🏃 Водитель испугался и убежал!', jackPolice: '🚓 Ты угнал полицейскую машину!', jackFriend: '😠 {n}: Эй! Это же моя машина!',
       mbSign1: 'ВОЕННАЯ БАЗА', mbSign2: 'ВХОД ЗАПРЕЩЁН', jetHint: 'Q / 4 / клик — ракеты 🚀',
@@ -725,6 +752,12 @@
       profHint: 'All progress (money, vehicles, weapons, clothes, house) saves by itself. To play on another device, copy the code and load it there.',
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
+      bkTitle: '🏪 Stepan’s Bank', bkHintUser: 'Here you can ask Stepan Banan for money. Pick an amount and press “Ask”.', bkHintAdmin: 'You are Stepan! You can take money for yourself and send it to other players.',
+      bkHintLock: 'This is Stepan’s bank. If you are Stepan, enter your secret code.', bkCode: 'Secret code', bkUnlock: '🔓 Unlock', bkBadCode: '❌ Wrong code',
+      bkSelf: '💶 +200,000 € for me', bkGot: '💶 +200,000 € added!', bkPlayers: '👥 Players online — send money', bkNoPlayers: 'Nobody is online right now.', bkSend: 'Send',
+      bkReqs: '🙏 Money requests', bkNoReqs: 'No requests yet.', bkGive: '✅ Give', bkDeny: '✖', bkAsks: '{n} asks for {m}',
+      bkAsk: '🙏 Ask', bkAsked: '✅ Request sent! Wait for Stepan to answer.', bkNoStepan: '😕 Stepan is not online — try later.', bkStepanOn: '🟢 Stepan is online!',
+      bkWait: 'Wait a little before asking again.', bkIncoming: '💬 {n} asks you for {m} — open 🏪', bkPaid: '💶 Stepan sent you {m}!', bkSent: '✅ Sent {m} to {n}', bkOffline: 'No internet — the bank only works online.',
       stolenCar: 'a stranger’s car', stolenPolice: 'a police car', friendCar: '{n}’s car',
       jackAngry: '😡 The driver jumped out and is angry!', jackRun: '🏃 The driver got scared and ran away!', jackPolice: '🚓 You stole a police car!', jackFriend: '😠 {n}: Hey! That’s my car!',
       mbSign1: 'MILITARY BASE', mbSign2: 'NO ENTRY', jetHint: 'Q / 4 / click — missiles 🚀',
@@ -1771,6 +1804,7 @@
     if (a === 'close') {                                   // Esc: закрыть гараж → открыть/закрыть меню
       if (e.repeat) return;
       if (window.__isMapOpen?.()) window.__toggleMap?.(false);
+      else if (window.__bankOpen?.()) window.__toggleBank?.(false);
       else if (window.__wheelOpen?.()) window.__toggleWheel?.(false);
       else if (window.__phoneOpen?.()) window.__togglePhone?.(false);
       else if (window.__shopOpen?.()) window.__closeShop?.();
@@ -1785,7 +1819,7 @@
     if (window.__phoneOpen?.() && a !== 'map') { if (!e.repeat) window.__phoneKey?.(a); return; }   // телефон в руках: 1/2 — выбор, 3 — звонок
     if (a === 'play') { if (menuOpen && window.__gameReady) hideStart(); return; }
     if (a === 'map') { if (!e.repeat && !menuOpen && !garageOpen) window.__toggleMap?.(); return; }
-    if (menuOpen || garageOpen || window.__isMapOpen?.() || window.__shopOpen?.() || window.__wheelOpen?.()) return;   // в меню машина не едет
+    if (menuOpen || garageOpen || window.__isMapOpen?.() || window.__shopOpen?.() || window.__wheelOpen?.() || window.__bankOpen?.()) return;   // в меню машина не едет
     if (a === 'exit') { if (!e.repeat) window.__toggleVehicle?.(); return; }
     if (a === 'punch') { if (!e.repeat) window.__punch?.(); return; }
     if (a === 'reset') { if (!e.repeat) newGame(); return; }
@@ -5686,6 +5720,7 @@
     if (!id || id === net.id || id.length > 16) return;
     let m; try { m = JSON.parse(text); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
+    if (m.bank && typeof m.bank === 'object') { onBank(id, m.bank); return; }
     if (m.bye) { const old = net.mqPeers.get(id); if (old) { net.mqPeers.delete(id); showMsg(t('netLeft', { n: cleanName(old.presence.nm) }), 1800); dropRemote(id); renderNet(); } return; }
     if (!Number.isFinite(m.x) || !Number.isFinite(m.y)) return;
     const isNew = !net.mqPeers.has(id);
@@ -5753,6 +5788,90 @@
   if (Number.isInteger(save.homeSlot) && HOMES[save.homeSlot]) HOME = HOMES[save.homeSlot];
   updateHomeOwners();
   setInterval(updateHomeOwners, 1500);
+  // ================== Банк Степана ==================
+  const BANK_HASH = '6dad2efb781a1c27a10e91788d7ce2cb318829510ef9603ce49b4424f2f6079e';
+  const STEPAN_NICKS = ['степанбанан', 'stepanbanan', 'stepanbanam', 'степанбанам'];
+  const nickKey = v => (v || '').toLowerCase().replace(/[^a-zа-яё0-9]/g, '');
+  const isStepanNick = () => STEPAN_NICKS.includes(nickKey(save.nick));
+  const isBanker = () => isStepanNick() && save.bankOk === BANK_HASH;
+  const bankEl = document.getElementById('bank'), bankBody = document.getElementById('bankBody'), bankBadge = document.getElementById('bankBadge');
+  let bankOpen = false, bankAmt = 10000, lastAsk = 0, bankMsg = '';
+  const bankReqs = [];                                                             // просьбы к Степану: { id, nm, amt }
+  const BANK_AMTS = [1000, 10000, 50000, 100000, 200000];
+  const stepanOnline = () => netPeers().some(p => p.presence && p.presence.adm);
+  function bankSend(obj) { if (net.room) return false; mqPublish(JSON.stringify({ bank: obj })); return net.mq.some(c => c.ok); }
+  function onBank(from, b) {
+    const peer = net.mqPeers.get(from), nm = cleanName(b.nm || (peer && peer.presence && peer.presence.nm));
+    const amt = Math.round(+b.amt); if (!(amt > 0) || amt > 1000000) return;
+    if (b.t === 'req' && isBanker()) {                                             // Степану пришла просьба
+      if (bankReqs.some(r => r.id === from)) bankReqs.find(r => r.id === from).amt = amt; else bankReqs.push({ id: from, nm, amt });
+      if (bankReqs.length > 12) bankReqs.shift();
+      showMsg(t('bkIncoming', { n: nm, m: fmt(amt) }), 3500); updateBadge(); if (bankOpen) renderBank();
+    } else if (b.t === 'pay' && b.to === net.id && peer && peer.presence && peer.presence.adm) {   // деньги от Степана
+      save.money += amt; persist(); popMoney('+' + fmt(amt), '#7CFFB2'); showMsg(t('bkPaid', { m: fmt(amt) }), 4000);
+    }
+  }
+  function updateBadge() { bankBadge.textContent = bankReqs.length; bankBadge.classList.toggle('on', isBanker() && bankReqs.length > 0); }
+  function amtButtons(cur, attr) { return BANK_AMTS.map(a => `<button class="bkBtn${a === cur ? ' sel' : ''}" data-${attr}="${a}">${fmt(a)}</button>`).join(' '); }
+  function renderBank() {
+    document.getElementById('bankTitle').textContent = t('bkTitle');
+    document.getElementById('bankMoney').textContent = fmt(save.money);
+    const online = net.room || net.mq.some(c => c.ok);
+    let html = '';
+    if (isBanker()) {
+      document.getElementById('bankHint').textContent = t('bkHintAdmin');
+      html += `<button class="bkBtn big" data-self="1">${esc(t('bkSelf'))}</button>`;
+      html += `<h4>${esc(t('bkReqs'))}</h4>` + (bankReqs.length ? bankReqs.map((r, i) => `<div class="bkRow"><b>${esc(t('bkAsks', { n: r.nm, m: fmt(r.amt) }))}</b><button class="bkBtn" data-give="${i}">${esc(t('bkGive'))}</button><button class="bkBtn no" data-deny="${i}">${esc(t('bkDeny'))}</button></div>`).join('') : `<p class="ghint">${esc(t('bkNoReqs'))}</p>`);
+      const peers = online ? netPeers() : [];
+      html += `<h4>${esc(t('bkPlayers'))}</h4><div style="margin-bottom:6px">${amtButtons(bankAmt, 'amt')}</div>`;
+      html += peers.length ? peers.map(pp => `<div class="bkRow"><b>👤 ${esc(cleanName(pp.presence && pp.presence.nm))}</b><button class="bkBtn" data-pay="${esc(pp.peer)}">${esc(t('bkSend'))} ${fmt(bankAmt)}</button></div>`).join('') : `<p class="ghint">${esc(t(online ? 'bkNoPlayers' : 'bkOffline'))}</p>`;
+    } else if (isStepanNick()) {
+      document.getElementById('bankHint').textContent = t('bkHintLock');
+      html += `<div class="bkRow"><input id="bankCode" maxlength="20" autocomplete="off" placeholder="${esc(t('bkCode'))}"><button class="bkBtn" data-unlock="1">${esc(t('bkUnlock'))}</button></div>`;
+    } else {
+      document.getElementById('bankHint').textContent = t('bkHintUser');
+      const st = online ? (stepanOnline() ? t('bkStepanOn') : t('bkNoStepan')) : t('bkOffline');
+      html += `<p class="ghint" style="font-size:16px">${esc(st)}</p><div style="margin:8px 0">${amtButtons(bankAmt, 'amt')}</div>`;
+      html += `<button class="bkBtn big" data-ask="1">${esc(t('bkAsk'))} ${fmt(bankAmt)}</button>`;
+    }
+    if (bankMsg) html += `<p class="ghint" style="font-weight:800;font-size:15px">${esc(bankMsg)}</p>`;
+    bankBody.innerHTML = html;
+  }
+  async function sha256hex(txt) { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)); return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join(''); }
+  bankBody.addEventListener('click', async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    bankMsg = '';
+    if (b.dataset.amt) bankAmt = +b.dataset.amt;
+    else if (b.dataset.self && isBanker()) { save.money += 200000; persist(); popMoney('+200 000 €', '#7CFFB2'); bankMsg = t('bkGot'); }
+    else if (b.dataset.unlock) {
+      const code = (document.getElementById('bankCode').value || '').trim().toUpperCase();
+      let ok = false; try { ok = (await sha256hex('mashinki-bank:' + code)) === BANK_HASH; } catch (err) {}
+      if (ok) { save.bankOk = BANK_HASH; persist(); } else bankMsg = t('bkBadCode');
+    }
+    else if (b.dataset.ask) {
+      if (performance.now() - lastAsk < 10000) bankMsg = t('bkWait');
+      else if (!stepanOnline()) bankMsg = t('bkNoStepan');
+      else { lastAsk = performance.now(); bankSend({ t: 'req', amt: bankAmt, nm: save.nick.slice(0, 16) }); bankMsg = t('bkAsked'); }
+    }
+    else if (b.dataset.pay && isBanker()) {
+      const pp = netPeers().find(q => q.peer === b.dataset.pay);
+      if (pp) { bankSend({ t: 'pay', to: pp.peer, amt: bankAmt, nm: save.nick.slice(0, 16) }); bankMsg = t('bkSent', { m: fmt(bankAmt), n: cleanName(pp.presence && pp.presence.nm) }); }
+    }
+    else if (b.dataset.give && isBanker()) {
+      const r = bankReqs[+b.dataset.give];
+      if (r) { bankSend({ t: 'pay', to: r.id, amt: r.amt, nm: save.nick.slice(0, 16) }); bankMsg = t('bkSent', { m: fmt(r.amt), n: r.nm }); bankReqs.splice(+b.dataset.give, 1); updateBadge(); }
+    }
+    else if (b.dataset.deny) { bankReqs.splice(+b.dataset.deny, 1); updateBadge(); }
+    renderBank();
+  });
+  function toggleBank(on = !bankOpen) {
+    bankOpen = on; bankEl.classList.toggle('on', on);
+    if (on) { held.clear(); touchHeld.clear(); refreshKeys(); bankMsg = ''; renderBank(); } else if (!menuOpen) canvas.focus();
+  }
+  document.getElementById('bankBtn').addEventListener('click', () => toggleBank());
+  document.getElementById('bankClose').addEventListener('click', () => toggleBank(false));
+  window.__bankOpen = () => bankOpen; window.__toggleBank = toggleBank;
+  setInterval(() => { if (bankOpen) { const a = document.activeElement; if (!a || a.id !== 'bankCode') renderBank(); } }, 2000);
   function netUpdate(dt, now) {
     if (!net.room && !net.mq.length) return;
     const moving = Math.hypot(car.vx, car.vy) > 3;
@@ -5760,6 +5879,7 @@
       net.lastSend = now;
       const st = { nm: save.nick.slice(0, 16), x: Math.round(car.x), y: Math.round(car.y), z: Math.round(car.z || 0),
         h: Math.round(car.angle * 1000) / 1000, v: Math.round(Math.hypot(car.vx, car.vy)), foot: !!car.onFoot, car: spec.id, hm: HOME.idx };
+      if (isBanker()) st.adm = 1;                                                    // это Степан
       if (net.room) net.room.presence(st).catch(() => {});
       else mqPublish(JSON.stringify(st));
     }
