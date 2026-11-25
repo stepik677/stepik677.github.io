@@ -706,7 +706,7 @@
       mbSign1: 'ВОЕННАЯ БАЗА', mbSign2: 'ВХОД ЗАПРЕЩЁН', jetHint: 'Q / 4 / клик — ракеты 🚀',
       stealPrompt: 'Нажми {k} — угнать: {n}', stoleMil: '🚨 Ты угнал военную технику! Армия гонится за тобой!', stoleAir: '🚨 Угон в аэропорту! Полиция уже едет!',
       baseAlert: '⚠️ Военная база! Тебя заметили солдаты!', drowned: '🌊 Утонул! Выплываешь на пляж…',
-      lgAirport: '✈️ Аэропорт', lgBase: '🪖 Военная база', lgBeach: '🏖 Пляж', lgMount: '⛰ Гора Орлиная', lgOcean: 'Океан', lgHighway: 'Кольцевое шоссе',
+      lgAirport: '✈️ Аэропорт', lgBase: '🪖 Военная база', lgBeach: '🏖 Пляж', lgMount: '⛰ Гора Орлиная', lgOcean: 'Океан', lgHighway: 'Кольцевое шоссе', lgBridgeBig: '🌉 Мост Чаек', lgIsland: '🏝 Остров Чаек', lgFreeway: 'Скоростная эстакада', lgCoast: 'Прибрежное шоссе',
       mapMe: '🎯 Где я', mapZoomHint: 'Колёсико или ➕➖ — приблизить, тяни мышкой — двигать карту',
         streetsH: 'Проспект Мира|ул. Гонщиков|Садовая ул.|Центральный пр.|ул. Победы|Солнечная ул.|Лесная ул.|ул. Трамплинов|Морская ул.|Новая ул.|Парковая ул.|Речная ул.|ул. Строителей|Школьная ул.',
         streetsV: 'ул. Ленина|Зелёная ул.|Кленовая ул.|Вокзальная ул.|Мостовая ул.|ул. Гагарина|Озёрная ул.|Широкая ул.|Звёздная ул.|ул. Механиков|Яблочная ул.|Тихая ул.|Восточная ул.|Полевая ул.',
@@ -728,7 +728,7 @@
       mbSign1: 'MILITARY BASE', mbSign2: 'NO ENTRY', jetHint: 'Q / 4 / click — missiles 🚀',
       stealPrompt: 'Press {k} — steal: {n}', stoleMil: '🚨 You stole military equipment! The army is after you!', stoleAir: '🚨 Theft at the airport! The police are coming!',
       baseAlert: '⚠️ Military base! The soldiers spotted you!', drowned: '🌊 You drowned! Swimming back to the beach…',
-      lgAirport: '✈️ Airport', lgBase: '🪖 Military base', lgBeach: '🏖 Beach', lgMount: '⛰ Eagle Mountain', lgOcean: 'Ocean', lgHighway: 'Ring highway',
+      lgAirport: '✈️ Airport', lgBase: '🪖 Military base', lgBeach: '🏖 Beach', lgMount: '⛰ Eagle Mountain', lgOcean: 'Ocean', lgHighway: 'Ring highway', lgBridgeBig: '🌉 Seagull Bridge', lgIsland: '🏝 Seagull Island', lgFreeway: 'Elevated freeway', lgCoast: 'Coast road',
       mapMe: '🎯 Where am I', mapZoomHint: 'Wheel or ➕➖ — zoom, drag with the mouse — move the map',
         streetsH: 'Peace Ave|Racer St|Garden St|Central Ave|Victory St|Sunny St|Forest St|Ramp St|Ocean St|New St|Park St|River St|Builders St|School St',
         streetsV: 'Main St|Green St|Maple St|Station St|Bridge St|Star St|Lake St|Broadway|Comet St|Mechanic St|Apple St|Quiet St|East St|Field St',
@@ -1012,38 +1012,69 @@
     const d2 = (x - MX) ** 2 + (y - MY) ** 2;
     return wk * (780 * Math.exp(-d2 / (2 * 820 * 820)) + 70 + 60 * Math.sin(x * .0023 + 1.3) * Math.cos(y * .0019) + 45 * Math.sin(y * .0041 + x * .001));
   }
+  const SEA = -3, SHORE = WORLD + 1550;                       // уровень моря и где начинается вода
+  const IX = Math.round(WORLD * .72), IY = SHORE + 2300;      // Остров Чаек — к нему ведёт длинный мост
+  function baseH(x, y) {                                      // земля без дорог: холмы, гора, берег, остров
+    if (x > -300 && y > -300 && x < WORLD + 300 && y < WORLD + 300) return 0;
+    let h = rawH(x, y);
+    if (h > 0) { const dh = Math.abs(hwDist(x, y)); if (dh < 480) h *= sstep(190, 480, dh); }
+    if (y > SHORE) h = Math.min(h, -(y - SHORE) * .07);
+    { const d = Math.hypot(x - IX, y - IY); if (d < 1100) h = Math.max(h, d < 480 ? 42 : 42 - (d - 480) * .24); }
+    const e = Math.min(x - F0, F1 - x, y - F0);
+    if (e < 800) { const k = sstep(0, 800, e); h = h * k - 60 * (1 - k); }
+    return h;
+  }
+  // дороги по холмам: серпантин на гору и извилистое прибрежное шоссе на западе
+  function smoothRoad(P, minH, climb) {
+    let hs = P.map(p => Math.max(minH, baseH(p[0], p[1])));
+    const n = hs.length;
+    for (let it = 0; it < 10; it++) hs = hs.map((h, i) => (hs[Math.max(0, i - 4)] + hs[Math.max(0, i - 2)] + h + hs[Math.min(n - 1, i + 2)] + hs[Math.min(n - 1, i + 4)]) / 5);
+    if (climb) for (let i = 1; i < n; i++) hs[i] = Math.max(hs[i], hs[i - 1] - 1);
+    P.forEach((p, i) => p[2] = Math.max(minH, hs[i]));
+  }
+  function catmull(ctrl, step) {                              // плавная кривая через точки
+    const out = [];
+    for (let i = 0; i < ctrl.length - 1; i++) {
+      const p0 = ctrl[Math.max(0, i - 1)], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[Math.min(ctrl.length - 1, i + 2)];
+      const n = Math.max(2, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / step));
+      for (let k = 0; k < n; k++) {
+        const t = k / n, t2 = t * t, t3 = t2 * t;
+        out.push([0, 1].map(j => .5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3)));
+      }
+    }
+    out.push([ctrl[ctrl.length - 1][0], ctrl[ctrl.length - 1][1]]);
+    return out;
+  }
   const MR_PTS = [];                                          // серпантин на гору: [x, y, высота]
   {
     for (let x = -HW_D; x > -1450; x -= 50) MR_PTS.push([x, MY]);
     const th1 = Math.PI * 2 * 2.3;
     for (let th = 0; th < th1;) { const r = 1050 - 880 * th / th1; MR_PTS.push([MX + r * Math.cos(th), MY + r * Math.sin(th)]); th += 50 / r; }
-    let hs = MR_PTS.map(p => rawH(p[0], p[1]));
-    const n = hs.length;
-    for (let it = 0; it < 8; it++) hs = hs.map((h, i) => (hs[Math.max(0, i - 4)] + hs[Math.max(0, i - 2)] + h + hs[Math.min(n - 1, i + 2)] + hs[Math.min(n - 1, i + 4)]) / 5);
-    for (let i = 1; i < n; i++) hs[i] = Math.max(hs[i], hs[i - 1] - 1);   // дорога в гору почти не спускается
-    MR_PTS.forEach((p, i) => p.push(hs[i]));
+    smoothRoad(MR_PTS, 0, true);
   }
+  const COAST_PTS = catmull([[-HW_D, WORLD - 500], [-1800, WORLD + 150], [-3000, WORLD + 380], [-3850, WORLD - 300], [-3960, WORLD - 1800], [-3820, 7300],
+    [-3960, 5100], [-3830, 3200], [-3960, 1500], [-3700, -300], [-3000, -1500], [-2000, -1750], [-1300, -850], [-HW_D, -100]], 50);   // прибрежное шоссе
+  smoothRoad(COAST_PTS, 6, false);
+  const RD_PTS = [...MR_PTS, ...COAST_PTS];
   const MR_GRID = new Map(), MRC = 200;
-  MR_PTS.forEach((p, i) => { const k = Math.floor(p[0] / MRC) * 100003 + Math.floor(p[1] / MRC); if (!MR_GRID.has(k)) MR_GRID.set(k, []); MR_GRID.get(k).push(i); });
-  function mrNear(x, y) {                                     // ближайшая точка серпантина: [расстояние, высота дороги]
+  RD_PTS.forEach((p, i) => { const k = Math.floor(p[0] / MRC) * 100003 + Math.floor(p[1] / MRC); if (!MR_GRID.has(k)) MR_GRID.set(k, []); MR_GRID.get(k).push(i); });
+  function mrNear(x, y) {                                     // ближайшая точка горной дороги: [расстояние, высота дороги]
     const ix = Math.floor(x / MRC), iy = Math.floor(y / MRC); let bd = 1e12, bh = 0;
     for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
       const L = MR_GRID.get((ix + a) * 100003 + iy + b); if (!L) continue;
-      for (const i of L) { const p = MR_PTS[i], d = (p[0] - x) ** 2 + (p[1] - y) ** 2; if (d < bd) { bd = d; bh = p[2]; } }
+      for (const i of L) { const p = RD_PTS[i], d = (p[0] - x) ** 2 + (p[1] - y) ** 2; if (d < bd) { bd = d; bh = p[2]; } }
     }
     return [Math.sqrt(bd), bh];
   }
-  const SEA = -3, SHORE = WORLD + 1550;                       // уровень моря и где начинается вода
-  function terrainH(x, y) {                                   // высота земли за городом
+  function terrainH(x, y) {                                   // высота земли за городом (дороги — ровные)
     if (x > -300 && y > -300 && x < WORLD + 300 && y < WORLD + 300) return 0;
-    let h = rawH(x, y);
-    if (h > 0) { const dh = Math.abs(hwDist(x, y)); if (dh < 480) h *= sstep(190, 480, dh); }
-    if (x < -800 && x > MX - 1400 && y > MY - 1400 && y < MY + 1400) { const [d, rh] = mrNear(x, y); if (d < 185) h = rh + (h - rh) * sstep(100, 185, d); }
-    if (y > SHORE) h = Math.min(h, -(y - SHORE) * .07);
-    const e = Math.min(x - F0, F1 - x, y - F0);
-    if (e < 800) { const k = sstep(0, 800, e); h = h * k - 60 * (1 - k); }
+    let h = baseH(x, y);
+    if (x < -700) { const [d, rh] = mrNear(x, y); if (d < 185) h = rh + (h - rh) * sstep(100, 185, d); }
     return h;
   }
+  // скоростная эстакада над улицей города и большой мост
+  const FWX = 3 * STEP * T + ROAD_W / 2, FWH = 72;           // над 4-й вертикальной улицей, высота 72
+  const BR = { y0: SHORE - 280, y1: SHORE + 80, y2: IY - 760, y3: IY - 420, h: 60, w: 160 };   // мост: въезд, пролёт, съезд на остров
   const AP = { x0: WORLD + 1500, x1: WORLD + 4300, y0: 500, y1: WORLD - 500 };   // аэропорт
   const MB = { x0: 1500, x1: 9500, y0: -3500, y1: -1400 };                        // военная база
   const outerObs = [];                                        // дома и заборы за городом
@@ -1623,7 +1654,7 @@
       if (a > -60 && a < WORLD + 60) { addTree(-off, p, rr(20, 30), false); addTree(WORLD + off, p, rr(20, 30), false); }
     }
   {   // деревья, попавшие на дороги к кольцевому шоссе, убираем (случайные числа при этом не меняются)
-    const onRoad = v => [0, NB >> 1, NB].some(k => Math.abs(v - (k * STEP * T + ROAD_W / 2)) < 170);
+    const onRoad = v => [0, 3, NB >> 1, NB].some(k => Math.abs(v - (k * STEP * T + ROAD_W / 2)) < 170);
     for (let i = tall.length - 1; i >= 0; i--) { const o = tall[i]; if (o.k === 't' && !inCity(o.x, o.y) && ((o.y < 0 || o.y > WORLD) ? onRoad(o.x) : onRoad(o.y))) tall.splice(i, 1); }
   }
 
@@ -4869,7 +4900,7 @@
       if (Math.abs(hwDist(x, y)) < 260 || OUT_ROADS.some(r => Math.abs(r[0][0] - r[r.length - 1][0]) < 1 && Math.abs(x - r[0][0]) < 180)) continue;
       const h = terrainH(x, y); if (h < 0) continue; pine.push([x, y, h]);
     }
-    for (let i = 0; i < 90; i++) { const x = -200 + Math.random() * (WORLD + 400), y = WORLD + 1150 + Math.random() * 300; if (Math.abs(x - GC) < 140) continue; palm.push([x, y, terrainH(x, y)]); }
+    for (let i = 0; i < 90; i++) { const x = -200 + Math.random() * (WORLD + 400), y = WORLD + 1275 + Math.random() * 180; if (Math.abs(x - GC) < 140 || Math.abs(x - IX) < 150) continue; palm.push([x, y, terrainH(x, y)]); }
     const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3(), Yax = new THREE.Vector3(0, 1, 0);
     const inst = (geo, mat, list, sc) => { const m = new THREE.InstancedMesh(geo, mat, list.length); list.forEach((p, i) => { const k = sc[i]; M4.compose(P.set(p[0], p[2] - 1, p[1]), Q.setFromAxisAngle(Yax, k * 40), S.set(k, k, k)); m.setMatrixAt(i, M4); }); m.castShadow = true; m.receiveShadow = true; scene.add(m); return m; };
     const ps = pine.map(() => .75 + Math.random() * .7), pl = palm.map(() => .85 + Math.random() * .4);
@@ -4881,6 +4912,112 @@
     for (const c of crowns) c.instanceColor.needsUpdate = true;
     inst(new THREE.CylinderGeometry(1.8, 2.8, 48, 6).translate(0, 24, 0), new THREE.MeshStandardMaterial({ color: '#8d6e4a', roughness: .9 }), palm, pl);
     inst(new THREE.ConeGeometry(26, 12, 8).translate(0, 50, 0), new THREE.MeshStandardMaterial({ color: '#4caf50', roughness: .8 }), palm, pl);
+  }
+
+  // ================== Эстакада, большой мост, Остров Чаек, прибрежное шоссе ==================
+  const concreteM = new THREE.MeshStandardMaterial({ map: concreteTex(true), roughness: .85 });
+  const deckTopM = new THREE.MeshStandardMaterial({ map: (() => { const tx = hwTex.clone(); tx.needsUpdate = true; return tx; })(), roughness: .9 });
+  const lampHeadM = new THREE.MeshStandardMaterial({ color: '#fffde7', emissive: '#fff3c0', emissiveIntensity: 2.4 });
+  const poleM = new THREE.MeshStandardMaterial({ color: '#5f6870', metalness: .6, roughness: .4 });
+  function slab(cx, cy, w, L, h0, h1, thick, topMat, sideMat, rails = true, lamps = 0) {   // прямой участок дороги в воздухе (вдоль Y)
+    const len = Math.hypot(L, h1 - h0), ang = Math.atan2(h1 - h0, L), g = new THREE.Group();
+    const top = new THREE.Mesh(new THREE.BoxGeometry(w, thick, len), [sideMat, sideMat, topMat, sideMat, sideMat, sideMat]);
+    top.material[2].map && (top.material[2] = top.material[2].clone(), top.material[2].map = top.material[2].map.clone(), top.material[2].map.repeat.set(1, len / 260), top.material[2].map.needsUpdate = true);
+    top.position.y = -thick / 2; top.castShadow = top.receiveShadow = true; g.add(top);
+    if (rails) for (const sx of [-1, 1]) { const r = new THREE.Mesh(new THREE.BoxGeometry(6, 9, len), sideMat); r.position.set(sx * (w / 2 - 3), 4.5, 0); r.castShadow = true; g.add(r); }
+    g.position.set(cx, (h0 + h1) / 2, cy); g.rotation.x = -ang; scene.add(g);
+    if (lamps) for (let s = -L / 2 + lamps / 2; s < L / 2; s += lamps) for (const sx of [-1, 1]) {
+      const hh = h0 + (h1 - h0) * (s + L / 2) / L, p = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.8, 46, 6), poleM); p.position.set(cx + sx * (w / 2 - 4), hh + 23, cy + s); scene.add(p);
+      const hd = new THREE.Mesh(new THREE.BoxGeometry(18, 3, 6), lampHeadM); hd.position.set(cx + sx * (w / 2 - 12), hh + 46, cy + s); scene.add(hd);
+    }
+    return g;
+  }
+  // --- скоростная эстакада через весь город (заезд с кольцевого шоссе на севере и юге) ---
+  {
+    const W = 300, y0 = -760, y1 = -120, y2 = WORLD + 120, y3 = WORLD + 760;
+    PLATS.push({ cx: FWX, cy: (y0 + y1) / 2, ux: 0, uy: 1, L: y1 - y0, Wd: W, h0: 0, h1: FWH, bot: 0, fw: true });
+    PLATS.push({ cx: FWX, cy: (y1 + y2) / 2, ux: 0, uy: 1, L: y2 - y1, Wd: W, h0: FWH, h1: FWH, bot: FWH - 10, fw: true });
+    PLATS.push({ cx: FWX, cy: (y2 + y3) / 2, ux: 0, uy: 1, L: y3 - y2, Wd: W, h0: FWH, h1: 0, bot: 0, fw: true });
+    slab(FWX, (y0 + y1) / 2, W, y1 - y0, 0, FWH, 8, deckTopM, concreteM, true, 0);
+    slab(FWX, (y1 + y2) / 2, W, y2 - y1, FWH, FWH, 9, deckTopM, concreteM, true, 420);
+    slab(FWX, (y2 + y3) / 2, W, y3 - y2, FWH, 0, 8, deckTopM, concreteM, true, 0);
+    for (const [ya, yb, up] of [[y0, y1, true], [y2, y3, false]]) for (const sx of [-1, 1]) {      // стенки под заездами
+      const L = yb - ya, sh = new THREE.Shape(up ? [new THREE.Vector2(0, 0), new THREE.Vector2(L, 0), new THREE.Vector2(L, FWH - 8)] : [new THREE.Vector2(0, 0), new THREE.Vector2(L, 0), new THREE.Vector2(0, FWH - 8)]);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: 6, bevelEnabled: false }); g.rotateY(-Math.PI / 2);
+      const m = new THREE.Mesh(g, concreteM); m.position.set(FWX + sx * (W / 2 - 3) + (sx < 0 ? 3 : 3), 0, ya); m.castShadow = true; scene.add(m);
+    }
+    // опоры — между полосами, не на перекрёстках
+    const pil = new THREE.CylinderGeometry(7, 9, FWH - 9, 12), beam = new THREE.BoxGeometry(W, 9, 16);
+    for (let j = 0; j < NB; j++) for (const off of [110, 224, 338]) {
+      const y = j * STEP * T + ROAD_W + off;
+      for (const x of [FWX - 140, FWX + 140]) { const m = new THREE.Mesh(pil, concreteM); m.position.set(x, (FWH - 9) / 2, y); m.castShadow = true; scene.add(m); addObs({ t: 'c', x, y, r: 8, top: FWH - 12 }); }
+      const b = new THREE.Mesh(beam, concreteM); b.position.set(FWX, FWH - 13, y); scene.add(b);
+    }
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(120, 30), new THREE.MeshBasicMaterial({ map: outerTex(512, 128, (g, w, h) => { g.fillStyle = '#1b5e20'; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 8; g.strokeRect(6, 6, w - 12, h - 12); g.fillStyle = '#fff'; g.font = 'bold 54px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('⬆ ' + t('lgFreeway'), w / 2, h / 2 + 3); }, 1, 1), side: THREE.DoubleSide }));
+    sign.position.set(FWX, 60, y0 + 40); sign.rotation.y = Math.PI; scene.add(sign);
+  }
+  // --- длинный подвесной мост на Остров Чаек ---
+  {
+    const X = IX, W = BR.w, H = BR.h;
+    PLATS.push({ cx: X, cy: (BR.y0 + BR.y1) / 2, ux: 0, uy: 1, L: BR.y1 - BR.y0, Wd: W, h0: 0, h1: H, bot: 0, br: true });
+    PLATS.push({ cx: X, cy: (BR.y1 + BR.y2) / 2, ux: 0, uy: 1, L: BR.y2 - BR.y1, Wd: W, h0: H, h1: H, bot: H - 9, br: true });
+    PLATS.push({ cx: X, cy: (BR.y2 + BR.y3) / 2, ux: 0, uy: 1, L: BR.y3 - BR.y2, Wd: W, h0: H, h1: 42, bot: 30, br: true });
+    const steel = new THREE.MeshStandardMaterial({ color: '#c0392b', metalness: .5, roughness: .4 });
+    slab(X, (BR.y0 + BR.y1) / 2, W, BR.y1 - BR.y0, 0, H, 8, deckTopM, concreteM, true, 0);
+    slab(X, (BR.y1 + BR.y2) / 2, W, BR.y2 - BR.y1, H, H, 10, deckTopM, steel, true, 260);
+    slab(X, (BR.y2 + BR.y3) / 2, W, BR.y3 - BR.y2, H, 42, 8, deckTopM, concreteM, true, 0);
+    const L = BR.y2 - BR.y1, P1 = BR.y1 + L / 3, P2 = BR.y1 + L * 2 / 3, TOP = 250, SAG = 120;
+    for (const py of [P1, P2]) {                                   // пилоны
+      for (const sx of [-1, 1]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(14, TOP + 40, 18), steel); leg.position.set(X + sx * (W / 2 + 6), (TOP - 40) / 2, py); leg.castShadow = true; scene.add(leg); }
+      for (const hb of [H - 14, TOP - 10, TOP * .62]) { const cb = new THREE.Mesh(new THREE.BoxGeometry(W + 26, 10, 14), steel); cb.position.set(X, hb, py); scene.add(cb); }
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(W + 60, 40, 60), concreteM); foot.position.set(X, -20, py); scene.add(foot);
+      for (const sx of [-1, 1]) outerObs.push({ x: X + sx * (W / 2 + 6) - 8, y: py - 10, w: 16, h: 20, top: TOP + 20, bot: -100 });
+    }
+    // тросы и подвески
+    const cableH = y => {
+      if (y < P1) { const k = (y - BR.y1) / (P1 - BR.y1); return H + 4 + (TOP - H - 4) * k * k; }
+      if (y > P2) { const k = (BR.y2 - y) / (BR.y2 - P2); return H + 4 + (TOP - H - 4) * k * k; }
+      const k = (y - (P1 + P2) / 2) / ((P2 - P1) / 2); return SAG + (TOP - SAG) * k * k;
+    };
+    const cableM = new THREE.MeshStandardMaterial({ color: '#eceff1', metalness: .7, roughness: .3 });
+    for (const sx of [-1, 1]) {
+      const pts = []; for (let y = BR.y1; y <= BR.y2 + 1; y += 40) pts.push(new THREE.Vector3(X + sx * (W / 2 + 6), cableH(y), y));
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 2, 2.2, 6, false), cableM); scene.add(tube);
+      const hg = new THREE.CylinderGeometry(.6, .6, 1, 4), hangs = [];
+      for (let y = BR.y1 + 40; y < BR.y2 - 20; y += 45) { const top = cableH(y); if (top - H > 6) hangs.push([y, top]); }
+      const im = new THREE.InstancedMesh(hg, cableM, hangs.length), M4 = new THREE.Matrix4();
+      hangs.forEach(([y, top], i) => { M4.makeScale(1, top - H, 1).setPosition(X + sx * (W / 2 + 6), (top + H) / 2, y); im.setMatrixAt(i, M4); }); scene.add(im);
+    }
+  }
+  // --- Остров Чаек: маяк, виллы, пальмы ---
+  {
+    const base = 42;
+    const stripes = outerTex(64, 256, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#ffffff' : '#d32f2f'; g.fillRect(0, i * 32, w, 32); } }, 1, 1);
+    const lx = IX + 260, ly = IY + 120;
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(20, 30, 150, 20), new THREE.MeshStandardMaterial({ map: stripes, roughness: .6 })); tower.position.set(lx, base + 75, ly); tower.castShadow = true; scene.add(tower);
+    const lantern = new THREE.Mesh(new THREE.CylinderGeometry(16, 16, 20, 16), new THREE.MeshStandardMaterial({ color: '#fff8e1', emissive: '#ffe082', emissiveIntensity: 3 })); lantern.position.set(lx, base + 160, ly); scene.add(lantern);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(20, 18, 16), new THREE.MeshStandardMaterial({ color: '#b71c1c' })); cap.position.set(lx, base + 179, ly); scene.add(cap);
+    outerObs.push({ x: lx - 26, y: ly - 26, w: 52, h: 52, top: base + 150, bot: 0 });
+    const villaM = new THREE.MeshStandardMaterial({ map: glassTex('#f5f0e6', '#4f7fa8'), roughness: .5 }), roofM = new THREE.MeshStandardMaterial({ color: '#8d6e63' });
+    const poolM = new THREE.MeshPhysicalMaterial({ color: '#29b6f6', roughness: .05, clearcoat: 1, envMap: scene.userData.env, transparent: true, opacity: .9 });
+    for (const [vx, vy] of [[IX - 300, IY - 140], [IX - 200, IY + 230], [IX + 150, IY - 260], [IX + 40, IY + 280]]) {
+      box(vx, vy, 130, 90, 40, villaM, base); box(vx - 6, vy - 6, 142, 102, 5, roofM, base + 40, false);
+      flat(vx + 10, vy + 100, 80, 50, poolM, base + .8);
+    }
+    const im = new THREE.InstancedMesh(new THREE.CylinderGeometry(1.8, 2.8, 48, 6).translate(0, 24, 0), new THREE.MeshStandardMaterial({ color: '#8d6e4a' }), 26);
+    const il = new THREE.InstancedMesh(new THREE.ConeGeometry(26, 12, 8).translate(0, 50, 0), new THREE.MeshStandardMaterial({ color: '#4caf50' }), 26), M4 = new THREE.Matrix4();
+    for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2, r = 520 + Math.random() * 60, x = IX + Math.cos(a) * r, y = IY + Math.sin(a) * r; if (Math.abs(x - IX) < 120 && y < IY) { M4.makeScale(0, 0, 0); } else M4.makeTranslation(x, terrainH(x, y), y); im.setMatrixAt(i, M4); il.setMatrixAt(i, M4); }
+    scene.add(im, il);
+    ribbon([[IX, BR.y3 - 10, base], [IX, IY - 200, base], [IX + 120, IY - 20, base], [lx - 60, ly - 40, base]], 90, roadMat, 160, .5);
+  }
+  // --- прибрежное шоссе (запад) и набережная вдоль пляжа ---
+  ribbon(COAST_PTS, 120, roadMat, 160, 1.2);
+  const PROM_PTS = []; for (let x = -600; x <= WORLD + 600; x += 60) PROM_PTS.push([x, SHORE - 350 + (Math.abs(x - IX) < 400 ? 0 : Math.sin(x / 700) * 28), 0]);
+  ribbon(PROM_PTS, 120, roadMat, 160, .4);
+  // карта: эстакада и мост поверх города
+  function drawOverMap(g, style) {
+    const sat = style === 'sat', col = sat ? '#55595e' : '#9aa1aa';
+    for (const pl of PLATS) if (pl.fw || pl.br) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(pl.cx - pl.Wd / 2 + 18, pl.cy - pl.L / 2 + 18, pl.Wd, pl.L); g.fillStyle = col; g.fillRect(pl.cx - pl.Wd / 2, pl.cy - pl.L / 2, pl.Wd, pl.L); g.fillStyle = sat ? '#ffd54f' : 'rgba(255,255,255,.4)'; g.fillRect(pl.cx - 4, pl.cy - pl.L / 2, 8, pl.L); }
   }
 
   // ================== Угон: самолёты, вертолёты и брошенные машины ==================
@@ -5080,7 +5217,7 @@
     g.fillStyle = sat ? '#7d817a' : '#454a42'; g.fillRect(MB.x0, MB.y0, MB.x1 - MB.x0, MB.y1 - MB.y0);
     path(HW_PTS, HW_W, road, true); path(HW_PTS, 10, sat ? '#ffd54f' : 'rgba(255,255,255,.35)', true);
     for (const r of OUT_ROADS) path(r, 240, road, false);
-    path(MR_PTS, 110, road, false);
+    path(MR_PTS, 110, road, false); path(COAST_PTS, 120, road, false); path(PROM_PTS, 120, road, false);
     g.fillStyle = sat ? '#36383b' : '#8a9099';
     g.fillRect(WORLD + 3380, AP.y0 + 200, 240, AP.y1 - AP.y0 - 400); g.fillRect(MB.x0 + 350, MB.y0 + 740, MB.x1 - MB.x0 - 700, 220);
     g.fillStyle = sat ? '#3e4043' : '#6d737b'; g.fillRect(WORLD + 2645, AP.y0 + 200, 110, AP.y1 - AP.y0 - 400);
@@ -5088,7 +5225,7 @@
     g.fillStyle = sat ? '#8d6e4a' : '#7a6a52'; g.fillRect(GC - 45, SHORE - 200, 90, 820);
   }
   const OUTER_LABELS = [['lgAirport', (AP.x0 + AP.x1) / 2, GC - 200], ['lgBase', (MB.x0 + MB.x1) / 2, MB.y0 + 450], ['lgBeach', WORLD / 2 + 1400, SHORE - 150],
-    ['lgMount', MX, MY - 1150], ['lgOcean', WORLD / 2, F1 - 1200], ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
+    ['lgMount', MX, MY - 1150], ['lgBridgeBig', IX + 230, (BR.y1 + BR.y2) / 2], ['lgIsland', IX, IY + 430], ['lgFreeway', FWX + 300, WORLD * .3], ['lgCoast', -3450, 2600], ['lgOcean', WORLD / 2, F1 - 1200], ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
 
   // ================== Друзья ==================
   if (!save.friends || !Array.isArray(save.friends.names)) save.friends = { names: ['Армин', 'Кинан'], on: true };
@@ -6256,6 +6393,7 @@
       for (const b of o.blobs) { g.fillStyle = o.pal[1]; g.beginPath(); g.arc(o.x + b.x * o.r, o.y + b.y * o.r, b.r * o.r, 0, 7); g.fill(); }
       g.fillStyle = o.pal[2]; g.beginPath(); g.arc(o.x - o.r * .2, o.y - o.r * .2, o.r * .45, 0, 7); g.fill();
     }
+    drawOverMap(g, 'sat');
     realMap = c;
   }
   // ---------- тёмная карта-схема: дороги, кварталы, дома, парки, вода ----------
@@ -6295,6 +6433,7 @@
       g.fillStyle = pl.bot >= 50 ? '#7b828b' : '#555b63'; g.fillRect(pl.cx - w / 2, pl.cy - h / 2, w, h);
     }
     for (const r of RAMPS) { const along = Math.abs(r.ux) > .5, w = along ? r.L : r.Wd, h = along ? r.Wd : r.L; g.fillStyle = '#8c3a3a'; g.fillRect(r.cx - w / 2, r.cy - h / 2, w, h); }
+    drawOverMap(g, 'road');
     roadMap = c;
   }
   let mapRotInv = 0;                                          // мини-карта повёрнута — значки рисуем ровно
