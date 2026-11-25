@@ -1120,6 +1120,12 @@
   const SEA = -3, SHORE = WORLD + 1550;                       // уровень моря и где начинается вода
   const IX = Math.round(WORLD * .72), IY = SHORE + 2300;      // Остров Чаек — к нему ведёт длинный мост
   const MARINA = [GC + 650, SHORE + 170];                    // причал: здесь появляются лодки
+  function nearestLand(x, y) {                                // ближайшее место на суше, где ничего не мешает
+    const ok = (px, py) => (inCity(px, py) || terrainH(px, py) > 2) && !solidAtZ(px, py, inCity(px, py) ? 0 : terrainH(px, py));
+    if (ok(x, y)) return [x, y];
+    for (let r = 30; r <= 900; r += 30) for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2, px = x + Math.cos(a) * r, py = y + Math.sin(a) * r; if (ok(px, py)) return [px, py]; }
+    return null;
+  }
   function baseH(x, y) {                                      // земля без дорог: холмы, гора, берег, остров
     if (x > -300 && y > -300 && x < WORLD + 300 && y < WORLD + 300) return 0;
     let h = rawH(x, y);
@@ -2888,7 +2894,15 @@
     if (!isAirSpec(spec) && !isBoatSpec(spec) && !car.onFoot && car.z > 30) { car.z = groundHeight(car.x, car.y, 0); car.air = false; }   // пересел с вертолёта на машину — ставим на землю
     { const V = car.onFoot ? vstate : car;
       if (isBoatSpec(spec) && (inCity(V.x, V.y) || terrainH(V.x, V.y) > SEA - 1.2)) { Object.assign(V, { x: MARINA[0], y: MARINA[1], z: SEA, angle: Math.PI / 2 }); car.vx = car.vy = 0; if (window.__gameReady) showMsg(t('boatMarina'), 4000); }   // лодка ждёт у причала
-      else if (!isBoatSpec(spec) && !isAirSpec(spec) && !inCity(V.x, V.y) && terrainH(V.x, V.y) < SEA - 1) { Object.assign(V, { y: SHORE - 260, z: 0 }); car.vx = car.vy = 0; } }
+      else if (!isBoatSpec(spec) && car.onFoot) {                 // пешком выбрал машину/велосипед — он появляется рядом с тобой
+        const ox = car.x + Math.cos(car.angle + Math.PI / 2) * 32, oy = car.y + Math.sin(car.angle + Math.PI / 2) * 32;
+        const sp = (nearestLand(ox, oy) || [0, 0])[0] === ox ? [ox, oy] : (nearestLand(car.x, car.y) || [car.x, car.y]);
+        Object.assign(vstate, { x: sp[0], y: sp[1], z: inCity(sp[0], sp[1]) ? 0 : groundHeight(sp[0], sp[1], car.z), angle: car.angle });
+      }
+      else if (!isBoatSpec(spec) && !isAirSpec(spec) && !inCity(V.x, V.y) && terrainH(V.x, V.y) < SEA - 1) {   // был в лодке — на ближайший берег
+        const sp = nearestLand(V.x, V.y) || [V.x, SHORE - 260];
+        Object.assign(V, { x: sp[0], y: sp[1], z: inCity(sp[0], sp[1]) ? 0 : terrainH(sp[0], sp[1]) }); car.vx = car.vy = 0;
+      } }
     if (car.fly) { car.fly.pitch = car.fly.bank = car.fly.vz = 0; car.fly.spd = 0; }
     if (car.onFoot && player.driver) player.driver.visible = false;
     scene.add(player.root);
@@ -4917,8 +4931,8 @@
       if (car.air || car.loop || Math.hypot(car.vx, car.vy) > 45) return;          // на ходу не выпрыгнешь
       if (isFly() && car.z > groundHeight(car.x, car.y, car.z) + 3) { showMsg(t('flyLand'), 1800); return; }   // в воздухе не выпрыгнешь
       if (isBoatSpec(spec)) {                                                    // с лодки — только на берег
-        let land = null; const maxR = Math.max(110, (spec.colL || 30) / 2 + 70);
-        for (let r = 25; r <= maxR && !land; r += 15) for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2, x = car.x + Math.cos(a) * r, y = car.y + Math.sin(a) * r; if (inCity(x, y) || (terrainH(x, y) > SEA + 1 && !solidAtZ(x, y, terrainH(x, y)))) { land = [x, y]; break; } }
+        let land = null; const maxR = Math.max(260, (spec.colL || 30) / 2 + 120);
+        for (let r = 25; r <= maxR && !land; r += 15) for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2, x = car.x + Math.cos(a) * r, y = car.y + Math.sin(a) * r; if (inCity(x, y) || (terrainH(x, y) > 2 && !solidAtZ(x, y, terrainH(x, y)))) { land = [x, y]; break; } }
         if (!land) { showMsg(t('boatShore'), 2200); return; }
         Object.assign(vstate, { x: car.x, y: car.y, z: car.z, angle: car.angle });
         car.onFoot = true;
