@@ -295,6 +295,10 @@
   .phRing { animation: ring .5s infinite; display: inline-block; }
   @keyframes ring { 25% { transform: rotate(-18deg); } 75% { transform: rotate(18deg); } }
   #phHint { font-size: 11px; opacity: .6; text-align: center; }
+  #mission { position: fixed; left: 50%; top: calc(64px + var(--st)); transform: translateX(-50%); z-index: 7; display: none; align-items: center; gap: 10px; padding: 8px 10px 8px 16px; border-radius: 16px;
+    background: rgba(20,14,0,.82); border: 2px solid #ffd54f; color: #fff; font: 600 15px "Segoe UI", sans-serif; box-shadow: 0 6px 20px rgba(0,0,0,.4); max-width: 92vw; }
+  #mission.on { display: flex; } #mission b { color: #ffd54f; white-space: nowrap; } #mission span { opacity: .95; }
+  #mission button { border: 0; border-radius: 50%; width: 28px; height: 28px; background: #3d4b5f; color: #fff; cursor: pointer; flex: none; }
   .phApps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px; }
   .phApp { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 18px; border: 2px solid transparent; background: rgba(255,255,255,.07); color: #fff; cursor: pointer; font: 700 12px "Segoe UI", sans-serif; }
   .phApp span { width: 54px; height: 54px; border-radius: 15px; display: grid; place-items: center; font-size: 30px; box-shadow: 0 4px 10px rgba(0,0,0,.35); }
@@ -431,6 +435,7 @@
   <div class="ghint" id="bankHint"></div>
   <div id="bankBody"></div>
 </div></div>
+<div id="mission"></div>
 <div id="phone"><div class="phTop"><span id="phClock"></span><span>📶 🔋</span></div><div id="phTitle"></div><div id="phList"></div><div id="phHint"></div></div>
 <div id="fsHelp"><div class="box"><h3 data-i18n="fsTitle"></h3><p data-i18n="fsText"></p><button data-i18n="ok" id="fsHelpOk"></button></div></div>
 <div id="garage">
@@ -737,6 +742,12 @@
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
       skMalta: 'Скейт-парк «Бастион»', skCyprus: 'Скейт-парк «Солнечный»', skFiji: 'Скейт-парк «Лагуна»', skCosta: 'Скейт-парк «Вулкан»', skIceland: 'Скейт-парк «Ледяной»',
+      m1: 'Гонка по городу', m2: 'Секретная банда', m3: 'Угон бронеавтомобиля', m4: 'Секретная доставка', mStart: 'Нажми {k} — миссия «{n}»',
+      mRace: 'Проедь через все кольца! {i} / {n}', mGangGo: 'Езжай к логову банды', mGang: 'Победи банду! Осталось: {n}', mArmorGo: 'Угони бронеавтомобиль (подойди и нажми E)', mArmorHome: 'Отвези бронеавтомобиль в свой гараж 🏠',
+      mDeliver: 'Довези секретный пакет до аэропорта!', mTime: '⏱ {s} с', mWin: '🎉 Миссия пройдена! Награда — секретная машина «{c}». Она уже в гараже!', mWinAgain: '🎉 Миссия пройдена снова! +5 000 €',
+      mFail: '❌ Миссия провалена. Попробуй ещё раз!', mLate: '⏱ Время вышло! Миссия провалена.', mFriends: '📞 Армин и Кинан едут тебе на помощь!', mCancel: 'Миссия отменена',
+      mPicked: '📦 Ты взял секретный пакет! Полиция уже знает!', mArmorStolen: '🚨 Бронеавтомобиль угнан! Вези его домой!', secretCar: 'Секретная', secretLock: '🔒 Пройди миссию «{m}»',
+      flyCarUp: '🚀 «Комета» взлетела! Пробел — выше, S — ниже, W — вперёд', boostOn: '🔥 Ракетный ускоритель!', phApp5: 'Миссии', mList: '⭐ Миссии', mHint: '🗺 — поставить метку на карте',
       isMalta: 'Мальта', isCyprus: 'Кипр', isFiji: 'Фиджи', isCosta: 'Коста-Рика', isIceland: 'Исландия', welcomeTo: 'Остров {n}', marina: 'Причал',
       boatMarina: '🚤 Твоя лодка ждёт у причала на пляже!', boatShore: '🌊 Подплыви к берегу, чтобы выйти',
       stTitle: '🔐 Код Степана', stHint: 'Ты зашёл как Степан Банан. Введи код, чтобы начать игру.', stGo: 'Войти ▶', stBad: '❌ Неверный код', stNotMe: 'Это не я — сменить игрока',
@@ -772,6 +783,12 @@
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
       skMalta: 'Bastion Skatepark', skCyprus: 'Sunny Skatepark', skFiji: 'Lagoon Skatepark', skCosta: 'Volcano Skatepark', skIceland: 'Ice Skatepark',
+      m1: 'City Race', m2: 'Secret Gang', m3: 'Armored Car Heist', m4: 'Secret Delivery', mStart: 'Press {k} — mission “{n}”',
+      mRace: 'Drive through all the rings! {i} / {n}', mGangGo: 'Drive to the gang hideout', mGang: 'Defeat the gang! Left: {n}', mArmorGo: 'Steal the armored car (walk up and press E)', mArmorHome: 'Drive the armored car to your garage 🏠',
+      mDeliver: 'Deliver the secret package to the airport!', mTime: '⏱ {s} s', mWin: '🎉 Mission complete! Reward — secret car “{c}”. It’s in your garage!', mWinAgain: '🎉 Mission complete again! +5,000 €',
+      mFail: '❌ Mission failed. Try again!', mLate: '⏱ Time is up! Mission failed.', mFriends: '📞 Armin and Kinan are coming to help!', mCancel: 'Mission cancelled',
+      mPicked: '📦 You took the secret package! The police know!', mArmorStolen: '🚨 Armored car stolen! Drive it home!', secretCar: 'Secret', secretLock: '🔒 Complete mission “{m}”',
+      flyCarUp: '🚀 “Kometa” took off! Space — up, S — down, W — forward', boostOn: '🔥 Rocket boost!', phApp5: 'Missions', mList: '⭐ Missions', mHint: '🗺 — set a map marker',
       isMalta: 'Malta', isCyprus: 'Cyprus', isFiji: 'Fiji', isCosta: 'Costa Rica', isIceland: 'Iceland', welcomeTo: '{n} Island', marina: 'Marina',
       boatMarina: '🚤 Your boat is waiting at the beach marina!', boatShore: '🌊 Get close to the shore to get off',
       stTitle: '🔐 Stepan’s code', stHint: 'You signed in as Stepan Banan. Enter the code to start the game.', stGo: 'Enter ▶', stBad: '❌ Wrong code', stNotMe: 'That’s not me — switch player',
@@ -2475,6 +2492,22 @@
       color: '#1e40af', accent: '#0b1120', max: 565, accel: 442, turn: 2.0, grip: 14, width: 23.5, wheelR: 5, wheelX: 14.5,
       body: [[-23, 3], [23, 3], [23.8, 7], [14, 10], [-18, 11.5], [-23, 9.5]],
       cabin: [[-12, 11], [10, 9.8], [-1, 17.5], [-10, 17]], head: 7.5, tail: 9, wing: true },
+    // --- секретные машины: награды за миссии ---
+    { id: 'kometa', secret: true, hidden: true, flycar: true, name: 'Электро-родстер «Комета»', desc: 'Летающая машина! На скорости зажми ✋ (ручник) — и она взлетит.', price: 0,
+      color: '#c62828', max: 540, accel: 470, turn: 2.1, grip: 14, width: 22, wheelR: 4.6, wheelX: 14.5,
+      body: [[-23, 3], [23, 3], [23.8, 6], [12, 9.4], [-20, 10.6], [-23, 9.6]], cabin: [[-10, 10.2], [11, 9.2], [0, 16], [-8, 15.6]], head: 6.5, tail: 8.5, spoiler: true },
+    { id: 'klin', secret: true, hidden: true, flipper: true, name: 'Кибер-грузовик «Клин»', desc: 'Стальной угловатый грузовик. Врежься в машину — и она перевернётся!', price: 0,
+      color: '#b0bec5', max: 430, accel: 330, turn: 1.7, grip: 13, width: 25, wheelR: 6, wheelX: 16,
+      body: [[-26, 4], [26, 4], [26.5, 10], [3, 20], [-26, 15.5]], cabin: [[-15, 15.2], [1, 19.3], [-1, 19.5], [-15, 16.4]], head: 9, tail: 13 },
+    { id: 'raketa', secret: true, hidden: true, rocketBoost: true, name: 'Ракетомобиль «Ракета-Х»', desc: 'Нажми 👊 (Q / 4) — включится ракетный ускоритель!', price: 0,
+      color: '#ff6f00', stripes: '#212121', max: 520, accel: 430, turn: 1.9, grip: 13, width: 23, wheelR: 5, wheelX: 14.5,
+      body: [[-23, 3.5], [23, 3.5], [23.5, 11], [21, 13.5], [-22, 13.5], [-23.5, 11]], cabin: [[-12, 13.5], [6, 13.5], [1, 20], [-9, 20]], head: 11, tail: 11.5, scoop: true, wing: true },
+    { id: 'begemot', secret: true, hidden: true, amphib: true, name: 'Амфибия «Бегемот»', desc: 'Едет по дороге и плывёт по воде — прямо до островов!', price: 0,
+      color: '#00897b', max: 400, accel: 300, turn: 1.8, grip: 12, width: 24, wheelR: 6.2, wheelX: 15, colL: 46, colW: 24,
+      body: [[-23, 5], [23, 5], [24, 12], [20, 16], [-22, 16], [-23.5, 12]], cabin: [[-12, 16], [8, 16], [5, 24], [-10, 24]], head: 12, tail: 12 },
+    { id: 'bronevik', hidden: true, name: 'Бронеавтомобиль', desc: '', price: 0,
+      color: '#37474f', max: 360, accel: 240, turn: 1.6, grip: 13, width: 25, wheelR: 6, wheelX: 15,
+      body: [[-24, 5], [24, 5], [25, 13], [22, 22], [-23, 22], [-25, 13]], cabin: [[-6, 22], [16, 22], [14, 26], [-4, 26]], head: 11, tail: 12 },
     // --- велосипеды ---
     { id: 'veterok', kind: 'moto', bicycle: true, name: 'Велосипед «Ветерок»', desc: 'Простой городской велосипед. Тихо и весело!', price: 300,
       color: '#43a047', suit: '#1565c0', helmet: '#fdd835', max: 170, accel: 160, turn: 2.4, grip: 12, wheelR: 5, wheelX: 11, colL: 30, colW: 10, lean: .3 },
@@ -2904,6 +2937,7 @@
         Object.assign(V, { x: sp[0], y: sp[1], z: inCity(sp[0], sp[1]) ? 0 : terrainH(sp[0], sp[1]) }); car.vx = car.vy = 0;
       } }
     if (car.fly) { car.fly.pitch = car.fly.bank = car.fly.vz = 0; car.fly.spd = 0; }
+    car.flyMode = false;
     if (car.onFoot && player.driver) player.driver.visible = false;
     scene.add(player.root);
     applyPaint();
@@ -2947,17 +2981,18 @@
   function bar(label, v) { return `<div class="stat"><span>${label}</span><i><b style="width:${Math.round(Math.min(1, v) * 100)}%"></b></i></div>`; }
   function renderGarage() {
     document.getElementById('gMoney').textContent = fmt(save.money);
-    gridEl.innerHTML = CARS.filter(c => !c.hidden).map(c => {
+    gridEl.innerHTML = CARS.filter(c => !c.hidden || c.secret).map(c => {
       const owned = save.owned.includes(c.id), cur = save.current === c.id;
       let btn;
-      if (cur) btn = `<button class="sel" disabled>${t('selected')}</button>`;
+      if (c.secret && !owned) btn = `<button class="no" disabled>${t('secretLock', { m: window.__missionOf ? window.__missionOf(c.id) : '' })}</button>`;
+      else if (cur) btn = `<button class="sel" disabled>${t('selected')}</button>`;
       else if (owned) btn = `<button data-pick="${c.id}">${t('choose')}</button>`;
       else if (save.money >= c.price) btn = `<button class="buy" data-buy="${c.id}">${t('buyFor', { p: fmt(c.price) })}</button>`;
       else btn = `<button class="no" disabled>${t('needMore', { p: fmt(c.price - save.money) })}</button>`;
       return `<div class="card ${cur ? 'cur' : ''}">
         <img src="${thumbs[c.id]}" alt="">
         <h3>${c.bicycle ? '🚲' : c.kind === 'moto' ? '🏍' : c.kind === 'heli' ? '🚁' : c.kind === 'plane' ? '✈️' : c.kind === 'boat' ? (c.style === 'ship' ? '🚢' : c.style === 'yacht' ? '🛥' : '🚤') : '🚗'} ${carName(c)}</h3>
-        <div class="price">${c.price ? fmt(c.price) : t('free')}</div>
+        <div class="price">${c.secret ? '🎁 ' + t('secretCar') : c.price ? fmt(c.price) : t('free')}</div>
         <p>${carDesc(c)}</p>
         ${bar(t('speed'), c.max / TOP.max)}${bar(t('accel'), c.accel / TOP.accel)}${bar(t('handling'), c.turn * c.grip / TOP.hand)}
         <div class="kmh">${t('upTo', { v: Math.round(c.max * .33) })}</div>
@@ -3882,7 +3917,7 @@
   }
   const carHitAt = (x, y, gz) => { const z0 = car.z; car.z = gz; const c = collides(x, y, car.angle); car.z = z0; return c; };
   // ================== Полёт: вертолёты и самолёты ==================
-  const isFly = () => isAirSpec(spec);
+  const isFly = () => isAirSpec(spec) || !!(spec.flycar && car.flyMode);
   const airFloor = (x, y, z) => Math.max(groundHeight(x, y, z), roofAt(x, y, z));
   function flyUpdate(dt) {
     const F = car.fly || (car.fly = { pitch: 0, bank: 0, vz: 0, spd: 0, rotor: 0 });
@@ -3894,7 +3929,7 @@
     const steerIn = (right ? 1 : 0) - (left ? 1 : 0);
     car.steer = steerIn;
     let tvx, tvy;
-    if (spec.kind === 'heli') {
+    if (spec.kind === 'heli' || spec.flycar) {
       F.rotor = Math.min(1, F.rotor + dt * .8);
       const climb = brake ? 1 : (down || run) ? -1 : 0;               // пробел — вверх, S / Shift — вниз
       const liftOK = F.rotor > .45;
@@ -3940,6 +3975,9 @@
     const fl = airFloor(car.x, car.y, Math.max(nz, car.z));
     if (nz <= fl) { if (F.vz < -260) shake = 4; nz = fl; F.vz = Math.max(0, F.vz); }
     car.z = Math.min(1600, nz);
+    if (spec.flycar) {                                                     // летающая машина садится на землю — снова едет
+      if (nz <= fl + .5 && F.vz <= 1 && !keys.brake) { F.landT = (F.landT || 0) + dt; if (F.landT > .35) { car.flyMode = false; F.landT = 0; } } else F.landT = 0;
+    }
     edgeBounce();
     collectCoins();
     roll = pitch = lean = 0; curFwd = Math.hypot(car.vx, car.vy);
@@ -3951,7 +3989,8 @@
     const B = car.boat || (car.boat = { spd: 0, pitch: 0, roll: 0, t: 0 });
     const { up, down, left, right, brake } = keys;
     car.air = false; car.ramp = null; car.stun = 0; car.loop = null;
-    if (!wetAt(car.x, car.y)) { Object.assign(car, { x: MARINA[0], y: MARINA[1], angle: Math.PI / 2, vx: 0, vy: 0 }); B.spd = 0; showMsg(t('boatMarina'), 3000); }   // лодка на суше — к причалу
+    if (!spec.amphib && !wetAt(car.x, car.y)) { Object.assign(car, { x: MARINA[0], y: MARINA[1], angle: Math.PI / 2, vx: 0, vy: 0 }); B.spd = 0; showMsg(t('boatMarina'), 3000); }   // лодка на суше — к причалу
+    if (spec.amphib && B.spd === 0) B.spd = Math.cos(car.angle) * car.vx + Math.sin(car.angle) * car.vy;
     if (up) B.spd += spec.accel * dt; else if (down) B.spd -= spec.accel * (B.spd > 0 ? 1.6 : .6) * dt;
     else B.spd -= Math.sign(B.spd) * Math.min(Math.abs(B.spd), 60 * dt);
     if (brake) B.spd *= Math.max(0, 1 - 2.5 * dt);
@@ -3961,7 +4000,7 @@
     const k = Math.min(1, (spec.style === 'ship' ? 1 : 2.4) * dt);              // лодку немного заносит
     car.vx += (Math.cos(car.angle) * B.spd - car.vx) * k; car.vy += (Math.sin(car.angle) * B.spd - car.vy) * k;
     const nx = car.x + car.vx * dt, ny = car.y + car.vy * dt, ca = Math.cos(car.angle), sa = Math.sin(car.angle), hl = (spec.colL || 30) / 2, hw = (spec.colW || 12) / 2;
-    const ok = [[hl, 0], [-hl, 0], [0, hw], [0, -hw], [hl * .5, hw * .7], [hl * .5, -hw * .7]].every(([fx, fy]) => wetAt(nx + fx * ca - fy * sa, ny + fx * sa + fy * ca));
+    const ok = spec.amphib ? !solidAtZ(nx, ny, SEA + 2) : [[hl, 0], [-hl, 0], [0, hw], [0, -hw], [hl * .5, hw * .7], [hl * .5, -hw * .7]].every(([fx, fy]) => wetAt(nx + fx * ca - fy * sa, ny + fx * sa + fy * ca));
     if (ok) { car.x = nx; car.y = ny; }
     else { if (Math.abs(B.spd) > 120) { shake = Math.min(5, Math.abs(B.spd) / 90); for (let i = 0; i < 12; i++) emit(car.x + ca * hl, SEA + 4, car.y + sa * hl, '#e3f2fd', 3, .6, (Math.random() - .5) * 120, 40 + Math.random() * 60, (Math.random() - .5) * 120, 10, .9); } B.spd *= -.25; car.vx *= -.25; car.vy *= -.25; }
     B.t += dt;
@@ -3981,8 +4020,12 @@
     if (garageOpen || menuOpen || mapOpen) return;
     FLY.on = false;
     if (car.onFoot) { walkUpdate(dt); return; }
+    if (spec.flycar && !car.flyMode && keys.brake && Math.hypot(car.vx, car.vy) > 150) {   // «Комета» взлетает
+      car.flyMode = true; car.fly = { pitch: 0, bank: 0, vz: 140, spd: 0, rotor: 1 }; showMsg(t('flyCarUp'), 2600);
+    }
     if (isFly()) { flyUpdate(dt); return; }
     if (isBoatSpec(spec)) { boatUpdate(dt); return; }
+    if (spec.amphib && wetAt(car.x, car.y)) { boatUpdate(dt); return; }   // амфибия плывёт
     if (car.loop) { loopUpdate(dt); return; }
     edgeBounce();
     if (!car.air && collides(car.x, car.y, car.angle) && unstick(carHitAt)) { car.vx *= .3; car.vy *= .3; car.ramp = null; car.stun = 0; }
@@ -4000,8 +4043,9 @@
     if (down) fwd -= (fwd > 0 ? 420 : 140) * dt;
     if (!up && !down) fwd -= fwd * Math.min(1, (offroad ? 1.5 : .55) * dt);
     if (brake) fwd -= fwd * Math.min(1, (car.drifting ? .45 : 1.3) * dt);   // в заносе ручник почти не тормозит
-    if (fwd > maxSpeed) fwd = Math.max(maxSpeed, fwd - 300 * dt);
+    if (fwd > maxSpeed && !(boostT > 0 && spec.rocketBoost)) fwd = Math.max(maxSpeed, fwd - 300 * dt);
     fwd = Math.max(-110, fwd);
+    if (boostT > 0 && spec.rocketBoost) fwd = Math.min(spec.max * 2, fwd + 1100 * dt);   // ракетный ускоритель
 
     // Руль: плавный, на скорости поворачивает мягче, без газа сам выравнивается
     const target = (left ? -1 : 0) + (right ? 1 : 0);
@@ -4762,7 +4806,10 @@
         if (isTraffic && !car.onFoot && vn < -40) {             // удар машиной: другую машину отбрасывает, как в настоящей аварии
           const J = -vn;
           car.vx -= 1.05 * vn * nx; car.vy -= 1.05 * vn * ny;
-          crashCar(o, -nx * J * 1.8, -ny * J * 1.8, J * 1.4);
+          if (spec.flipper) {                                                // «Клин» переворачивает машины
+            crashCar(o, -nx * J * 1.3, -ny * J * 1.3, 320); o.kvz = Math.max(o.kvz || 0, 300 + J * .4); o.rollV = (Math.random() < .5 ? -1 : 1) * (8 + Math.random() * 3);
+            car.vx += .7 * vn * nx; car.vy += .7 * vn * ny;
+          } else crashCar(o, -nx * J * 1.8, -ny * J * 1.8, J * 1.4);
           damageCar(o, Math.max(0, J - 150) * .6);                 // очень сильный удар — машина взрывается
           if (vn < -110) setTimeout(() => { if (traffic.includes(o)) startRoadRage(o); }, 2200);   // потом водитель выходит разбираться
         } else { car.vx -= 1.5 * vn * nx; car.vy -= 1.5 * vn * ny; o.v *= .3; }
@@ -4873,6 +4920,11 @@
   const foot = { ...buildPerson(), vz: 0, ph: 0, hp: 100, ko: 0, punchT: 0, punchCd: 0, sinceHit: 9 };
   const hurtEl = document.getElementById('hurt'), hpFill = document.getElementById('hpFill');
   function punch() {
+    if (!car.onFoot && spec.rocketBoost && !menuOpen && !garageOpen && !mapOpen) { window.__boost?.(); return; }   // ракетный ускоритель
+    if (car.onFoot && foot.ko <= 0) for (const so of (window.__gangList?.() || [])) {   // удар по бандиту
+      const dx = so.x - car.x, dy = so.y - car.y, d = Math.hypot(dx, dy);
+      if (!(so.down > 0) && d < 34 && (dx * Math.cos(car.angle) + dy * Math.sin(car.angle)) / (d || 1) > .25) { foot.punchT = .3; foot.punchCd = .42; so.down = 999; shake = 1.2; return; }
+    }
     if (!car.onFoot && spec.missiles && !menuOpen && !garageOpen && !mapOpen) { window.__jetFire?.(); return; }   // в истребителе — ракеты
     if (car.onFoot && foot.ko <= 0 && !menuOpen && !garageOpen && !mapOpen && window.__gunOut?.()) { window.__fireDown?.(); return; }   // в руках оружие — стреляем
     if (!car.onFoot || foot.ko > 0 || foot.punchCd > 0 || menuOpen || garageOpen || mapOpen) return;
@@ -4925,6 +4977,7 @@
 
   function toggleVehicle() {
     if (menuOpen || garageOpen || mapOpen || shopOpen || sleepT > 0) return;
+    { const mk = window.__nearMission?.(); if (mk) { window.__startMission(mk); return; } }   // начать миссию
     { const sh = shopHere(); if (sh) { openShop(sh.kind); return; } }        // у входа в магазин — заходим
     if (nearBed()) { goSleep(); return; }                                     // у своей кровати — ложимся спать
     if (!car.onFoot) {
@@ -5716,25 +5769,26 @@
       sh.x = nx; sh.y = ny; sh.m.position.set(sh.x, sh.z, sh.y);
     }
     for (const so of soldiers) {
+      const alarm2 = so.gang ? !!so.active : alarm;
       if (so.down > 0) { so.down -= dt; so.p.root.rotation.z = Math.min(Math.PI / 2, so.p.root.rotation.z + dt * 8); if (so.down <= 0) so.p.root.rotation.z = 0; continue; }
       if (so.ground) {                                        // ходит по базе; при тревоге бежит к тебе
         const dd = Math.hypot(car.x - so.x, car.y - so.y);
-        if (alarm && dd < 900) { if (dd > 200) { so.tx = car.x; so.ty = car.y; } else { so.tx = so.x; so.ty = so.y; } }
+        if (alarm2 && dd < 900) { if (dd > 200) { so.tx = car.x; so.ty = car.y; } else { so.tx = so.x; so.ty = so.y; } }
         else if (Math.hypot(so.tx - so.x, so.ty - so.y) < 10) { so.tx = so.hx + (Math.random() - .5) * 300; so.ty = so.hy + (Math.random() - .5) * 200; }
-        const mx = so.tx - so.x, my = so.ty - so.y, md = Math.hypot(mx, my), sp = alarm ? 150 : 50;
+        const mx = so.tx - so.x, my = so.ty - so.y, md = Math.hypot(mx, my), sp = alarm2 ? 150 : 50;
         let moving = false;
         if (md > 6) { const nx = so.x + mx / md * sp * dt, ny = so.y + my / md * sp * dt; if (!solidAtZ(nx, ny, 0)) { so.x = nx; so.y = ny; moving = true; } else { so.tx = so.x; so.ty = so.y; } }
-        so.ph += moving ? dt * (alarm ? 14 : 8) : 0;
+        so.ph += moving ? dt * (alarm2 ? 14 : 8) : 0;
         const sw = moving ? Math.sin(so.ph) * .7 : 0;
         so.p.limbs[0].rotation.z = sw; so.p.limbs[1].rotation.z = -sw;
-        so.p.limbs[2].rotation.z = alarm && !moving ? 1.4 : -sw * .8; so.p.limbs[3].rotation.z = alarm && !moving ? 1.4 : sw * .8;
+        so.p.limbs[2].rotation.z = alarm2 && !moving ? 1.4 : -sw * .8; so.p.limbs[3].rotation.z = alarm2 && !moving ? 1.4 : sw * .8;
         so.p.root.position.set(so.x, 0, so.y);
-        if (!alarm || moving) { if (md > 6) so.p.root.rotation.y = -Math.atan2(my, mx); if (!alarm) continue; }
+        if (!alarm2 || moving) { if (md > 6) so.p.root.rotation.y = -Math.atan2(my, mx); if (!alarm2) continue; }
       }
       const dx = car.x - so.x, dy = car.y - so.y, d = Math.hypot(dx, dy);
       so.p.root.rotation.y = -Math.atan2(dy, dx);
       so.cd -= dt;
-      if (alarm && d < (so.ground ? 520 : 650) && so.cd <= 0) {
+      if (alarm2 && d < (so.ground ? 520 : 650) && so.cd <= 0) {
         so.cd = 1.5 + Math.random() * 1.2;
         const hit = Math.random() < Math.max(.05, .3 - spd / 700 - d / 2400) * (car.onFoot ? 1 : .7);
         tracer(so.x + Math.cos(Math.atan2(dy, dx)) * 8, so.z + 18, so.y + Math.sin(Math.atan2(dy, dx)) * 8, car.x + (hit ? 0 : (Math.random() - .5) * 60), (car.z || 0) + 12, car.y + (hit ? 0 : (Math.random() - .5) * 60));
@@ -5751,7 +5805,7 @@
         if (!car.onFoot) Object.assign(vstate, { x: nx, y: ny, z: 0 });
         if (car.fly) { car.fly.vz = 0; car.fly.spd = 0; }
       }
-    } else if (!(isBoatSpec(spec) && !car.onFoot) && !inCity(car.x, car.y) && (car.z || 0) < SEA + .5 && terrainH(car.x, car.y) < SEA - 1) {
+    } else if (!((isBoatSpec(spec) || spec.amphib) && !car.onFoot) && !inCity(car.x, car.y) && (car.z || 0) < SEA + .5 && terrainH(car.x, car.y) < SEA - 1) {
       drownT = 1.6; showMsg(t('drowned'), 2600);
       for (let i = 0; i < 24; i++) emit(car.x, 2, car.y, '#e3f2fd', 3, .8, (Math.random() - .5) * 120, 60 + Math.random() * 80, (Math.random() - .5) * 120, 10, .9);
     }
@@ -6059,9 +6113,10 @@
   // ================== Телефон: звоним друзьям ==================
   const phoneEl = document.getElementById('phone'), phList = document.getElementById('phList');
   let phoneOpen = false, phSel = 0, phCalling = null, phTimer = 0, phView = 'home';
-  const PH_APPS = [['contacts', '📞', 'phApp1', '#43a047'], ['bank', '🏪', 'phApp2', '#ffb300'], ['map', '🗺', 'phApp3', '#1e88e5'], ['garage', '🚗', 'phApp4', '#e53935']];
+  const PH_APPS = [['contacts', '📞', 'phApp1', '#43a047'], ['bank', '🏪', 'phApp2', '#ffb300'], ['missions', '⭐', 'phApp5', '#8e24aa'], ['map', '🗺', 'phApp3', '#1e88e5'], ['garage', '🚗', 'phApp4', '#e53935']];
   function openApp(id) {
     if (id === 'contacts') { phView = 'contacts'; phSel = 0; renderPhone(); return; }
+    if (id === 'missions') { phView = 'missions'; phSel = 0; renderPhone(); return; }
     togglePhone(false);
     if (id === 'bank') window.__toggleBank?.(true);
     else if (id === 'map') window.__toggleMap?.(true);
@@ -6074,6 +6129,11 @@
       document.getElementById('phHint').textContent = t('phHintHome');
       const reqs = window.__bankReqs?.() || 0;
       phList.innerHTML = '<div class="phApps">' + PH_APPS.map(([id, ic, key, col], i) => `<button class="phApp${i === phSel ? ' sel' : ''}" data-app="${id}"><span style="background:${col}">${ic}</span>${esc(t(key))}${id === 'bank' && reqs ? `<i>${reqs}</i>` : ''}</button>`).join('') + '</div>';
+      return;
+    }
+    if (phView === 'missions') {                                    // список миссий
+      document.getElementById('phTitle').textContent = t('mList'); document.getElementById('phHint').textContent = t('mHint');
+      phList.innerHTML = `<button class="phBack" data-home="1">← ${esc(t('back'))}</button>` + (window.__missionList?.() || []).map(m => `<div class="phRow" data-mis="${m.id}"><div class="phAva" style="background:${m.done ? '#43a047' : '#8e24aa'}">${m.done ? '✅' : '⭐'}</div><div class="phTxt"><b>${esc(m.name)}</b><small>🎁 ${esc(m.reward)}</small></div><button data-mis="${m.id}">🗺</button></div>`).join('');
       return;
     }
     document.getElementById('phTitle').textContent = t('phTitle');
@@ -6103,6 +6163,7 @@
   phList.addEventListener('click', e => {
     const ap = e.target.closest('button[data-app]'); if (ap) { openApp(ap.dataset.app); return; }
     if (e.target.closest('[data-home]')) { phView = 'home'; phSel = 0; renderPhone(); return; }
+    const mis = e.target.closest('[data-mis]'); if (mis) { window.__missionGo?.(mis.dataset.mis); togglePhone(false); return; }
     const b = e.target.closest('button[data-i]'); if (b) { phoneAct(+b.dataset.i); return; }
     const r = e.target.closest('[data-row]'); if (r) { phSel = +r.dataset.row; renderPhone(); }
   });
@@ -6984,7 +7045,9 @@
     let txt = '', ico = '🚪';
     if (!menuOpen && !garageOpen && !shopOpen && !mapOpen && !sleepT) {
       const k = IS_TOUCH ? '🛒' : 'E';
-      if (shopHere()) { txt = t('shPromptShop', { k }); ico = '🛒'; }
+      const mk = window.__nearMission?.();
+      if (mk) { txt = t('mStart', { k: IS_TOUCH ? '⭐' : 'E', n: t(mk.key) }); ico = '⭐'; }
+      else if (shopHere()) { txt = t('shPromptShop', { k }); ico = '🛒'; }
       else if (nearBed()) { txt = t('shPromptSleep', { k: IS_TOUCH ? '💤' : 'E' }); ico = '💤'; }
       else { const st = nearStealable(); if (st && st.d < Math.hypot(car.x - vstate.x, car.y - vstate.y)) { txt = t('stealPrompt', { k: IS_TOUCH ? '🔑' : 'E', n: stealName(st) }); ico = '🔑'; } }
     }
@@ -7315,6 +7378,11 @@
       g.fillStyle = '#e53935'; g.strokeStyle = '#fff'; g.lineWidth = 2.5 / s;
       g.beginPath(); g.moveTo(dest[0], dest[1]); g.lineTo(dest[0] - pr * .8, dest[1] - pr * 1.4); g.arc(dest[0], dest[1] - pr * 1.9, pr, Math.PI * .8, Math.PI * .2); g.closePath(); g.fill(); g.stroke();
       g.fillStyle = '#fff'; g.beginPath(); g.arc(dest[0], dest[1] - pr * 1.9, pr * .38, 0, 7); g.fill();
+    }
+    for (const m of (window.__missionList?.() || [])) {                       // миссии — жёлтые звёзды
+      const r = (full ? 12 : 9) / s; g.fillStyle = m.done ? '#9e9e9e' : '#ffd54f'; g.strokeStyle = '#3a2a00'; g.lineWidth = 2 / s;
+      g.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * .45 : r; g.lineTo(m.at[0] + Math.cos(a) * rr, m.at[1] + Math.sin(a) * rr); } g.closePath(); g.fill(); g.stroke();
+      if (full) mapLabel(g, s, m.name, m.at[0], m.at[1] - 22 / s, 12, '#ffe082');
     }
     // магазины: цветные значки с картинкой
     {
@@ -7671,6 +7739,131 @@
     sctx.fillStyle = '#ddd'; sctx.beginPath(); sctx.arc(cx, cy, 5, 0, 7); sctx.fill();
   }
 
+  // ================== Миссии и секретные машины ==================
+  if (!save.missions || typeof save.missions !== 'object' || !Array.isArray(save.missions.done)) save.missions = { done: [] };
+  const MISSIONS = [
+    { id: 'race', key: 'm1', reward: 'begemot', at: [nodeC(2), nodeC(1)] },
+    { id: 'gang', key: 'm2', reward: 'klin', at: [nodeC(8), nodeC(3)] },
+    { id: 'armor', key: 'm3', reward: 'raketa', at: [nodeC(2), nodeC(8)] },
+    { id: 'deliver', key: 'm4', reward: 'kometa', at: [nodeC(9), nodeC(9)] },
+  ];
+  const missionName = id => t((MISSIONS.find(m => m.id === id) || {}).key || 'm1');
+  // маркеры миссий: жёлтый столб света и звезда
+  const mkTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#ffd54f'; g.beginPath(); g.arc(64, 64, 58, 0, 7); g.fill(); g.lineWidth = 8; g.strokeStyle = '#fff'; g.stroke(); g.fillStyle = '#3a2a00'; g.font = 'bold 74px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('★', 64, 70); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
+  for (const m of MISSIONS) {
+    const g = new THREE.Group(); g.position.set(m.at[0], 0, m.at[1]); scene.add(g);
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(22, 22, 260, 20, 1, true).translate(0, 130, 0), new THREE.MeshBasicMaterial({ color: '#ffd54f', transparent: true, opacity: .25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    const ring = new THREE.Mesh(new THREE.RingGeometry(26, 36, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd54f', transparent: true, opacity: .8, depthWrite: false }));
+    ring.position.y = 1; const ico = new THREE.Sprite(new THREE.SpriteMaterial({ map: mkTex, depthWrite: false })); ico.scale.set(26, 26, 1); ico.position.y = 40;
+    g.add(beam, ring, ico); m.g = g; m.ico = ico;
+  }
+  const cpRing = new THREE.Mesh(new THREE.TorusGeometry(70, 7, 10, 40), new THREE.MeshStandardMaterial({ color: '#ffd54f', emissive: '#ffb300', emissiveIntensity: 1.2 }));
+  cpRing.visible = false; scene.add(cpRing);
+  const missionEl = document.getElementById('mission');
+  let M = null, boostT = 0, boostCd = 0;
+  const RACE_CPS = [[2, 1], [5, 1], [8, 1], [9, 4], [9, 7], [6, 9], [3, 8], [1, 5], [2, 1]].map(([i, j]) => [nodeC(i), nodeC(j)]);
+  function gangMember(x, y) {
+    const p = buildPerson('#b71c1c', '#212121', '#212121', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac'])); p.root.visible = true; p.root.position.set(x, 0, y);
+    const so = { x, y, z: 0, p, cd: 1 + Math.random() * 2, ground: true, hx: x, hy: y, tx: x, ty: y, ph: 0, down: 0, gang: true, active: false };
+    soldiers.push(so); M.gang.push(so); return so;
+  }
+  function nearMission() {
+    if (M || !window.__started) return null;
+    if (!car.onFoot && Math.hypot(car.vx, car.vy) > 45) return null;
+    return MISSIONS.find(m => Math.hypot(car.x - m.at[0], car.y - m.at[1]) < 50) || null;
+  }
+  function startMission(def) {
+    M = { def, stage: 0, time: 0, gang: [], cp: 0 };
+    showMsg('⭐ ' + t(def.key), 2500);
+    if (def.id === 'race') { M.time = 110; dest = RACE_CPS[1]; M.cp = 1; }
+    else if (def.id === 'gang') {
+      M.hide = [nodeC(10), nodeC(5)]; dest = M.hide;
+      for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; gangMember(M.hide[0] + Math.cos(a) * (90 + Math.random() * 120), M.hide[1] + Math.sin(a) * (90 + Math.random() * 120)); }
+      if (save.friends.on) { for (const f of friends) callFriend(f); setTimeout(() => showMsg(t('mFriends'), 2600), 2600); }
+    } else if (def.id === 'armor') {
+      M.van = [nodeC(1) + 140, nodeC(10) - 120];
+      placeParked('bronevik', M.van[0], M.van[1], 0, 'mission'); dest = M.van;
+      for (let k = 0; k < 4; k++) gangMember(M.van[0] - 60 + k * 40, M.van[1] + 70);
+    } else if (def.id === 'deliver') {
+      M.time = 150; M.to = [AP.x0 + 600, GC + 700]; dest = M.to;
+      addWanted(Math.max(1, STAR_HEAT[3] - heat)); setTimeout(() => showMsg(t('mPicked'), 3000), 2600);
+    }
+    renderMission();
+  }
+  function cleanupMission() {
+    if (!M) return;
+    for (const so of M.gang) { scene.remove(so.p.root); const k = soldiers.indexOf(so); if (k >= 0) soldiers.splice(k, 1); }
+    for (let i = parkedVeh.length - 1; i >= 0; i--) if (parkedVeh[i].zone === 'mission') { scene.remove(parkedVeh[i].model.root); parkedVeh.splice(i, 1); }
+    cpRing.visible = false; dest = null; M = null; renderMission();
+  }
+  function winMission() {
+    const def = M.def; cleanupMission();
+    if (!save.missions.done.includes(def.id)) {
+      save.missions.done.push(def.id);
+      if (!save.owned.includes(def.reward)) save.owned.push(def.reward);
+      persist();
+      showMsg(t('mWin', { c: carName(CARS.find(c => c.id === def.reward)) }), 6000);
+    } else { save.money += 5000; persist(); popMoney('+5 000 €', '#7CFFB2'); showMsg(t('mWinAgain'), 3500); }
+    shake = Math.max(shake, 2);
+  }
+  function failMission(why) { cleanupMission(); showMsg(why || t('mFail'), 3500); }
+  function renderMission() {
+    if (!M) { missionEl.classList.remove('on'); return; }
+    let obj = '';
+    const d = M.def.id;
+    if (d === 'race') obj = t('mRace', { i: M.cp - 1, n: RACE_CPS.length - 1 });
+    else if (d === 'gang') { const left = M.gang.filter(so => !(so.down > 0)).length; obj = M.stage ? t('mGang', { n: left }) : t('mGangGo'); }
+    else if (d === 'armor') obj = M.stage ? t('mArmorHome') : t('mArmorGo');
+    else obj = t('mDeliver');
+    const tm = M.time > 0 ? ' · ' + t('mTime', { s: Math.ceil(M.time) }) : '';
+    missionEl.innerHTML = `<b>⭐ ${esc(t(M.def.key))}</b><span>${esc(obj)}${tm}</span><button id="mCancel">✖</button>`;
+    missionEl.classList.add('on');
+  }
+  missionEl.addEventListener('click', e => { if (e.target.id === 'mCancel' && M) { cleanupMission(); showMsg(t('mCancel'), 2000); } });
+  let mRenderT = 0;
+  function updateMissions(dt, time) {
+    boostCd -= dt;
+    if (boostT > 0) {                                                       // ракетный ускоритель
+      boostT -= dt;
+      if (!car.onFoot && spec.rocketBoost) { const ca = Math.cos(car.angle), sa = Math.sin(car.angle); for (let k = 0; k < 3; k++) emit(car.x - ca * 26, (car.z || 0) + 8, car.y - sa * 26, k ? '#ff9800' : '#ffeb3b', 3 + Math.random() * 2, .35, -ca * 120 + (Math.random() - .5) * 30, 10, -sa * 120 + (Math.random() - .5) * 30, 14, .9); }
+    }
+    for (const m of MISSIONS) { m.g.visible = !M; m.ico.position.y = 40 + Math.sin(time / 300) * 3; }
+    if (!M) return;
+    if (document.documentElement.classList.contains('isWasted')) { failMission(); return; }
+    if (M.time > 0) { M.time -= dt; if (M.time <= 0) { failMission(t('mLate')); return; } }
+    const d = M.def.id;
+    if (d === 'race') {
+      const cp = RACE_CPS[M.cp]; cpRing.visible = true; cpRing.position.set(cp[0], 40, cp[1]); cpRing.rotation.y = time / 800;
+      if (Math.hypot(car.x - cp[0], car.y - cp[1]) < 140) {
+        M.cp++; M.time += 6; showMsg('✔ ' + (M.cp - 1) + ' / ' + (RACE_CPS.length - 1), 900);
+        if (M.cp >= RACE_CPS.length) { winMission(); return; }
+        dest = RACE_CPS[M.cp];
+      }
+    } else if (d === 'gang' || d === 'armor') {
+      for (const so of M.gang) {
+        if (so.down > 0) { so.down = 999; continue; }                       // кого победили — больше не встаёт
+        if (Math.hypot(car.x - so.x, car.y - so.y) < 650) so.active = true;
+        if (!car.onFoot && Math.hypot(car.vx, car.vy) > 60 && Math.hypot(car.x - so.x, car.y - so.y) < 26) { so.down = 999; so.p.root.rotation.z = 0; shake = Math.max(shake, 1.5); }   // сбил машиной
+      }
+      if (d === 'gang') {
+        if (!M.stage && Math.hypot(car.x - M.hide[0], car.y - M.hide[1]) < 650) { M.stage = 1; dest = null; }
+        if (M.gang.every(so => so.down > 0)) { winMission(); return; }
+      } else {
+        if (!M.stage && spec.id === 'bronevik' && !car.onFoot) { M.stage = 1; dest = [HOME.carX, HOME.carY]; addWanted(Math.max(1, STAR_HEAT[2] - heat)); showMsg(t('mArmorStolen'), 3000); }
+        if (M.stage && spec.id === 'bronevik' && Math.hypot(car.x - HOME.carX, car.y - HOME.carY) < 140) { winMission(); return; }
+      }
+    } else if (d === 'deliver') {
+      if (Math.hypot(car.x - M.to[0], car.y - M.to[1]) < 160) { winMission(); return; }
+    }
+    mRenderT -= dt; if (mRenderT <= 0) { mRenderT = .25; renderMission(); }
+  }
+  window.__boost = () => { if (boostCd > 0) return; boostT = 1.5; boostCd = 4; showMsg(t('boostOn'), 1200); shake = Math.max(shake, 1.5); };
+  window.__missionList = () => MISSIONS.map(m => ({ id: m.id, name: t(m.key), reward: carName(CARS.find(c => c.id === m.reward)), done: save.missions.done.includes(m.id), at: m.at }));
+  window.__missionGo = id => { const m = MISSIONS.find(q => q.id === id); if (m) { dest = m.at; showMsg(t('destSet'), 2000); } };
+  window.__nearMission = nearMission; window.__startMission = startMission;
+  window.__gangList = () => M ? M.gang : [];
+  window.__missionOf = id => { const m = MISSIONS.find(q => q.reward === id); return m ? t(m.key) : ''; };
+
   // ================== Цикл ==================
   const coinsEl = document.getElementById('coins'), moneyEl = document.getElementById('money'), jackpotEl = document.getElementById('jackpot');
   jackpotEl.title = '150 монет = 500 000 €';
@@ -7716,7 +7909,7 @@
     updateNav(t); drawMinimap(t); if (mapOpen) drawBigMap(t);
     if (menuOpen) { menuCamera(dt); updateMenuInfo(); } else updateCamera(dt);
     updateVisuals(dt, t);
-    updateDayNight(dt); updateClock(); updateHomeLights(); updateShops(t);
+    updateDayNight(dt); updateClock(); updateHomeLights(); updateShops(t); updateMissions(dt, t);
     for (const d of homeDoors) {                         // двери сами открываются, когда ты рядом (пешком или на машине)
       const want = Math.hypot(car.x - d.x, car.y - d.y) < d.r || Math.hypot(vstate.x - d.x, vstate.y - d.y) < 20 ? 1 : 0;
       d.k += Math.sign(want - d.k) * Math.min(Math.abs(want - d.k), dt * 2.5);
