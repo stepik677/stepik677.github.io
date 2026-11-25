@@ -2506,6 +2506,7 @@
   ];
   const isAirSpec = c => c.kind === 'heli' || c.kind === 'plane';
   const isBoatSpec = c => c.kind === 'boat';
+  for (const c of CARS) c.price = Math.round(c.price * (c.bicycle ? 10 : 2));   // всё стало дороже: велосипеды в 10 раз, остальное в 2 раза
 
   function extrudeProfile(points, width, bevel = 1.2) {
     const shape = new THREE.Shape(points.map(([x, y]) => new THREE.Vector2(x, y)));
@@ -3036,12 +3037,23 @@
       const sx = I.x + Math.cos(a) * R * t, sy = I.y + Math.sin(a) * R * t;
       let hmax = -1e9, hmin = 1e9; for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) { const hh = terrainH(sx + i * 60, sy + j * 60); hmax = Math.max(hmax, hh); hmin = Math.min(hmin, hh); }
       const h = hmax + .5; I.skate = { x: sx, y: sy, h, hmin, a };
-      const R2 = (dx, dy, d, L, H, Wd, kick, big) => { const ca = Math.cos(a), sa = Math.sin(a), x = sx + dx * ca - dy * sa, y = sy + dx * sa + dy * ca, dd = d + a; RAMPS.push({ cx: x, cy: y, d: dd, L, H, Wd, big, kick, ux: Math.cos(dd), uy: Math.sin(dd), base: h, vzCap: 170, minVz: 60 }); };
-      if (I.kind === 'malta') { R2(0, -125, -Math.PI / 2, 80, 26, 170, true); R2(0, 125, Math.PI / 2, 80, 26, 170, true); R2(20, 0, 0, 110, 16, 70, false); }                 // две «чаши» друг напротив друга и горка
-      else if (I.kind === 'cyprus') { for (const d of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) R2(Math.cos(d) * 70, Math.sin(d) * 70, d, 110, 20, 80, false); R2(-130, -130, Math.PI / 4, 50, 12, 50, true); R2(130, 130, -3 * Math.PI / 4, 50, 12, 50, true); }   // пирамида
-      else if (I.kind === 'fiji') { for (let k = 0; k < 6; k++) { const d = k / 6 * Math.PI * 2; R2(Math.cos(d) * 115, Math.sin(d) * 115, d, 60, 13, 50, true); } }                       // кольцо маленьких трамплинов
-      else if (I.kind === 'costa') { R2(-90, 0, 0, 180, 62, 100, true, true); R2(140, 0, Math.PI, 150, 40, 110, true); }                                       // мега-трамплин и приземление
-      else { for (const dx of [-140, 0, 140]) R2(dx, -60, 0, 70, 16, 70, true); for (const dx of [-70, 70]) R2(dx, 70, 0, 90, 14, 70, false); }                 // ледяная линия прыжков
+      I.parts = []; I.flats = []; I.rails = [];
+      const ca = Math.cos(a), sa = Math.sin(a), at = (dx, dy) => [sx + dx * ca - dy * sa, sy + dx * sa + dy * ca];
+      const part = (type, dx, dy, d, L, H, Wd, extra) => { const [x, y] = at(dx, dy), dd = d + a; const r = { cx: x, cy: y, d: dd, L, H, Wd, kick: true, custom: true, type, ux: Math.cos(dd), uy: Math.sin(dd), base: h, ...extra }; RAMPS.push(r); I.parts.push(r); return r; };
+      const QP = (dx, dy, d, L, H, Wd) => part('qp', dx, dy, d, L, H, Wd, { curve: true, vzCap: 150, minVz: 70 });          // изогнутая рампа (quarter pipe)
+      const KICK = (dx, dy, d, L, H, Wd) => part('kick', dx, dy, d, L, H, Wd, { vzCap: 120, minVz: 60 });                    // кикер
+      const FUNBOX = (dx, dy, d, Lr, H, top, Wd) => {                                                                       // фанбокс: заезд, ровный верх, съезд
+        const ux = Math.cos(d), uy = Math.sin(d), o = top / 2 + Lr / 2;
+        part('box', dx - ux * o, dy - uy * o, d, Lr, H, Wd, { vzCap: 35, minVz: 18 });
+        part('box', dx + ux * o, dy + uy * o, d + Math.PI, Lr, H, Wd, { vzCap: 35, minVz: 18 });
+        const [x, y] = at(dx, dy); I.flats.push({ x, y, d: d + a, L: top, Wd, H });
+      };
+      const RAIL = (dx, dy, d, L) => { const [x, y] = at(dx, dy); I.rails.push({ x, y, d: d + a, L }); };
+      if (I.kind === 'malta') { QP(0, -120, -Math.PI / 2, 70, 34, 210); QP(0, 120, Math.PI / 2, 70, 34, 210); RAIL(150, 0, Math.PI / 2, 120); }                         // хафпайп
+      else if (I.kind === 'cyprus') { FUNBOX(-10, 0, 0, 60, 18, 90, 110); QP(150, 0, 0, 50, 26, 170); RAIL(0, -130, 0, 170); RAIL(0, 130, 0, 170); }                      // фанбокс и рампа
+      else if (I.kind === 'fiji') { QP(0, -100, -Math.PI / 2, 55, 20, 170); QP(0, 100, Math.PI / 2, 55, 20, 170); KICK(140, 0, 0, 50, 12, 60); RAIL(-70, 150, 0, 110); }   // мини-рампа
+      else if (I.kind === 'costa') { QP(0, -115, -Math.PI / 2, 80, 54, 190); QP(0, 115, Math.PI / 2, 80, 54, 190); KICK(150, 0, 0, 60, 20, 60); }                        // большой вертикальный хафпайп
+      else { QP(150, 0, 0, 55, 28, 210); FUNBOX(-40, 0, 0, 50, 16, 70, 100); KICK(10, -135, 0, 50, 12, 60); RAIL(10, 135, 0, 180); }                                   // ледяной парк
     }
     for (const x of [GC - 1600, GC + 2200]) RAMPS.push({ cx: x, cy: SHORE - 140, d: Math.PI / 2, L: 240, H: 42, Wd: 130, big: true, ux: 0, uy: 1, base: 0 });   // мега-трамплины на пляже — прыжок в море!
   }
@@ -3092,7 +3104,7 @@
   function rampLocal(r, x, y) { const dx = x - r.cx, dy = y - r.cy; return [dx * r.ux + dy * r.uy + r.L / 2, -dx * r.uy + dy * r.ux]; }
   const inside = (r, u, v) => u >= 0 && u <= r.L && Math.abs(v) <= r.Wd / 2;
   function rampH(r, u) {
-    if (r.kick) return r.base + r.H * Math.max(0, Math.min(1, u / r.L));
+    if (r.kick) { const k = Math.max(0, Math.min(1, u / r.L)); return r.base + r.H * (r.curve ? k * k : k); }   // рампа-«четверть трубы» — изогнутая
     return r.base + r.H * Math.max(0, 1 - Math.abs(u - r.L / 2) / (r.L / 2));
   }
   const platH = (p, u) => p.h0 + (p.h1 - p.h0) * Math.max(0, Math.min(1, u / p.L));
@@ -3136,7 +3148,7 @@
     const z = zz ?? (car.z || 0);
     for (const r of RAMPS) {
       const [u, v] = rampLocal(r, px, py);
-      if (inside(r, u, v) && rampH(r, u) > z + tol && r.base < z + 18) return true;
+      if (!r.curve && inside(r, u, v) && rampH(r, u) > z + tol && r.base < z + 18) return true;   // на изогнутую рампу можно заехать до самого верха
     }
     for (const p of PLATS) {
       const [u, v] = rampLocal(p, px, py);
@@ -3218,6 +3230,7 @@
       }
     };
     for (const r of RAMPS) {
+      if (r.custom) continue;                                             // рампы скейт-парков строятся отдельно
       const grp = new THREE.Group();
       grp.position.set(r.cx, r.base, r.cy); grp.rotation.y = -r.d;
       const pts = r.kick ? [[-r.L / 2, 0], [r.L / 2, 0], [r.L / 2, r.H]] : [[-r.L / 2, 0], [r.L / 2, 0], [0, r.H]];
@@ -4050,6 +4063,7 @@
           car.vx += r.ux * (r.boost - along); car.vy += r.uy * (r.boost - along); along = r.boost;
         }
         launch(along > 40 ? Math.min(r.vzCap || 1e9, Math.max(r.minVz || 95, along * .5)) : 0);
+        if (r.curve && along > 40) { car.vx -= r.ux * along * 1.85; car.vy -= r.uy * along * 1.85; car.angle += Math.PI; }   // с изогнутой рампы — вверх и разворот назад, как скейтер
       } else if (g < car.z - 8) {                   // съехал с края моста / крыши / в дырку
         car.ramp = null; launch(Math.max(0, car.climb || 0));
       } else { car.z = g; car.ramp = null; }
@@ -5414,6 +5428,30 @@
         const m = new THREE.Mesh(new THREE.BoxGeometry(vert ? 4 : L, 8, vert ? L : 4), rail), ca = Math.cos(K.a), sa = Math.sin(K.a);
         m.position.set(K.x + dx * ca - dy * sa, K.h + 4, K.y + dx * sa + dy * ca); m.rotation.y = -K.a; scene.add(m);
       }
+      const rampM = new THREE.MeshStandardMaterial({ color: '#cfd4d8', roughness: .45, metalness: .1, side: THREE.DoubleSide }), sideM = new THREE.MeshStandardMaterial({ color: c1, roughness: .6 });
+      const copingM = new THREE.MeshStandardMaterial({ color: '#eceff1', metalness: .9, roughness: .2, envMap: scene.userData.env });
+      for (const r of I.parts) {                                // рампы как в настоящем скейт-парке
+        const grp = new THREE.Group(); grp.position.set(r.cx, r.base, r.cy); grp.rotation.y = -r.d; scene.add(grp);
+        const pts = [new THREE.Vector2(-r.L / 2, 0)];
+        if (r.type === 'qp') { for (let k = 1; k <= 14; k++) { const q = k / 14; pts.push(new THREE.Vector2(-r.L / 2 + q * r.L, r.H * q * q)); } pts.push(new THREE.Vector2(r.L / 2 + 14, r.H), new THREE.Vector2(r.L / 2 + 14, 0)); }
+        else pts.push(new THREE.Vector2(r.L / 2, r.H), new THREE.Vector2(r.L / 2, 0));
+        const geo = new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth: r.Wd, bevelEnabled: false }); geo.translate(0, 0, -r.Wd / 2);
+        const m = new THREE.Mesh(geo, [sideM, rampM]); m.castShadow = m.receiveShadow = true; grp.add(m);
+        if (r.type !== 'box') { const cop = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, r.Wd, 10), copingM); cop.rotation.x = Math.PI / 2; cop.position.set(r.L / 2, r.H, 0); grp.add(cop); }
+        if (r.type === 'qp') { const dk = new THREE.Mesh(new THREE.BoxGeometry(14, 1, r.Wd), new THREE.MeshStandardMaterial({ color: '#8d6e4a', roughness: .8 })); dk.position.set(r.L / 2 + 7, r.H + .5, 0); grp.add(dk);
+          for (const z of [-r.Wd / 2, r.Wd / 2]) { const pole = new THREE.Mesh(new THREE.BoxGeometry(2, 14, 2), copingM); pole.position.set(r.L / 2 + 13, r.H + 7, z); grp.add(pole); }
+          const hand = new THREE.Mesh(new THREE.CylinderGeometry(.7, .7, r.Wd, 8), copingM); hand.rotation.x = Math.PI / 2; hand.position.set(r.L / 2 + 13, r.H + 14, 0); grp.add(hand); }
+      }
+      for (const f of I.flats) {                                // ровный верх фанбокса
+        PLATS.push({ cx: f.x, cy: f.y, ux: Math.cos(f.d), uy: Math.sin(f.d), L: f.L, Wd: f.Wd, h0: K.h + f.H, h1: K.h + f.H, bot: K.h });
+        const b = new THREE.Mesh(new THREE.BoxGeometry(f.L, f.H, f.Wd), [sideM, sideM, rampM, sideM, sideM, sideM]); b.position.set(f.x, K.h + f.H / 2, f.y); b.rotation.y = -f.d; b.castShadow = b.receiveShadow = true; scene.add(b);
+        const ledge = new THREE.Mesh(new THREE.BoxGeometry(f.L, 1.4, 1.4), copingM); ledge.position.set(f.x, K.h + f.H + .3, f.y); ledge.rotation.y = -f.d; scene.add(ledge);
+      }
+      for (const rl of I.rails) {                               // перила для слайдов
+        const g = new THREE.Group(); g.position.set(rl.x, K.h, rl.y); g.rotation.y = -rl.d; scene.add(g);
+        const bar = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, rl.L, 10), copingM); bar.rotation.z = Math.PI / 2; bar.position.y = 9; g.add(bar);
+        for (const x of [-rl.L / 2 + 6, 0, rl.L / 2 - 6]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(1.6, 9, 1.6), copingM); leg.position.set(x, 4.5, 0); g.add(leg); }
+      }
       const sign = new THREE.Mesh(new THREE.PlaneGeometry(130, 32), new THREE.MeshBasicMaterial({ map: outerTex(512, 128, (g, w, h) => { g.fillStyle = c2 === '#ffffff' ? c1 : c2; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 8; g.strokeRect(6, 6, w - 12, h - 12); g.fillStyle = '#fff'; g.font = 'bold 46px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🛹 ' + t(I.park), w / 2, h / 2 + 3); }, 1, 1), side: THREE.DoubleSide }));
       const ox = K.x - Math.cos(K.a) * (S / 2 + 20), oy = K.y - Math.sin(K.a) * (S / 2 + 20);
       sign.position.set(ox, K.h + 40, oy); sign.rotation.y = -K.a - Math.PI / 2; scene.add(sign);
@@ -6493,8 +6531,8 @@
   const SHOP_SHIRTS = ['#c62828', '#1565c0', '#2e7d32', '#f9a825', '#6a1b9a', '#212121', '#ffffff', '#ff6f00', '#00acc1', '#ec407a'];
   const CAPS = ['#ffd54f', '#d32f2f', '#1976d2', '#212121', '#43a047', '#ec407a', '#ffffff', '#8d6e63'];
   const PAINTS = ['#e53935', '#1e88e5', '#43a047', '#fdd835', '#8e24aa', '#fb8c00', '#212121', '#fafafa', '#00bcd4', '#ff4081', '#795548', '#9e9e9e'];
-  const FOODS = [['🍦', 'shIce', 10, 15], ['🥤', 'shSoda', 15, 25], ['🌭', 'shHotdog', 30, 45], ['🍔', 'shBurger', 45, 70], ['🍕', 'shPizza', 60, 100]];
-  const SHIRT_PRICE = 50, CAP_PRICE = 30, PAINT_PRICE = 200;
+  const FOODS = [['🍦', 'shIce', 20, 15], ['🥤', 'shSoda', 30, 25], ['🌭', 'shHotdog', 60, 45], ['🍔', 'shBurger', 90, 70], ['🍕', 'shPizza', 120, 100]];
+  const SHIRT_PRICE = 100, CAP_PRICE = 60, PAINT_PRICE = 400;
   if (!save.outfit || typeof save.outfit !== 'object') save.outfit = {};
   if (!save.paint || typeof save.paint !== 'object') save.paint = {};
   function applyOutfit() {
@@ -6587,6 +6625,7 @@
     rocket:  { ico: '🚀', key: 'wpRocket', price: 60000, ammoPrice: 3000, pack: 4, cd: 1.3, range: 1000, rocket: true, stars: 5, len: 11, col: '#556b2f' },
   };
   const WPN_ORDER = ['pistol', 'smg', 'shotgun', 'ak47', 'sniper', 'rocket'];
+  for (const id of WPN_ORDER) { WEAPONS[id].price *= 2; WEAPONS[id].ammoPrice *= 2; }   // оружие тоже дороже
   // картинки оружия (вид сбоку) для магазина
   const GUN_SVG = (() => {
     const M = '#2b2f33', M2 = '#454b52', WD = '#8d5a2b', WD2 = '#6d4220';
