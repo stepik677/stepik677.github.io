@@ -257,9 +257,9 @@
   #fsBtn { width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; padding: 0;
     background: rgba(15,20,28,.65); color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.3); backdrop-filter: blur(6px); }
   #fsBtn svg { width: 22px; height: 22px; }
-  #phoneBtn { width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; font-size: 21px; padding: 0;
+  #phoneBtn { position: relative; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; font-size: 21px; padding: 0;
     background: rgba(15,20,28,.65); box-shadow: 0 4px 16px rgba(0,0,0,.3); backdrop-filter: blur(6px); }
-  .menuOpen #phoneBtn, .menuOpen #phone, .menuOpen #wheel, .menuOpen #wpnPill, .menuOpen #bankBtn { display: none !important; }
+  .menuOpen #phoneBtn, .menuOpen #phone, .menuOpen #wheel, .menuOpen #wpnPill { display: none !important; }
   #bankBtn { position: relative; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; font-size: 21px; padding: 0;
     background: rgba(15,20,28,.65); box-shadow: 0 4px 16px rgba(0,0,0,.3); backdrop-filter: blur(6px); }
   #bankBadge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; border-radius: 9px; background: #e53935; color: #fff; font: 800 11px/18px sans-serif; font-style: normal; display: none; }
@@ -295,6 +295,12 @@
   .phRing { animation: ring .5s infinite; display: inline-block; }
   @keyframes ring { 25% { transform: rotate(-18deg); } 75% { transform: rotate(18deg); } }
   #phHint { font-size: 11px; opacity: .6; text-align: center; }
+  .phApps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px; }
+  .phApp { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 18px; border: 2px solid transparent; background: rgba(255,255,255,.07); color: #fff; cursor: pointer; font: 700 12px "Segoe UI", sans-serif; }
+  .phApp span { width: 54px; height: 54px; border-radius: 15px; display: grid; place-items: center; font-size: 30px; box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+  .phApp.sel { border-color: #ffd54f; background: rgba(255,213,79,.12); }
+  .phApp i { position: absolute; top: 4px; right: 14px; min-width: 18px; height: 18px; border-radius: 9px; background: #e53935; font: 800 11px/18px sans-serif; font-style: normal; }
+  .phBack { border: 0; background: none; color: #ffd54f; font: 800 14px "Segoe UI", sans-serif; cursor: pointer; padding: 2px 6px; text-align: left; }
   #wheel { position: fixed; inset: 0; z-index: 21; display: none; align-items: center; justify-content: center; background: radial-gradient(rgba(0,0,0,.35), rgba(0,0,0,.75)); }
   #wheel.on { display: flex; }
   #whRing { position: relative; width: 480px; height: 480px; flex: none; border-radius: 50%; background: radial-gradient(circle, transparent 95px, rgba(15,20,28,.55) 96px, rgba(15,20,28,.55) 238px, transparent 239px); animation: whIn .18s ease-out; }
@@ -415,8 +421,7 @@
     <svg class="grow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
     <svg class="shrink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
   </button>
-  <button id="bankBtn" aria-label="bank">🏪<i id="bankBadge"></i></button>
-  <button id="phoneBtn" aria-label="phone" title="📱 (6 / P)">📱</button>
+  <button id="phoneBtn" aria-label="phone" title="📱 (6 / P)">📱<i id="bankBadge"></i></button>
   <button id="garageBtn"></button>
   <button id="menuBtn" aria-label="menu">☰</button>
 </div>
@@ -723,12 +728,13 @@
       profHint: 'Весь прогресс (деньги, машины, оружие, одежда, дом) сохраняется сам. Чтобы играть на другом устройстве — скопируй код и загрузи его там.',
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
+      phHome: '📱 Телефон', phApp1: 'Контакты', phApp2: 'Банк Степана', phApp3: 'Карта', phApp4: 'Гараж', phHintHome: '1 / 2 — выбрать · 3 — открыть · 6 — закрыть',
       bkTitle: '🏪 Банк Степана', bkHintUser: 'Здесь можно попросить денег у Степана Банана. Выбери сумму и нажми «Попросить».', bkHintAdmin: 'Ты — Степан! Можешь брать деньги себе и отправлять их другим игрокам.',
       bkHintLock: 'Это банк Степана. Если ты Степан — введи свой секретный код.', bkCode: 'Секретный код', bkUnlock: '🔓 Открыть', bkBadCode: '❌ Неверный код',
       bkSelf: '💶 +200 000 € себе', bkGot: '💶 +200 000 € на твой счёт!', bkPlayers: '👥 Игроки в игре — отправить деньги', bkNoPlayers: 'Сейчас в игре никого нет.', bkSend: 'Отправить',
       bkReqs: '🙏 Просьбы о деньгах', bkNoReqs: 'Пока никто ничего не просит.', bkGive: '✅ Дать', bkDeny: '✖', bkAsks: '{n} просит {m}',
       bkAsk: '🙏 Попросить', bkAsked: '✅ Просьба отправлена! Жди, когда Степан ответит.', bkNoStepan: '😕 Степана сейчас нет в игре — попробуй позже.', bkStepanOn: '🟢 Степан в игре!',
-      bkWait: 'Подожди немного перед новой просьбой.', bkIncoming: '💬 {n} просит у тебя {m} — открой 🏪', bkPaid: '💶 Степан прислал тебе {m}!', bkSent: '✅ Отправлено {m} игроку {n}', bkOffline: 'Интернета нет — банк работает только в сети.',
+      bkWait: 'Подожди немного перед новой просьбой.', bkIncoming: '💬 {n} просит у тебя {m} — открой 📱 → 🏪', bkPaid: '💶 Степан прислал тебе {m}!', bkSent: '✅ Отправлено {m} игроку {n}', bkOffline: 'Интернета нет — банк работает только в сети.',
       stolenCar: 'чужая машина', stolenPolice: 'полицейская машина', friendCar: 'машина друга {n}',
       jackAngry: '😡 Водитель выскочил и злится!', jackRun: '🏃 Водитель испугался и убежал!', jackPolice: '🚓 Ты угнал полицейскую машину!', jackFriend: '😠 {n}: Эй! Это же моя машина!',
       mbSign1: 'ВОЕННАЯ БАЗА', mbSign2: 'ВХОД ЗАПРЕЩЁН', jetHint: 'Q / 4 / клик — ракеты 🚀',
@@ -752,12 +758,13 @@
       profHint: 'All progress (money, vehicles, weapons, clothes, house) saves by itself. To play on another device, copy the code and load it there.',
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
+      phHome: '📱 Phone', phApp1: 'Contacts', phApp2: 'Stepan’s Bank', phApp3: 'Map', phApp4: 'Garage', phHintHome: '1 / 2 — pick · 3 — open · 6 — close',
       bkTitle: '🏪 Stepan’s Bank', bkHintUser: 'Here you can ask Stepan Banan for money. Pick an amount and press “Ask”.', bkHintAdmin: 'You are Stepan! You can take money for yourself and send it to other players.',
       bkHintLock: 'This is Stepan’s bank. If you are Stepan, enter your secret code.', bkCode: 'Secret code', bkUnlock: '🔓 Unlock', bkBadCode: '❌ Wrong code',
       bkSelf: '💶 +200,000 € for me', bkGot: '💶 +200,000 € added!', bkPlayers: '👥 Players online — send money', bkNoPlayers: 'Nobody is online right now.', bkSend: 'Send',
       bkReqs: '🙏 Money requests', bkNoReqs: 'No requests yet.', bkGive: '✅ Give', bkDeny: '✖', bkAsks: '{n} asks for {m}',
       bkAsk: '🙏 Ask', bkAsked: '✅ Request sent! Wait for Stepan to answer.', bkNoStepan: '😕 Stepan is not online — try later.', bkStepanOn: '🟢 Stepan is online!',
-      bkWait: 'Wait a little before asking again.', bkIncoming: '💬 {n} asks you for {m} — open 🏪', bkPaid: '💶 Stepan sent you {m}!', bkSent: '✅ Sent {m} to {n}', bkOffline: 'No internet — the bank only works online.',
+      bkWait: 'Wait a little before asking again.', bkIncoming: '💬 {n} asks you for {m} — open 📱 → 🏪', bkPaid: '💶 Stepan sent you {m}!', bkSent: '✅ Sent {m} to {n}', bkOffline: 'No internet — the bank only works online.',
       stolenCar: 'a stranger’s car', stolenPolice: 'a police car', friendCar: '{n}’s car',
       jackAngry: '😡 The driver jumped out and is angry!', jackRun: '🏃 The driver got scared and ran away!', jackPolice: '🚓 You stole a police car!', jackFriend: '😠 {n}: Hey! That’s my car!',
       mbSign1: 'MILITARY BASE', mbSign2: 'NO ENTRY', jetHint: 'Q / 4 / click — missiles 🚀',
@@ -5612,12 +5619,27 @@
 
   // ================== Телефон: звоним друзьям ==================
   const phoneEl = document.getElementById('phone'), phList = document.getElementById('phList');
-  let phoneOpen = false, phSel = 0, phCalling = null, phTimer = 0;
+  let phoneOpen = false, phSel = 0, phCalling = null, phTimer = 0, phView = 'home';
+  const PH_APPS = [['contacts', '📞', 'phApp1', '#43a047'], ['bank', '🏪', 'phApp2', '#ffb300'], ['map', '🗺', 'phApp3', '#1e88e5'], ['garage', '🚗', 'phApp4', '#e53935']];
+  function openApp(id) {
+    if (id === 'contacts') { phView = 'contacts'; phSel = 0; renderPhone(); return; }
+    togglePhone(false);
+    if (id === 'bank') window.__toggleBank?.(true);
+    else if (id === 'map') window.__toggleMap?.(true);
+    else if (id === 'garage') window.__toggleGarage?.(true);
+  }
   function renderPhone() {
+    document.getElementById('phClock').textContent = document.getElementById('clock').textContent;
+    if (phView === 'home') {                                       // главный экран: приложения
+      document.getElementById('phTitle').textContent = t('phHome');
+      document.getElementById('phHint').textContent = t('phHintHome');
+      const reqs = window.__bankReqs?.() || 0;
+      phList.innerHTML = '<div class="phApps">' + PH_APPS.map(([id, ic, key, col], i) => `<button class="phApp${i === phSel ? ' sel' : ''}" data-app="${id}"><span style="background:${col}">${ic}</span>${esc(t(key))}${id === 'bank' && reqs ? `<i>${reqs}</i>` : ''}</button>`).join('') + '</div>';
+      return;
+    }
     document.getElementById('phTitle').textContent = t('phTitle');
     document.getElementById('phHint').textContent = t('phHint');
-    document.getElementById('phClock').textContent = document.getElementById('clock').textContent;
-    phList.innerHTML = friends.map((f, i) => {
+    phList.innerHTML = `<button class="phBack" data-home="1">← ${esc(t('back'))}</button>` + friends.map((f, i) => {
       const st = !save.friends.on ? '' : t(f.mode === 'with' ? 'frWith' : f.mode === 'come' ? 'frCome' : 'frRoam');
       const btn = phCalling === f ? `<button disabled><span class="phRing">📞</span> ${t('phCalling')}</button>`
         : f.mode === 'with' && save.friends.on ? `<button class="bye" data-i="${i}">${t('phBye')}</button>`
@@ -5636,10 +5658,12 @@
   }
   function togglePhone(on = !phoneOpen) {
     phoneOpen = on; phoneEl.classList.toggle('on', on);
-    if (on) { held.clear(); refreshKeys(); renderPhone(); clearInterval(phTimer); phTimer = setInterval(renderPhone, 600); }
+    if (on) { held.clear(); refreshKeys(); phView = 'home'; phSel = 0; renderPhone(); clearInterval(phTimer); phTimer = setInterval(renderPhone, 600); }
     else clearInterval(phTimer);
   }
   phList.addEventListener('click', e => {
+    const ap = e.target.closest('button[data-app]'); if (ap) { openApp(ap.dataset.app); return; }
+    if (e.target.closest('[data-home]')) { phView = 'home'; phSel = 0; renderPhone(); return; }
     const b = e.target.closest('button[data-i]'); if (b) { phoneAct(+b.dataset.i); return; }
     const r = e.target.closest('[data-row]'); if (r) { phSel = +r.dataset.row; renderPhone(); }
   });
@@ -5647,6 +5671,13 @@
   window.__phoneOpen = () => phoneOpen;
   window.__togglePhone = togglePhone;
   window.__phoneKey = a => {
+    if (phView === 'home') {
+      const n = PH_APPS.length;
+      if (a === 'left') phSel = (phSel + n - 1) % n; else if (a === 'right') phSel = (phSel + 1) % n;
+      else if (a === 'up') phSel = (phSel + n - 2) % n; else if (a === 'down') phSel = (phSel + 2) % n;
+      else if (a === 'exit' || a === 'play') { openApp(PH_APPS[phSel][0]); return; }
+      renderPhone(); return;
+    }
     if (a === 'up' || a === 'left') { phSel = (phSel + friends.length - 1) % friends.length; renderPhone(); }
     else if (a === 'down' || a === 'right') { phSel = (phSel + 1) % friends.length; renderPhone(); }
     else if (a === 'exit' || a === 'play') phoneAct(phSel);
@@ -5868,9 +5899,8 @@
     bankOpen = on; bankEl.classList.toggle('on', on);
     if (on) { held.clear(); touchHeld.clear(); refreshKeys(); bankMsg = ''; renderBank(); } else if (!menuOpen) canvas.focus();
   }
-  document.getElementById('bankBtn').addEventListener('click', () => toggleBank());
   document.getElementById('bankClose').addEventListener('click', () => toggleBank(false));
-  window.__bankOpen = () => bankOpen; window.__toggleBank = toggleBank;
+  window.__bankOpen = () => bankOpen; window.__toggleBank = toggleBank; window.__bankReqs = () => isBanker() ? bankReqs.length : 0;
   setInterval(() => { if (bankOpen) { const a = document.activeElement; if (!a || a.id !== 'bankCode') renderBank(); } }, 2000);
   function netUpdate(dt, now) {
     if (!net.room && !net.mq.length) return;
