@@ -736,6 +736,8 @@
       profHint: 'Весь прогресс (деньги, машины, оружие, одежда, дом) сохраняется сам. Чтобы играть на другом устройстве — скопируй код и загрузи его там.',
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
+      isMalta: 'Мальта', isCyprus: 'Кипр', isFiji: 'Фиджи', isCosta: 'Коста-Рика', isIceland: 'Исландия', welcomeTo: 'Остров {n}', marina: 'Причал',
+      boatMarina: '🚤 Твоя лодка ждёт у причала на пляже!', boatShore: '🌊 Подплыви к берегу, чтобы выйти',
       stTitle: '🔐 Код Степана', stHint: 'Ты зашёл как Степан Банан. Введи код, чтобы начать игру.', stGo: 'Войти ▶', stBad: '❌ Неверный код', stNotMe: 'Это не я — сменить игрока',
       phHome: '📱 Телефон', phApp1: 'Контакты', phApp2: 'Банк Степана', phApp3: 'Карта', phApp4: 'Гараж', phHintHome: '1 / 2 — выбрать · 3 — открыть · 6 — закрыть',
       bkLeft: 'Сегодня можно попросить ещё {n} раз(а) из 3.', bkLimit: '⏳ Ты уже 3 раза просил сегодня. Приходи завтра!',
@@ -768,6 +770,8 @@
       profHint: 'All progress (money, vehicles, weapons, clothes, house) saves by itself. To play on another device, copy the code and load it there.',
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
+      isMalta: 'Malta', isCyprus: 'Cyprus', isFiji: 'Fiji', isCosta: 'Costa Rica', isIceland: 'Iceland', welcomeTo: '{n} Island', marina: 'Marina',
+      boatMarina: '🚤 Your boat is waiting at the beach marina!', boatShore: '🌊 Get close to the shore to get off',
       stTitle: '🔐 Stepan’s code', stHint: 'You signed in as Stepan Banan. Enter the code to start the game.', stGo: 'Enter ▶', stBad: '❌ Wrong code', stNotMe: 'That’s not me — switch player',
       phHome: '📱 Phone', phApp1: 'Contacts', phApp2: 'Stepan’s Bank', phApp3: 'Map', phApp4: 'Garage', phHintHome: '1 / 2 — pick · 3 — open · 6 — close',
       bkLeft: 'You can ask {n} more time(s) today (3 per day).', bkLimit: '⏳ You already asked 3 times today. Come back tomorrow!',
@@ -1041,7 +1045,52 @@
   const ROAD_W = 8 * T;                      // ширина дороги: 8 полос
   const WORLD = NB * STEP * T + ROAD_W;      // 7232
   // ================== Мир за городом: шоссе, горы, аэропорт, военная база, пляж ==================
-  const F0 = -4400, F1 = WORLD + 4800, FS = F1 - F0;          // границы всего острова (город — в его середине)
+  const MI0 = -4400, MI1 = WORLD + 4800;                      // главный остров (город — в его середине)
+  const F0 = -9000, F1 = WORLD + 9000, FS = F1 - F0;          // весь мир: океан с островами
+  // ---------- острова в океане (к ним нет мостов — только на лодке, вертолёте или самолёте) ----------
+  const ISLES = [
+    { key: 'isMalta', x: -6600, y: WORLD + 5600, r: 1150, kind: 'malta' },
+    { key: 'isCyprus', x: WORLD + 6900, y: 6200, r: 1350, kind: 'cyprus' },
+    { key: 'isFiji', x: 3000, y: WORLD + 6900, r: 950, kind: 'fiji' },
+    { key: 'isCosta', x: -7000, y: 3000, r: 1450, kind: 'costa' },
+    { key: 'isIceland', x: 5600, y: -7000, r: 1600, kind: 'iceland' },
+  ];
+  function isleH(I, x, y) {                                   // высота острова (меньше нуля — дно у берега)
+    const dx = x - I.x, dy = y - I.y, d = Math.hypot(dx, dy);
+    if (d > I.r * 1.25 + 500) return -1e9;
+    const a = Math.atan2(dy, dx), R = I.r * (1 + .12 * Math.sin(a * 3 + I.x * .001) + .07 * Math.sin(a * 7 + I.y * .002));
+    const t = d / R, base = (1 - t) * 50;
+    if (base <= 0) return base;
+    switch (I.kind) {
+      case 'malta': return Math.min(34, base * 3);                                                    // известняковое плато с обрывами
+      case 'cyprus': return Math.min(20, base * 2) + Math.max(0, 1 - t * 1.5) * 170 * (.65 + .35 * Math.sin(dx * .004) * Math.cos(dy * .005));
+      case 'fiji': return Math.min(12, base * 1.2) + (t < .35 ? 34 * (1 - t / .35) : 0);
+      case 'costa': {                                                                                  // джунгли и вулкан с кратером
+        const vd = d / (R * .34), hills = 70 * Math.max(0, 1 - t) * (.6 + .4 * Math.sin(dx * .006 + 1) * Math.cos(dy * .005));
+        const cone = vd < 1 ? (vd < .18 ? 420 * .82 - (.18 - vd) * 900 : 420 * (1 - vd)) : 0;
+        return Math.min(28, base * 2) + Math.max(hills, cone);
+      }
+      case 'iceland': return Math.min(24, base * 2) + 270 * Math.max(0, 1 - (d / (R * .62)) ** 2);   // ледник посередине
+    }
+    return base;
+  }
+  function isleAt(x, y) { for (const I of ISLES) if (Math.hypot(x - I.x, y - I.y) < I.r * 1.3 + 500) return I; return null; }
+  const ISLE_PAL = {
+    malta: { beach: '#e6d3a3', land: '#cdb98a', land2: '#b8a874', high: '#d9c79c' },
+    cyprus: { beach: '#e8d6a0', land: '#a3a862', land2: '#8f9a55', high: '#9c8f6a' },
+    fiji: { beach: '#f6eed4', land: '#4caf50', land2: '#3f9e45', high: '#2e7d32' },
+    costa: { beach: '#d8c58f', land: '#2e7d32', land2: '#1b5e20', high: '#5d5048' },
+    iceland: { beach: '#3a3a3c', land: '#7c8a6a', land2: '#6a7a5c', high: '#f4f6f8' },
+  };
+  function isleColorHex(I, h, n) {
+    const P = ISLE_PAL[I.kind];
+    if (h < 9) return P.beach;
+    if (I.kind === 'costa' && h > 190) return h > 330 ? '#3e2f28' : P.high;
+    if (I.kind === 'iceland' && h > 70) return P.high;
+    if (I.kind === 'cyprus' && h > 120) return P.high;
+    return n > .5 ? P.land : P.land2;
+  }
+
   const sstep = (a, b, v) => { const q = Math.max(0, Math.min(1, (v - a) / (b - a))); return q * q * (3 - 2 * q); };
   const HW_D = 900, HW_R = 700, HW_W = 300;                   // кольцевое шоссе: в 900 от города, ширина 300
   function hwDist(x, y) {                                     // расстояние до середины кольцевого шоссе
@@ -1068,14 +1117,16 @@
   }
   const SEA = -3, SHORE = WORLD + 1550;                       // уровень моря и где начинается вода
   const IX = Math.round(WORLD * .72), IY = SHORE + 2300;      // Остров Чаек — к нему ведёт длинный мост
+  const MARINA = [GC + 650, SHORE + 170];                    // причал: здесь появляются лодки
   function baseH(x, y) {                                      // земля без дорог: холмы, гора, берег, остров
     if (x > -300 && y > -300 && x < WORLD + 300 && y < WORLD + 300) return 0;
     let h = rawH(x, y);
     if (h > 0) { const dh = Math.abs(hwDist(x, y)); if (dh < 480) h *= sstep(190, 480, dh); }
     if (y > SHORE) h = Math.min(h, -(y - SHORE) * .07);
     { const d = Math.hypot(x - IX, y - IY); if (d < 1100) h = Math.max(h, d < 480 ? 42 : 42 - (d - 480) * .24); }
-    const e = Math.min(x - F0, F1 - x, y - F0);
+    const e = Math.min(x - MI0, MI1 - x, y - MI0);
     if (e < 800) { const k = sstep(0, 800, e); h = h * k - 60 * (1 - k); }
+    if (h < 0) { const I = isleAt(x, y); if (I) h = Math.max(h, isleH(I, x, y)); }
     return h;
   }
   // дороги по холмам: серпантин на гору и извилистое прибрежное шоссе на западе
@@ -2432,8 +2483,18 @@
     { id: 'boevoy', kind: 'heli', hidden: true, name: 'Боевой вертолёт', desc: '', price: 0, color: '#3d4a2f', attack: true, missiles: true, max: 430, accel: 330, turn: 1.7, grip: 13, size: 1.1, colL: 46, colW: 18 },
     { id: 'strela', kind: 'plane', name: 'Реактивный самолёт «Стрела»', desc: 'Самый быстрый в городе! Реактивный двигатель и огонь из сопла.', price: 50000,
       color: '#90a4ae', jet: true, max: 720, accel: 330, turn: 1.25, grip: 14, colL: 56, colW: 30 },
+    // --- вода: лодки и корабли (дорогие!) ---
+    { id: 'gidrocikl', kind: 'boat', style: 'jetski', name: 'Гидроцикл «Волна»', desc: 'Маленький и шустрый. Прыгает по волнам!', price: 60000,
+      color: '#00acc1', color2: '#263238', max: 400, accel: 360, turn: 2.2, grip: 12, colL: 24, colW: 10 },
+    { id: 'kater', kind: 'boat', style: 'speed', name: 'Катер «Акула»', desc: 'Быстрый катер — до островов за минуту.', price: 150000,
+      color: '#fafafa', color2: '#e53935', max: 480, accel: 300, turn: 1.6, grip: 12, colL: 48, colW: 18 },
+    { id: 'yahta', kind: 'boat', style: 'yacht', name: 'Яхта «Жемчужина»', desc: 'Роскошная яхта с каютами на двух этажах.', price: 400000,
+      color: '#fafafa', color2: '#1565c0', max: 330, accel: 160, turn: 1.0, grip: 12, colL: 110, colW: 34 },
+    { id: 'korabl', kind: 'boat', style: 'ship', name: 'Корабль «Титан»', desc: 'Огромный корабль! Самое дорогое, что есть в игре.', price: 1500000,
+      color: '#263238', color2: '#c62828', max: 250, accel: 90, turn: .55, grip: 12, colL: 300, colW: 64 },
   ];
   const isAirSpec = c => c.kind === 'heli' || c.kind === 'plane';
+  const isBoatSpec = c => c.kind === 'boat';
 
   function extrudeProfile(points, width, bevel = 1.2) {
     const shape = new THREE.Shape(points.map(([x, y]) => new THREE.Vector2(x, y)));
@@ -2443,7 +2504,51 @@
     return geo;
   }
 
-  function buildVehicle(spec) { return spec.kind === 'moto' ? buildMoto(spec) : spec.kind === 'heli' ? buildHeli(spec) : spec.kind === 'plane' ? buildPlane(spec) : buildCar(spec); }
+  function buildVehicle(spec) { return spec.kind === 'moto' ? buildMoto(spec) : spec.kind === 'heli' ? buildHeli(spec) : spec.kind === 'plane' ? buildPlane(spec) : spec.kind === 'boat' ? buildBoat(spec) : buildCar(spec); }
+  function buildBoat(spec) {
+    const B = airBase(spec), { add, paint, dark, metal, glass, body } = B;
+    B.tg.position.y = 0; B.inner.position.y = 0;
+    const paint2 = new THREE.MeshStandardMaterial({ color: spec.color2 || '#c62828', roughness: .5 });
+    const white = new THREE.MeshStandardMaterial({ color: '#f7f7f7', roughness: .4 });
+    const hull = (L, W, H, mat, y = 0) => {
+      const sh = new THREE.Shape([new THREE.Vector2(L / 2, 0), new THREE.Vector2(L * .22, W / 2), new THREE.Vector2(-L / 2, W * .46), new THREE.Vector2(-L / 2, -W * .46), new THREE.Vector2(L * .22, -W / 2)]);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: H, bevelEnabled: true, bevelSize: Math.min(2, W * .06), bevelThickness: Math.min(2, H * .1), bevelSegments: 2 }); g.rotateX(-Math.PI / 2);
+      return add(g, mat, 0, y, 0);
+    };
+    const win = (base, w) => new THREE.MeshStandardMaterial({ map: (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d'); g.fillStyle = base; g.fillRect(0, 0, 256, 64); for (let x = 6; x < 256; x += 22) { g.fillStyle = w; g.fillRect(x, 18, 14, 22); } const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.wrapS = THREE.RepeatWrapping; return tx; })(), roughness: .5 });
+    if (spec.style === 'jetski') {
+      hull(24, 10, 5, paint, -2); add(new THREE.BoxGeometry(12, 3, 6), dark, -3, 4.5, 0);
+      add(new THREE.BoxGeometry(2, 5, 2), metal, 5, 6, 0); add(new THREE.BoxGeometry(1.5, 1.5, 9), dark, 5, 8.5, 0);
+      B.pilot(-2, 6, 0);
+    } else if (spec.style === 'speed') {
+      hull(48, 18, 8, paint, -4); hull(47, 18.4, 2.2, paint2, -3);
+      add(new THREE.BoxGeometry(30, 1, 14), new THREE.MeshStandardMaterial({ color: '#d7ccc8' }), -4, 4.6, 0);
+      const ws = add(new THREE.BoxGeometry(2, 6, 14), glass, 7, 7.5, 0); ws.rotation.z = -.5;
+      for (const z of [-4, 4]) add(new THREE.BoxGeometry(5, 4, 4), dark, -2, 6.5, z);
+      add(new THREE.BoxGeometry(5, 9, 5), dark, -26, 3, 0);
+      B.pilot(-1, 5.5, -4);
+    } else if (spec.style === 'yacht') {
+      hull(110, 34, 14, paint, -7); hull(108, 34.6, 3, paint2, -6);
+      add(new THREE.BoxGeometry(96, 1.5, 28), new THREE.MeshStandardMaterial({ color: '#bcaaa4', roughness: .8 }), -6, 7.8, 0);
+      add(new THREE.BoxGeometry(56, 13, 24), win('#fafafa', '#263238'), -10, 15, 0);
+      add(new THREE.BoxGeometry(34, 10, 20), win('#fafafa', '#37474f'), -14, 26.5, 0);
+      add(new THREE.BoxGeometry(40, 1.5, 24), white, -12, 32, 0);
+      add(new THREE.CylinderGeometry(.8, .8, 26, 6), metal, -16, 45, 0);
+      add(new THREE.SphereGeometry(4, 10, 8), white, -16, 36, 0);
+      B.pilot(4, 18, 0);
+    } else {                                                   // корабль
+      hull(300, 64, 30, paint, -14); hull(298, 64.6, 6, paint2, -13);
+      add(new THREE.BoxGeometry(270, 2, 56), new THREE.MeshStandardMaterial({ color: '#8d6e63', roughness: .9 }), -6, 16.5, 0);
+      add(new THREE.BoxGeometry(70, 16, 50), win('#fafafa', '#263238'), -95, 25, 0);
+      add(new THREE.BoxGeometry(60, 14, 46), win('#fafafa', '#37474f'), -98, 40, 0);
+      add(new THREE.BoxGeometry(44, 12, 50), win('#fafafa', '#0d47a1'), -98, 53, 0);
+      for (const fx of [-115, -80]) { add(new THREE.CylinderGeometry(9, 10, 30, 14), white, fx, 74, 0); add(new THREE.CylinderGeometry(9.2, 9.2, 6, 14), paint2, fx, 87, 0); }
+      const cc = ['#e53935', '#1e88e5', '#43a047', '#fdd835', '#fb8c00', '#8e24aa'];
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 2; k++) add(new THREE.BoxGeometry(24, 11, 15), new THREE.MeshStandardMaterial({ color: cc[(i + j * 2 + k) % 6], roughness: .7 }), -30 + i * 27, 23 + k * 11.5, -17 + j * 17);
+      B.pilot(-70, 46, 0);
+    }
+    return { root: B.root, tg: B.tg, body, wheels: [], pivots: [], tailMat: B.tailMat, r: 1, driver: B.driver, paint };
+  }
   function airBase(spec) {
     const root = new THREE.Group();
     const tg = new THREE.Group(); tg.position.y = 12; root.add(tg);
@@ -2724,7 +2829,10 @@
     save.current = spec.id; persist();
     if (player) scene.remove(player.root);
     player = buildVehicle(spec);
-    if (!isAirSpec(spec) && !car.onFoot && car.z > 30) { car.z = groundHeight(car.x, car.y, 0); car.air = false; }   // пересел с вертолёта на машину — ставим на землю
+    if (!isAirSpec(spec) && !isBoatSpec(spec) && !car.onFoot && car.z > 30) { car.z = groundHeight(car.x, car.y, 0); car.air = false; }   // пересел с вертолёта на машину — ставим на землю
+    { const V = car.onFoot ? vstate : car;
+      if (isBoatSpec(spec) && (inCity(V.x, V.y) || terrainH(V.x, V.y) > SEA - 1.2)) { Object.assign(V, { x: MARINA[0], y: MARINA[1], z: SEA, angle: Math.PI / 2 }); car.vx = car.vy = 0; if (window.__gameReady) showMsg(t('boatMarina'), 4000); }   // лодка ждёт у причала
+      else if (!isBoatSpec(spec) && !isAirSpec(spec) && !inCity(V.x, V.y) && terrainH(V.x, V.y) < SEA - 1) { Object.assign(V, { y: SHORE - 260, z: 0 }); car.vx = car.vy = 0; } }
     if (car.fly) { car.fly.pitch = car.fly.bank = car.fly.vz = 0; car.fly.spd = 0; }
     if (car.onFoot && player.driver) player.driver.visible = false;
     scene.add(player.root);
@@ -2748,6 +2856,7 @@
       m.root.rotation.y = -0.15;
       if (c.kind === 'moto') { tc.position.set(58, 40, 72); tc.lookAt(0, 17, 0); }
       else if (isAirSpec(c)) { const k = c.kind === 'heli' ? (c.size || 1) * 1.15 : 1.1; tc.position.set(78 * k, 52 * k, 98 * k); tc.lookAt(0, 13, 0); }
+      else if (isBoatSpec(c)) { const k = Math.max(.7, c.colL / 46); tc.far = 4000; tc.updateProjectionMatrix(); tc.position.set(78 * k, 52 * k, 98 * k); tc.lookAt(0, 6 * k, 0); }
       else { tc.position.set(62, 38, 78); tc.lookAt(0, 7, 0); }
       ts.add(m.root);
       tr.render(ts, tc);
@@ -2764,7 +2873,7 @@
   const fmt = n => n.toLocaleString(t('locale')) + ' €';
   const carName = c => (I18N[LANG].cars || {})[c.id]?.[0] ?? c.name;
   const carDesc = c => (I18N[LANG].cars || {})[c.id]?.[1] ?? c.desc;
-  const TOP = { max: Math.max(...CARS.filter(c => !isAirSpec(c)).map(c => c.max)), accel: Math.max(...CARS.filter(c => !isAirSpec(c)).map(c => c.accel)), hand: Math.max(...CARS.filter(c => !isAirSpec(c)).map(c => c.turn * c.grip)) };
+  const TOP = { max: Math.max(...CARS.filter(c => !isAirSpec(c) && !isBoatSpec(c)).map(c => c.max)), accel: Math.max(...CARS.filter(c => !isAirSpec(c) && !isBoatSpec(c)).map(c => c.accel)), hand: Math.max(...CARS.filter(c => !isAirSpec(c) && !isBoatSpec(c)).map(c => c.turn * c.grip)) };
   function bar(label, v) { return `<div class="stat"><span>${label}</span><i><b style="width:${Math.round(Math.min(1, v) * 100)}%"></b></i></div>`; }
   function renderGarage() {
     document.getElementById('gMoney').textContent = fmt(save.money);
@@ -2777,7 +2886,7 @@
       else btn = `<button class="no" disabled>${t('needMore', { p: fmt(c.price - save.money) })}</button>`;
       return `<div class="card ${cur ? 'cur' : ''}">
         <img src="${thumbs[c.id]}" alt="">
-        <h3>${c.kind === 'moto' ? '🏍' : c.kind === 'heli' ? '🚁' : c.kind === 'plane' ? '✈️' : '🚗'} ${carName(c)}</h3>
+        <h3>${c.kind === 'moto' ? '🏍' : c.kind === 'heli' ? '🚁' : c.kind === 'plane' ? '✈️' : c.kind === 'boat' ? (c.style === 'ship' ? '🚢' : c.style === 'yacht' ? '🛥' : '🚤') : '🚗'} ${carName(c)}</h3>
         <div class="price">${c.price ? fmt(c.price) : t('free')}</div>
         <p>${carDesc(c)}</p>
         ${bar(t('speed'), c.max / TOP.max)}${bar(t('accel'), c.accel / TOP.accel)}${bar(t('handling'), c.turn * c.grip / TOP.hand)}
@@ -3473,6 +3582,7 @@
 
   // ================== Игра ==================
   function resetCar() {
+    setTimeout(() => { if (isBoatSpec(spec) && !car.onFoot) { Object.assign(car, { x: MARINA[0], y: MARINA[1], z: SEA, angle: Math.PI / 2, vx: 0, vy: 0 }); camAng = car.angle; } }, 0);
     Object.assign(car, { x: T * 1.5, y: 3 * T, angle: Math.PI / 2, vx: 0, vy: 0, steer: 0, z: 0, vz: 0, air: false, ramp: null, stun: 0, loop: null });
     Object.assign(trick, { pitch: 0, pitchT: 0, roll: 0, rollT: 0 });
     camAng = car.angle;
@@ -3712,11 +3822,44 @@
     roll = pitch = lean = 0; curFwd = Math.hypot(car.vx, car.vy);
     shake *= .85;
   }
+  // ================== Вода: лодки и корабли ==================
+  const wetAt = (x, y) => !inCity(x, y) && terrainH(x, y) < SEA - 1.2 && !solidAtZ(x, y, SEA);
+  function boatUpdate(dt) {
+    const B = car.boat || (car.boat = { spd: 0, pitch: 0, roll: 0, t: 0 });
+    const { up, down, left, right, brake } = keys;
+    car.air = false; car.ramp = null; car.stun = 0; car.loop = null;
+    if (!wetAt(car.x, car.y)) { Object.assign(car, { x: MARINA[0], y: MARINA[1], angle: Math.PI / 2, vx: 0, vy: 0 }); B.spd = 0; showMsg(t('boatMarina'), 3000); }   // лодка на суше — к причалу
+    if (up) B.spd += spec.accel * dt; else if (down) B.spd -= spec.accel * (B.spd > 0 ? 1.6 : .6) * dt;
+    else B.spd -= Math.sign(B.spd) * Math.min(Math.abs(B.spd), 60 * dt);
+    if (brake) B.spd *= Math.max(0, 1 - 2.5 * dt);
+    B.spd = Math.max(-spec.max * .3, Math.min(spec.max, B.spd));
+    const steer = (right ? 1 : 0) - (left ? 1 : 0); car.steer = steer;
+    car.angle += steer * spec.turn * dt * Math.min(1, Math.abs(B.spd) / 90 + .12) * (B.spd < 0 ? -1 : 1);
+    const k = Math.min(1, (spec.style === 'ship' ? 1 : 2.4) * dt);              // лодку немного заносит
+    car.vx += (Math.cos(car.angle) * B.spd - car.vx) * k; car.vy += (Math.sin(car.angle) * B.spd - car.vy) * k;
+    const nx = car.x + car.vx * dt, ny = car.y + car.vy * dt, ca = Math.cos(car.angle), sa = Math.sin(car.angle), hl = (spec.colL || 30) / 2, hw = (spec.colW || 12) / 2;
+    const ok = [[hl, 0], [-hl, 0], [0, hw], [0, -hw], [hl * .5, hw * .7], [hl * .5, -hw * .7]].every(([fx, fy]) => wetAt(nx + fx * ca - fy * sa, ny + fx * sa + fy * ca));
+    if (ok) { car.x = nx; car.y = ny; }
+    else { if (Math.abs(B.spd) > 120) { shake = Math.min(5, Math.abs(B.spd) / 90); for (let i = 0; i < 12; i++) emit(car.x + ca * hl, SEA + 4, car.y + sa * hl, '#e3f2fd', 3, .6, (Math.random() - .5) * 120, 40 + Math.random() * 60, (Math.random() - .5) * 120, 10, .9); } B.spd *= -.25; car.vx *= -.25; car.vy *= -.25; }
+    B.t += dt;
+    const big = spec.style === 'ship' ? .25 : spec.style === 'yacht' ? .5 : 1, f = Math.min(1, Math.abs(B.spd) / spec.max);
+    car.z = SEA + Math.sin(B.t * 2.2) * .7 * big + f * (spec.style === 'jetski' ? 2 : 1);
+    B.pitch += ((B.spd > 0 ? f * .16 * big : 0) + Math.sin(B.t * 1.7) * .02 * big - B.pitch) * Math.min(1, 4 * dt);
+    B.roll += (-steer * f * .18 * big + Math.sin(B.t * 1.3) * .025 * big - B.roll) * Math.min(1, 4 * dt);
+    if (Math.abs(B.spd) > 40 && Math.random() < .8) {                            // белая пена за кормой
+      const w = hw * .8;
+      for (const sd of [-1, 1]) emit(car.x - ca * hl - sa * w * sd, SEA + 1, car.y - sa * hl + ca * w * sd, '#ffffff', 2 + hw * .25, 1.2, -car.vx * .1 - sa * sd * 20, 6, -car.vy * .1 + ca * sd * 20, 10 + hw, .7);
+    }
+    edgeBounce();
+    roll = pitch = lean = 0; curFwd = B.spd;
+    shake *= .85;
+  }
   function update(dt) {
     if (garageOpen || menuOpen || mapOpen) return;
     FLY.on = false;
     if (car.onFoot) { walkUpdate(dt); return; }
     if (isFly()) { flyUpdate(dt); return; }
+    if (isBoatSpec(spec)) { boatUpdate(dt); return; }
     if (car.loop) { loopUpdate(dt); return; }
     edgeBounce();
     if (!car.air && collides(car.x, car.y, car.angle) && unstick(carHitAt)) { car.vx *= .3; car.vy *= .3; car.ramp = null; car.stun = 0; }
@@ -4479,7 +4622,7 @@
 
   // столкновения игрока с машинами на дороге и полицией
   function collideVehicles() {
-    if (car.z > 20 || isFly()) return;                     // самолёт и вертолёт не застревают в машинах
+    if (car.z > 20 || isFly() || isBoatSpec(spec)) return;   // самолёт, вертолёт и лодка не застревают в машинах
     for (const o of traffic.concat(chase.cops, netCars())) {
       if (Math.abs((o.z || 0) - car.z) > 20 || o.ghost > 0) continue;
       const dx = car.x - o.x, dy = car.y - o.y, d = Math.hypot(dx, dy);
@@ -4663,6 +4806,17 @@
     if (!car.onFoot) {
       if (car.air || car.loop || Math.hypot(car.vx, car.vy) > 45) return;          // на ходу не выпрыгнешь
       if (isFly() && car.z > groundHeight(car.x, car.y, car.z) + 3) { showMsg(t('flyLand'), 1800); return; }   // в воздухе не выпрыгнешь
+      if (isBoatSpec(spec)) {                                                    // с лодки — только на берег
+        let land = null; const maxR = Math.max(110, (spec.colL || 30) / 2 + 70);
+        for (let r = 25; r <= maxR && !land; r += 15) for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2, x = car.x + Math.cos(a) * r, y = car.y + Math.sin(a) * r; if (inCity(x, y) || (terrainH(x, y) > SEA + 1 && !solidAtZ(x, y, terrainH(x, y)))) { land = [x, y]; break; } }
+        if (!land) { showMsg(t('boatShore'), 2200); return; }
+        Object.assign(vstate, { x: car.x, y: car.y, z: car.z, angle: car.angle });
+        car.onFoot = true;
+        Object.assign(car, { x: land[0], y: land[1], z: inCity(land[0], land[1]) ? 0 : terrainH(land[0], land[1]), vx: 0, vy: 0, steer: 0 });
+        foot.vz = 0; curFwd = 0; foot.root.visible = true; footBlob.visible = true; foot.hp = 100; foot.ko = 0; setOnFootClass();
+        if (player.driver) player.driver.visible = false;
+        return;
+      }
       Object.assign(vstate, { x: car.x, y: car.y, z: car.z, angle: car.angle });
       const lx = Math.sin(car.angle), ly = -Math.cos(car.angle);
       let px = car.x + lx * 30, py = car.y + ly * 30;
@@ -4674,7 +4828,7 @@
       if (player.driver) player.driver.visible = false;
     } else {
       { const st = nearStealable(); if (st && st.d < Math.hypot(car.x - vstate.x, car.y - vstate.y)) { doSteal(st); return; } }   // угон
-      if (Math.hypot(car.x - vstate.x, car.y - vstate.y) > 60) return;
+      if (Math.hypot(car.x - vstate.x, car.y - vstate.y) > Math.max(60, (spec.colL || 0) / 2 + 20)) return;
       car.onFoot = false;
       Object.assign(car, { x: vstate.x, y: vstate.y, z: vstate.z, angle: vstate.angle, vx: 0, vy: 0, steer: 0 });
       foot.root.visible = false; footBlob.visible = false; setOnFootClass();
@@ -4723,7 +4877,7 @@
   const noiseFill = (g, w, h, base, cols, n) => { g.fillStyle = base; g.fillRect(0, 0, w, h); for (let i = 0; i < n; i++) { g.fillStyle = cols[i % cols.length]; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); } };
   // --- земля острова: холмы, гора, пляж, дно моря ---
   {
-    const SEG = 300, geo = new THREE.PlaneGeometry(FS, FS, SEG, SEG); geo.rotateX(-Math.PI / 2);
+    const SEG = 400, geo = new THREE.PlaneGeometry(FS, FS, SEG, SEG); geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position, cols = new Float32Array(pos.count * 3), col = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i) + F0 + FS / 2, y = pos.getZ(i) + F0 + FS / 2;
@@ -4738,6 +4892,7 @@
       else if (h > 470) col.set('#8d877c').lerp(new THREE.Color('#6f6a60'), n);
       else if (h > 170) col.set('#4f7a36').lerp(new THREE.Color('#3f6a2c'), n);
       else col.set('#6a9a45').lerp(new THREE.Color('#58893a'), n);
+      if (h > SEA - 2) { const I = isleAt(x, y); if (I) col.set(isleColorHex(I, h, n)); }
       cols[i * 3] = col.r; cols[i * 3 + 1] = col.g; cols[i * 3 + 2] = col.b;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(cols, 3)); geo.computeVertexNormals();
@@ -5007,14 +5162,14 @@
   {
     const pine = [], palm = [];
     for (let tries = 0; pine.length < 2600 && tries < 40000; tries++) {
-      const x = F0 + 700 + Math.random() * (-1300 - F0 - 700), y = F0 + 700 + Math.random() * (FS - 1400);
+      const x = MI0 + 700 + Math.random() * (-1300 - MI0 - 700), y = MI0 + 700 + Math.random() * (MI1 - MI0 - 1400);
       const h = terrainH(x, y); if (h < 4 || h > 640) continue;
       if (Math.abs(hwDist(x, y)) < 260) continue;
       if (x > MX - 1400 && y > MY - 1400 && y < MY + 1400 && mrNear(x, y)[0] < 130) continue;
       pine.push([x, y, h]);
     }
     for (let tries = 0; pine.length < 3300 && tries < 20000; tries++) {        // немного леса и на севере
-      const x = F0 + 900 + Math.random() * (FS - 1800), y = F0 + 700 + Math.random() * 2600;
+      const x = MI0 + 900 + Math.random() * (MI1 - MI0 - 1800), y = MI0 + 700 + Math.random() * 2600;
       if (x > MB.x0 - 150 && x < MB.x1 + 150 && y > MB.y0 - 150) continue;
       if (Math.abs(hwDist(x, y)) < 260 || OUT_ROADS.some(r => Math.abs(r[0][0] - r[r.length - 1][0]) < 1 && Math.abs(x - r[0][0]) < 180)) continue;
       const h = terrainH(x, y); if (h < 0) continue; pine.push([x, y, h]);
@@ -5137,6 +5292,90 @@
   function drawOverMap(g, style) {
     const sat = style === 'sat', col = sat ? '#55595e' : '#9aa1aa';
     for (const pl of PLATS) if (pl.fw || pl.br) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(pl.cx - pl.Wd / 2 + 18, pl.cy - pl.L / 2 + 18, pl.Wd, pl.L); g.fillStyle = col; g.fillRect(pl.cx - pl.Wd / 2, pl.cy - pl.L / 2, pl.Wd, pl.L); g.fillStyle = sat ? '#ffd54f' : 'rgba(255,255,255,.4)'; g.fillRect(pl.cx - 4, pl.cy - pl.L / 2, 8, pl.L); }
+  }
+
+  // ================== Острова: Мальта, Кипр, Фиджи, Коста-Рика, Исландия ==================
+  const ISLE_FX = [];                                         // вулкан и гейзер — дым и пар
+  {
+    const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3(), Yax = new THREE.Vector3(0, 1, 0), C = new THREE.Color();
+    const spot = (I, t0, t1, h0, h1) => { for (let k = 0; k < 60; k++) { const a = Math.random() * Math.PI * 2, r = I.r * (t0 + Math.random() * (t1 - t0)), x = I.x + Math.cos(a) * r, y = I.y + Math.sin(a) * r, h = terrainH(x, y); if (h >= h0 && h <= h1) return [x, y, h]; } return null; };
+    const forest = (list, trunkGeo, crownGeo, trunkCol, hue, sat, lig) => {
+      if (!list.length) return;
+      const tr = new THREE.InstancedMesh(trunkGeo, new THREE.MeshStandardMaterial({ color: trunkCol, roughness: .9 }), list.length);
+      const cr = new THREE.InstancedMesh(crownGeo, new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .85 }), list.length);
+      list.forEach((p, i) => { const k = .8 + Math.random() * .5; M4.compose(P.set(p[0], p[2] - 1, p[1]), Q.setFromAxisAngle(Yax, Math.random() * 6), S.set(k, k, k)); tr.setMatrixAt(i, M4); cr.setMatrixAt(i, M4); cr.setColorAt(i, C.setHSL(hue + Math.random() * .04, sat, lig + Math.random() * .08)); });
+      tr.castShadow = cr.castShadow = true; scene.add(tr, cr);
+    };
+    const many = (I, n, t0, t1, h0, h1) => { const out = []; for (let i = 0; i < n * 3 && out.length < n; i++) { const s = spot(I, t0, t1, h0, h1); if (s) out.push(s); } return out; };
+    const palmT = new THREE.CylinderGeometry(1.8, 2.8, 48, 6).translate(0, 24, 0), palmC = new THREE.ConeGeometry(26, 12, 8).translate(0, 50, 0);
+    const roofM = c => new THREE.MeshStandardMaterial({ color: c, roughness: .8 });
+    const houseAt = (x, y, w, d, H, wallMat, roofCol) => { const b = terrainH(x, y); box(x - w / 2, y - d / 2, w, d, H, wallMat, b); box(x - w / 2 - 3, y - d / 2 - 3, w + 6, d + 6, 4, roofM(roofCol), b + H, false); };
+    for (const I of ISLES) {
+      const top = terrainH(I.x, I.y);
+      if (I.kind === 'malta') {                                 // крепость, город из светлого камня, собор с куполом
+        const stone = new THREE.MeshStandardMaterial({ map: concreteTex(true), color: '#e8d7aa', roughness: .9 });
+        const s = 170;
+        box(I.x - s, I.y - s, s * 2, 16, 42, stone, top); box(I.x - s, I.y + s - 16, s * 2, 16, 42, stone, top);
+        box(I.x - s, I.y - s, 16, s * 2, 42, stone, top); box(I.x + s - 16, I.y - s, 16, s * 2 - 120, 42, stone, top);
+        for (const [cx, cy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const tw = new THREE.Mesh(new THREE.CylinderGeometry(22, 26, 60, 12), stone); tw.position.set(I.x + cx * s, top + 30, I.y + cy * s); tw.castShadow = true; scene.add(tw); }
+        const ch = new THREE.MeshStandardMaterial({ color: '#f1e3bd', roughness: .8 });
+        box(I.x - 40, I.y - 30, 80, 60, 40, ch, top);
+        const dome = new THREE.Mesh(new THREE.SphereGeometry(28, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#c62828', roughness: .6 })); dome.position.set(I.x, top + 40, I.y); scene.add(dome);
+        const wall = new THREE.MeshStandardMaterial({ map: glassTex('#e6d3a3', '#5d4037'), roughness: .9 });
+        for (let i = 0; i < 18; i++) { const p = spot(I, .25, .75, 20, 40); if (p && Math.hypot(p[0] - I.x, p[1] - I.y) > s + 50) houseAt(p[0], p[1], 50 + Math.random() * 30, 40 + Math.random() * 20, 24 + Math.random() * 14, wall, '#d7c08f'); }
+        forest(many(I, 20, .3, .85, 10, 40), palmT, palmC, '#8d6e4a', .3, .5, .38);
+      } else if (I.kind === 'cyprus') {                         // белые домики с черепицей, оливы, античные руины
+        const white = new THREE.MeshStandardMaterial({ map: glassTex('#f7f7f2', '#1e88e5'), roughness: .8 });
+        for (let i = 0; i < 14; i++) { const p = spot(I, .45, .8, 12, 60); if (p) houseAt(p[0], p[1], 46, 40, 26, white, '#d35400'); }
+        forest(many(I, 90, .2, .9, 10, 200), new THREE.CylinderGeometry(1.6, 2.4, 14, 6).translate(0, 7, 0), new THREE.SphereGeometry(13, 8, 6).translate(0, 20, 0), '#6d5a3a', .2, .2, .38);
+        const ruin = spot(I, .3, .5, 30, 200) || [I.x, I.y, top];
+        const marble = new THREE.MeshStandardMaterial({ color: '#efebe4', roughness: .6 });
+        box(ruin[0] - 70, ruin[1] - 40, 140, 80, 4, marble, ruin[2], false);
+        for (let i = 0; i < 10; i++) { const c = new THREE.Mesh(new THREE.CylinderGeometry(4, 4.6, i % 3 === 2 ? 18 : 40, 10), marble); c.position.set(ruin[0] - 60 + (i % 5) * 30, ruin[2] + (i % 3 === 2 ? 13 : 24), ruin[1] + (i < 5 ? -30 : 30)); c.castShadow = true; scene.add(c); }
+      } else if (I.kind === 'fiji') {                           // хижины с соломенными крышами и много пальм
+        const hutW = new THREE.MeshStandardMaterial({ color: '#8d6e4a', roughness: .9 }), straw = new THREE.MeshStandardMaterial({ color: '#d4b26a', roughness: 1 });
+        for (let i = 0; i < 10; i++) {
+          const p = spot(I, .55, .75, 3, 14); if (!p) continue;
+          const w = new THREE.Mesh(new THREE.CylinderGeometry(16, 16, 18, 10), hutW); w.position.set(p[0], p[2] + 9, p[1]); w.castShadow = true; scene.add(w);
+          const r = new THREE.Mesh(new THREE.ConeGeometry(24, 20, 10), straw); r.position.set(p[0], p[2] + 28, p[1]); r.castShadow = true; scene.add(r);
+          outerObs.push({ x: p[0] - 14, y: p[1] - 14, w: 28, h: 28, top: p[2] + 30, bot: p[2] - 5 });
+        }
+        forest(many(I, 140, .15, .95, 2, 50), palmT, palmC, '#8d6e4a', .3, .55, .36);
+      } else if (I.kind === 'costa') {                          // густые джунгли и вулкан с лавой
+        forest(many(I, 240, .3, 1, 8, 220), new THREE.CylinderGeometry(2.4, 3.4, 40, 6).translate(0, 20, 0), new THREE.SphereGeometry(24, 9, 7).translate(0, 50, 0), '#4e342e', .32, .6, .2);
+        const lava = new THREE.Mesh(new THREE.CircleGeometry(I.r * .34 * .15, 24).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ff6d00', emissive: '#ff3d00', emissiveIntensity: 2.5 }));
+        lava.position.set(I.x, terrainH(I.x, I.y) + 6, I.y); scene.add(lava);
+        ISLE_FX.push({ kind: 'volcano', x: I.x, y: I.y, z: terrainH(I.x, I.y) + 10 });
+        const hutW = new THREE.MeshStandardMaterial({ color: '#795548' });
+        for (let i = 0; i < 5; i++) { const p = spot(I, .78, .9, 5, 20); if (p) houseAt(p[0], p[1], 40, 34, 20, hutW, '#33691e'); }
+      } else if (I.kind === 'iceland') {                        // чёрный песок, ледник, домики с красными крышами и гейзер
+        const wh = new THREE.MeshStandardMaterial({ map: glassTex('#f5f5f5', '#37474f'), roughness: .8 });
+        for (let i = 0; i < 8; i++) { const p = spot(I, .68, .85, 10, 40); if (p) houseAt(p[0], p[1], 44, 36, 24, wh, '#c62828'); }
+        forest(many(I, 40, .62, .9, 12, 60), new THREE.CylinderGeometry(2, 3, 18, 6).translate(0, 9, 0), new THREE.ConeGeometry(14, 44, 7).translate(0, 38, 0), '#5d4037', .36, .3, .22);
+        const g = spot(I, .55, .7, 15, 60) || [I.x + I.r * .6, I.y, 20];
+        const pool = new THREE.Mesh(new THREE.CircleGeometry(26, 20).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#4fc3f7', roughness: .1, metalness: .3 })); pool.position.set(g[0], g[2] + .8, g[1]); scene.add(pool);
+        ISLE_FX.push({ kind: 'geyser', x: g[0], y: g[1], z: g[2], t: 0 });
+      }
+    }
+  }
+  let isleNow = null;
+  function updateIsles(dt) {
+    const I = ISLES.find(q => Math.hypot(car.x - q.x, car.y - q.y) < q.r * .95) || null;
+    if (I !== isleNow) { isleNow = I; if (I) showMsg('🏝 ' + t('welcomeTo', { n: t(I.key) }), 3200); }
+    for (const fx of ISLE_FX) {
+      if (Math.hypot(car.x - fx.x, car.y - fx.y) > 3500) continue;
+      if (fx.kind === 'volcano') { if (Math.random() < .5) emit(fx.x + (Math.random() - .5) * 40, fx.z + 20, fx.y + (Math.random() - .5) * 40, Math.random() < .3 ? '#ff7043' : '#4e4e4e', 14, 4, (Math.random() - .5) * 20, 50 + Math.random() * 40, (Math.random() - .5) * 20, 30, .6); }
+      else { fx.t -= dt; if (fx.t <= 0) fx.t = 7; if (fx.t > 5) for (let k = 0; k < 3; k++) emit(fx.x + (Math.random() - .5) * 10, fx.z + 4, fx.y + (Math.random() - .5) * 10, '#f5fbff', 6, 1.6, (Math.random() - .5) * 30, 220 + Math.random() * 80, (Math.random() - .5) * 30, 18, .8); }
+    }
+  }
+  // причал на пляже — здесь появляются лодки
+  {
+    const wood = new THREE.MeshStandardMaterial({ color: '#8d6e4a', roughness: .9 });
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(40, 3, 300), wood); deck.position.set(MARINA[0] - 70, SEA + 4, SHORE + 60); deck.receiveShadow = true; scene.add(deck);
+    for (let s = -140; s <= 140; s += 50) for (const dx of [-18, 18]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 30, 6), wood); p.position.set(MARINA[0] - 70 + dx, SEA - 8, SHORE + 60 + s); scene.add(p); }
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(90, 26), new THREE.MeshBasicMaterial({ map: outerTex(384, 112, (g, w, h) => { g.fillStyle = '#0277bd'; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 7; g.strokeRect(5, 5, w - 10, h - 10); g.fillStyle = '#fff'; g.font = 'bold 50px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('⚓ ' + t('marina'), w / 2, h / 2 + 3); }, 1, 1), side: THREE.DoubleSide }));
+    sign.position.set(MARINA[0] - 70, 34, SHORE - 120); scene.add(sign);
+    for (const dx of [-36, 36]) { const p = new THREE.Mesh(new THREE.BoxGeometry(3, 34, 3), wood); p.position.set(MARINA[0] - 70 + dx, 17, SHORE - 119); scene.add(p); }
   }
 
   // ================== Угон: самолёты, вертолёты и брошенные машины ==================
@@ -5327,12 +5566,12 @@
         if (!car.onFoot) Object.assign(vstate, { x: nx, y: ny, z: 0 });
         if (car.fly) { car.fly.vz = 0; car.fly.spd = 0; }
       }
-    } else if (!inCity(car.x, car.y) && (car.z || 0) < SEA + .5 && terrainH(car.x, car.y) < SEA - 1) {
+    } else if (!(isBoatSpec(spec) && !car.onFoot) && !inCity(car.x, car.y) && (car.z || 0) < SEA + .5 && terrainH(car.x, car.y) < SEA - 1) {
       drownT = 1.6; showMsg(t('drowned'), 2600);
       for (let i = 0; i < 24; i++) emit(car.x, 2, car.y, '#e3f2fd', 3, .8, (Math.random() - .5) * 120, 60 + Math.random() * 80, (Math.random() - .5) * 120, 10, .9);
     }
     // в небе и за городом видно дальше
-    const far = Math.min(14000, 2900 + Math.max(0, car.z || 0) * 7 + (inCity(car.x, car.y) ? 0 : 1800));
+    const far = Math.min(14000, 2900 + Math.max(0, car.z || 0) * 7 + (inCity(car.x, car.y) ? 0 : 1800) + (isBoatSpec(spec) && !car.onFoot ? 3000 : 0));   // в море видно далеко
     scene.fog.far += (far - scene.fog.far) * Math.min(1, dt * 1.5); scene.fog.near = scene.fog.far * .34;
     const cf = scene.fog.far + 1500;
     if (Math.abs(camera.far - cf) > 200) { camera.far = cf; camera.updateProjectionMatrix(); }
@@ -5341,10 +5580,12 @@
   function drawOuterMap(g, style) {
     const sat = style === 'sat';
     g.fillStyle = sat ? '#1d6a99' : '#1f3d57'; g.fillRect(F0, F0, FS, FS);
-    const N = 240, cs = FS / N;
+    const N = 340, cs = FS / N;
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const x = F0 + (i + .5) * cs, y = F0 + (j + .5) * cs; if (inCity(x, y)) continue;
       const h = terrainH(x, y); if (h < SEA) continue;
+      const isl = isleAt(x, y);
+      if (isl) { g.fillStyle = sat ? isleColorHex(isl, h, .7) : (h < 9 ? '#4d4838' : '#3a4a3c'); g.fillRect(x - cs / 2, y - cs / 2, cs + 1, cs + 1); continue; }
       const beach = y > WORLD + 1100 && h < 25;
       g.fillStyle = sat ? (beach ? '#dcc78f' : h > 690 ? '#eef0f2' : h > 470 ? '#8a8378' : h > 170 ? '#4a7434' : '#5f8f42')
         : (beach ? '#4d4838' : h > 690 ? '#6a6f75' : h > 470 ? '#454a47' : h > 170 ? '#2f4733' : '#344a39');
@@ -5364,7 +5605,7 @@
     g.fillStyle = sat ? '#8d6e4a' : '#7a6a52'; g.fillRect(GC - 45, SHORE - 200, 90, 820);
   }
   const OUTER_LABELS = [['lgAirport', (AP.x0 + AP.x1) / 2, GC - 200], ['lgBase', (MB.x0 + MB.x1) / 2, MB.y0 + 450], ['lgBeach', WORLD / 2 + 1400, SHORE - 150],
-    ['lgMount', MX, MY - 1150], ['lgBridgeBig', IX + 230, (BR.y1 + BR.y2) / 2], ['lgIsland', IX, IY + 430], ['lgFreeway', FWX + 300, WORLD * .3], ['lgCoast', -3450, 2600], ['lgOcean', WORLD / 2, F1 - 1200], ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
+    ['lgMount', MX, MY - 1150], ['lgBridgeBig', IX + 230, (BR.y1 + BR.y2) / 2], ['lgIsland', IX, IY + 430], ['lgFreeway', FWX + 300, WORLD * .3], ['lgCoast', -3450, 2600], ['lgOcean', WORLD * .75 + 2000, MI1 + 3300], ...ISLES.map(I => [I.key, I.x, I.y - I.r * .15]), ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
 
   // ================== Друзья ==================
   if (!save.friends || !Array.isArray(save.friends.names)) save.friends = { names: ['Армин', 'Кинан'], on: true };
@@ -6721,11 +6962,11 @@
   let mapRotInv = 0;                                          // мини-карта повёрнута — значки рисуем ровно
   const bmView = { cx: WORLD / 2, cy: WORLD / 2, zoom: 1 };
   function clampView() {
-    bmView.zoom = Math.max(1, Math.min(16, bmView.zoom));
+    bmView.zoom = Math.max(1, Math.min(22, bmView.zoom));
     const half = FS / 2 / bmView.zoom;
     bmView.cx = Math.max(F0 + half, Math.min(F1 - half, bmView.cx)); bmView.cy = Math.max(F0 + half, Math.min(F1 - half, bmView.cy));
   }
-  function centerOnMe() { bmView.cx = car.x; bmView.cy = car.y; bmView.zoom = Math.max(bmView.zoom, 4.6); clampView(); }
+  function centerOnMe() { bmView.cx = car.x; bmView.cy = car.y; bmView.zoom = Math.max(bmView.zoom, 6.5); clampView(); }
   let mapOpen = false, dest = null;
   window.__isMapOpen = () => mapOpen;
   const nearestNode = (x, y) => [0, 1].map(i => Math.max(0, Math.min(NB, Math.round(((i ? y : x) - ROAD_W / 2) / (STEP * T))))).map(nodeC);
@@ -6966,7 +7207,7 @@
   function toggleMap(force) {
     const was = mapOpen;
     mapOpen = force ?? !mapOpen;
-    if (mapOpen && !was) { bmView.zoom = 4.6; centerOnMe(); }            // открываем карту там, где ты
+    if (mapOpen && !was) { bmView.zoom = 6.5; centerOnMe(); }            // открываем карту там, где ты
     bmEl.classList.toggle('on', mapOpen);
     held.clear(); touchHeld.clear(); refreshKeys();
     if (!mapOpen && !menuOpen) canvas.focus();
@@ -7105,7 +7346,7 @@
     let d = car.angle - camAng; d = Math.atan2(Math.sin(d), Math.cos(d));
     camAng += d * (snap ? 1 : Math.min(1, 3.2 * dt));
     const speed = Math.hypot(car.vx, car.vy);
-    const footK = car.onFoot ? .55 : isFly() ? 1.55 : 1;
+    const footK = car.onFoot ? .55 : isFly() ? 1.55 : isBoatSpec(spec) ? Math.max(1, (spec.colL || 30) / 55) : 1;
     let dist = (96 + speed * .02) * CAM_K * footK, height = (45 + speed * .01) * CAM_K * footK;
     const cx = Math.cos(camAng), cy = Math.sin(camAng);
     let want = dist;
@@ -7118,7 +7359,7 @@
     const tx = car.x - cx * dist, tz = car.y - cy * dist;
     const k = snap ? 1 : Math.min(1, 9 * dt);
     camPos.x += (tx - camPos.x) * k; camPos.z += (tz - camPos.z) * k;
-    const gBase = inCity(car.x, car.y) ? 0 : terrainH(car.x, car.y);                  // за городом камера идёт вместе с холмами
+    const gBase = isBoatSpec(spec) && !car.onFoot ? car.z : inCity(car.x, car.y) ? 0 : terrainH(car.x, car.y);                  // за городом камера идёт вместе с холмами
     let camY = height + gBase + (car.z - gBase) * (isFly() && !car.onFoot ? 1 : .7);
     if (!inCity(camPos.x, camPos.z)) camY = Math.max(camY, terrainH(camPos.x, camPos.z) + 14);   // не залезаем в склон
     const ceil = Math.min(ceilingAt(car.x, car.y, car.z), ceilingAt(camPos.x, camPos.z, car.z));
@@ -7158,7 +7399,7 @@
       hpFill.style.width = Math.round(foot.hp) + '%';
       const fg = groundHeight(car.x, car.y, car.z);
       footBlob.position.set(car.x, fg + .5, car.y); footBlob.material.opacity = Math.max(0, .9 - (car.z - fg) / 60);
-    } else if (isFly()) slopePitch = 0;
+    } else if (isFly() || isBoatSpec(spec)) slopePitch = 0;
     else if (car.loop) slopePitch = 0;
     else if (!car.air) {
       const fx = Math.cos(car.angle) * 20, fy = Math.sin(car.angle) * 20;
@@ -7167,6 +7408,7 @@
     } else slopePitch += (0 - slopePitch) * Math.min(1, 1.5 * dt);
     player.tg.rotation.z = slopePitch + trick.pitch;
     player.tg.rotation.x = trick.roll + (spec.kind === 'moto' ? lean : 0);   // мотоцикл наклоняется в поворот
+    if (isBoatSpec(spec) && car.boat && !car.onFoot) { player.tg.rotation.z = car.boat.pitch; player.tg.rotation.x = car.boat.roll; }   // лодку качает на волнах
     if (isFly() && car.fly) {                                                // вертолёт / самолёт: наклоны и винты
       player.tg.rotation.z = car.fly.pitch; player.tg.rotation.x = car.fly.bank;
       const on = !car.onFoot, spin = (on ? car.fly.rotor : Math.max(0, (car.fly.rotor -= dt * .3))) * dt;
@@ -7283,7 +7525,7 @@
     const subs = dt > .018 ? 2 : 1;                       // когда игра подтормаживает — считаем движение мелкими шагами, чтобы не пролетать сквозь стены
     for (let i = 0; i < subs; i++) update(dt / subs);
     if (!garageOpen) { updateTraffic(dt); drawTraffic(); updatePeople(dt); }
-    if (!garageOpen && !menuOpen && !mapOpen) { updatePolice(dt, t); collideVehicles(); updateFriends(dt); updateWeapons(dt); updateOuter(dt); }
+    if (!garageOpen && !menuOpen && !mapOpen) { updatePolice(dt, t); collideVehicles(); updateFriends(dt); updateWeapons(dt); updateOuter(dt); updateIsles(dt); }
     netUpdate(dt, t);
     updateNav(t); drawMinimap(t); if (mapOpen) drawBigMap(t);
     if (menuOpen) { menuCamera(dt); updateMenuInfo(); } else updateCamera(dt);
