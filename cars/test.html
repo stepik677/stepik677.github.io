@@ -6007,7 +6007,7 @@
         let enemy = null, ed = fightT > 0 ? 420 : 300;
         for (const pp of people) if (pp.mode === 'fight') { const d = Math.hypot(pp.x - car.x, pp.y - car.y); if (d < ed) { ed = d; enemy = pp; } }
         for (const c of chase.cops) if (c.mode !== 'drive' && !(c.odown > 0)) { const d = Math.hypot(c.ox - car.x, c.oy - car.y); if (d < ed) { ed = d; enemy = { cop: c, x: c.ox, y: c.oy }; } }
-        for (const so of (window.__gangList?.() || [])) if (so.active && !(so.down > 0) && so.ground) { const d = Math.hypot(so.x - f.px, so.y - f.py); if (d < Math.max(ed, 560)) { ed = d; enemy = { gang: so, x: so.x, y: so.y }; } }
+        for (const so of (window.__gangList?.() || [])) if (so.active && !(so.down > 0) && so.ground) { const d = Math.hypot(so.x - f.px, so.y - f.py); if (d < Math.max(ed, 800)) { ed = d; enemy = { gang: so, x: so.x, y: so.y }; } }
         f.shootCd = (f.shootCd || 0) - dt;
         if (enemy && enemy.gang && f.shootCd <= 0 && Math.hypot(enemy.x - f.px, enemy.y - f.py) < 300) {   // друг стреляет по бандиту
           f.shootCd = .9 + Math.random() * .6; const hitIt = Math.random() < .55;
@@ -7807,7 +7807,7 @@
     save.weapons.ammo.pistol = Math.max(save.weapons.ammo.pistol || 0, 48); if (!save.weapons.cur) save.weapons.cur = 'pistol';
     persist(); window.__updateWpnPill?.();
   }
-  const ringAround = (cx, cy, n, r0, r1, o) => { for (let k = 0; k < n; k++) { const a = Math.random() * Math.PI * 2, r = r0 + Math.random() * (r1 - r0); gangMember(cx + Math.cos(a) * r, cy + Math.sin(a) * r, o); } };
+  const ringAround = (cx, cy, n, r0, r1, o) => { for (let k = 0; k < n; k++) { let x, y, tries = 0; do { const a = Math.random() * Math.PI * 2, r = r0 + Math.random() * (r1 - r0); x = cx + Math.cos(a) * r; y = cy + Math.sin(a) * r; } while (solidAtZ(x, y, 0) && ++tries < 30); gangMember(x, y, o); } };   // не внутри домов
   function nearMission() {
     if (M || !window.__started) return null;
     if (!car.onFoot && Math.hypot(car.vx, car.vy) > 45) return null;
@@ -7907,8 +7907,12 @@
         if (Math.hypot(car.x - so.x, car.y - so.y) < 700) so.active = true;
         if (so.ground && !car.onFoot && Math.hypot(car.vx, car.vy) > 60 && Math.hypot(car.x - so.x, car.y - so.y) < 26) hitGang(so, 99);   // сбил машиной
       }
+      const alive = M.gang.filter(so => !(so.down > 0));
+      if (M.stage && alive.length && alive.length <= 2) { let b = alive[0]; for (const so of alive) if (Math.hypot(so.x - car.x, so.y - car.y) < Math.hypot(b.x - car.x, b.y - car.y)) b = so; dest = [b.x, b.y]; }   // навигатор к последним бандитам
+      else if (M.stage) dest = null;
       const near = Math.hypot(car.x - M.spot[0], car.y - M.spot[1]) < 700;
       if (!M.stage && near) { M.stage = 1; dest = null; showMsg(t('mFightStart'), 2200); }
+      if (M.stage) for (const so of alive) if (so.ground && Math.hypot(car.x - so.x, car.y - so.y) < 1400) so.active = true;
       if (d === 'war' && M.stage) {
         if (M.gang.every(so => so.down > 0)) {
           if (M.wave >= 3) { winMission(); return; }
