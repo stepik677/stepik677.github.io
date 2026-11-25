@@ -183,6 +183,9 @@
   #nickIn { font-size: 20px; text-align: center; }
   #nickErr { min-height: 20px; color: #ff8a80; font-weight: 700; font-size: 14px; }
   #nickGo { margin: 8px 0 4px; }
+  #profPick { margin-top: 10px; } #profList { justify-content: center; }
+  #profCode { width: 100%; box-sizing: border-box; height: 64px; border-radius: 12px; border: 2px solid rgba(255,255,255,.25); background: rgba(0,0,0,.35); color: #fff; font: 12px monospace; padding: 8px; resize: none; margin: 6px 0; -webkit-user-select: text; user-select: text; }
+  #mProfile .mbtn { width: 100%; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-start; }
   .chips button { min-height: 34px; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font: 600 14px "Segoe UI", sans-serif; cursor: pointer; }
   .chips button.on { background: #ffd54f; color: #3a2a00; border-color: #ffd54f; }
@@ -436,6 +439,7 @@
     <div class="mpanel on" id="mMain">
       <button class="go wait" id="goBtn"></button>
       <div class="mgrid">
+        <button class="mbtn" id="mProfileBtn" data-open="mProfile">👤 <span id="profName"></span></button>
         <button class="mbtn" id="mGarage"></button>
         <button class="mbtn" data-open="mNet" data-i18n="netBtn"></button>
         <button class="mbtn" data-open="mFriends" data-i18n="friendsBtn"></button>
@@ -453,6 +457,21 @@
       <div class="frow"><span class="fdot" style="background:#4fc3f7"></span><input id="nickIn" maxlength="16" autocomplete="off" data-i18n-ph="nickPh"></div>
       <div id="nickErr"></div>
       <button class="go" id="nickGo" data-i18n="nickGo"></button>
+      <div id="profPick"><p class="fhint" data-i18n="regHave"></p><div id="profList" class="chips"></div></div>
+      <button class="mbtn back" id="nickBack" data-i18n="back"></button>
+    </div>
+    <div class="mpanel" id="mProfile">
+      <h3 id="profTitle"></h3>
+      <p class="fhint" id="profStats"></p>
+      <div class="mgrid">
+        <button class="mbtn" id="profSwitch" data-i18n="profSwitch"></button>
+        <button class="mbtn" id="profExport" data-i18n="profExport"></button>
+      </div>
+      <p class="fhint" data-i18n="profHint" style="margin-top:10px"></p>
+      <textarea id="profCode" spellcheck="false"></textarea>
+      <button class="mbtn" id="profImport" data-i18n="profImport"></button>
+      <div id="profMsg" style="min-height:20px;font-weight:700;font-size:14px;margin:6px 0"></div>
+      <button class="mbtn back" data-back data-i18n="back"></button>
     </div>
     <div class="mpanel" id="mHow">
       <div class="howto">
@@ -677,6 +696,10 @@
         frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
         flyLand: '🛬 Сначала приземлись на землю!', flyHeli: '🚁 Пробел — вверх, S — вниз, W — вперёд, A/D — поворот', flyPlane: '✈️ W — газ, разгонись и жми пробел — взлёт. S / ▼ (тормоз) — вниз',
       mapRoad: '🗺 Схема', mapSat: '🛰 Спутник',
+      regHave: 'Уже играл на этом устройстве? Нажми на своё имя:', profTitle: '👤 Игрок: {n}', profStats: '💶 {m} · 🚗 машин: {c} из {t} · 🪙 монет за всё время: {k} · 🔫 оружия: {w}',
+      profSwitch: '🔄 Сменить игрока', profExport: '📋 Скопировать код сохранения', profImport: '📥 Загрузить код сохранения', profImportSure: '⚠️ Нажми ещё раз — прогресс этого игрока заменится!',
+      profBad: '😕 Код не подошёл. Скопируй его целиком.', profCopied: '✅ Код скопирован! Вставь его здесь на другом устройстве.', profLoaded: '✅ Прогресс загружен!',
+      profHint: 'Весь прогресс (деньги, машины, оружие, одежда, дом) сохраняется сам. Чтобы играть на другом устройстве — скопируй код и загрузи его там.',
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       stolenCar: 'чужая машина', stolenPolice: 'полицейская машина', friendCar: 'машина друга {n}',
       jackAngry: '😡 Водитель выскочил и злится!', jackRun: '🏃 Водитель испугался и убежал!', jackPolice: '🚓 Ты угнал полицейскую машину!', jackFriend: '😠 {n}: Эй! Это же моя машина!',
@@ -688,13 +711,17 @@
         streetsH: 'Проспект Мира|ул. Гонщиков|Садовая ул.|Центральный пр.|ул. Победы|Солнечная ул.|Лесная ул.|ул. Трамплинов|Морская ул.|Новая ул.|Парковая ул.|Речная ул.|ул. Строителей|Школьная ул.',
         streetsV: 'ул. Ленина|Зелёная ул.|Кленовая ул.|Вокзальная ул.|Мостовая ул.|ул. Гагарина|Озёрная ул.|Широкая ул.|Звёздная ул.|ул. Механиков|Яблочная ул.|Тихая ул.|Восточная ул.|Полевая ул.',
         dCenter: 'ЦЕНТР', dPark: 'Парк', dLake: 'Озеро', dParking: 'Парковка', dShops: 'Магазины', dHome: 'Дом',
-      nickTitle: '✏️ Придумай себе никнейм', nickHint: 'Так тебя будут видеть другие игроки и так будет подписан твой дом. Не пиши настоящую фамилию.',
+      nickTitle: '📝 Регистрация: придумай себе никнейм', nickHint: 'Так тебя будут видеть другие игроки и так будет подписан твой дом. Не пиши настоящую фамилию.',
         nickPh: 'Например: Гонщик777', nickGo: 'Готово — играть! 🚗', nickShort: 'Никнейм должен быть хотя бы из 3 букв', nickBad: 'Придумай свой никнейм, а не «Игрок»',
       frComing: '📞 {n}: Уже еду к тебе! 🚗', frHere: '👋 {n}: Я тут! Поехали!', frLeave: '📱 {n}: Ладно, поеду покатаюсь. Звони!', frBye: '👋 {n}: Давай, пока! Звони, если что!' },
       en: { phTitle: '📱 Contacts', phCall: '📞 Call', phBye: '👋 Bye', phCalling: 'Calling…', phHint: '1 / 2 — pick · 3 — call · 6 — close',
         frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
         flyLand: '🛬 Land on the ground first!', flyHeli: '🚁 Space — up, S — down, W — forward, A/D — turn', flyPlane: '✈️ W — throttle, speed up and press Space to take off. S / ▼ (brake) — down',
       mapRoad: '🗺 Road map', mapSat: '🛰 Satellite',
+      regHave: 'Played on this device before? Tap your name:', profTitle: '👤 Player: {n}', profStats: '💶 {m} · 🚗 vehicles: {c} of {t} · 🪙 coins ever: {k} · 🔫 weapons: {w}',
+      profSwitch: '🔄 Switch player', profExport: '📋 Copy save code', profImport: '📥 Load save code', profImportSure: '⚠️ Press again — this player’s progress will be replaced!',
+      profBad: '😕 That code didn’t work. Copy all of it.', profCopied: '✅ Code copied! Paste it here on another device.', profLoaded: '✅ Progress loaded!',
+      profHint: 'All progress (money, vehicles, weapons, clothes, house) saves by itself. To play on another device, copy the code and load it there.',
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       stolenCar: 'a stranger’s car', stolenPolice: 'a police car', friendCar: '{n}’s car',
       jackAngry: '😡 The driver jumped out and is angry!', jackRun: '🏃 The driver got scared and ran away!', jackPolice: '🚓 You stole a police car!', jackFriend: '😠 {n}: Hey! That’s my car!',
@@ -706,7 +733,7 @@
         streetsH: 'Peace Ave|Racer St|Garden St|Central Ave|Victory St|Sunny St|Forest St|Ramp St|Ocean St|New St|Park St|River St|Builders St|School St',
         streetsV: 'Main St|Green St|Maple St|Station St|Bridge St|Star St|Lake St|Broadway|Comet St|Mechanic St|Apple St|Quiet St|East St|Field St',
         dCenter: 'DOWNTOWN', dPark: 'Park', dLake: 'Lake', dParking: 'Parking', dShops: 'Shops', dHome: 'Home',
-      nickTitle: '✏️ Choose your nickname', nickHint: 'Other players will see this name, and it will be on your house sign. Don’t use your real surname.',
+      nickTitle: '📝 Sign up: choose your nickname', nickHint: 'Other players will see this name, and it will be on your house sign. Don’t use your real surname.',
         nickPh: 'For example: Racer777', nickGo: 'Done — play! 🚗', nickShort: 'Your nickname needs at least 3 letters', nickBad: 'Make up your own nickname, not “Player”',
       frComing: '📞 {n}: On my way! 🚗', frHere: '👋 {n}: I’m here! Let’s go!', frLeave: '📱 {n}: OK, I’m off for a drive. Call me!', frBye: '👋 {n}: See ya! Call me anytime!' },
     };
@@ -2533,7 +2560,12 @@
   }
 
   // ---------- Сохранение: деньги, купленные машины ----------
-  const SAVE_KEY = 'mashinki_save_v1';
+  const PROF_KEY = 'mashinki_profiles', CUR_KEY = 'mashinki_profile';   // игроки на этом устройстве
+  let profiles = []; try { profiles = JSON.parse(localStorage.getItem(PROF_KEY)) || []; if (!Array.isArray(profiles)) profiles = []; } catch (e) { profiles = []; }
+  profiles = profiles.filter(pr => pr && typeof pr.nick === 'string' && typeof pr.key === 'string' && pr.key.startsWith('mashinki_save_v1'));
+  let SAVE_KEY = 'mashinki_save_v1';
+  try { const cur = localStorage.getItem(CUR_KEY); if (cur && profiles.some(pr => pr.key === cur)) SAVE_KEY = cur; } catch (e) {}
+  const saveProfiles = () => { try { localStorage.setItem(PROF_KEY, JSON.stringify(profiles)); localStorage.setItem(CUR_KEY, SAVE_KEY); } catch (e) {} };
   let save = { money: 0, owned: ['zhuk'], current: 'zhuk', friends: { names: ['Армин', 'Кинан'], on: true } };
   try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY)) || {}); } catch (e) {}
   const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
@@ -5552,34 +5584,93 @@
     if (!others.length) rows.push(`<div class="netRow"><b>${esc(t('netNone'))}</b></div>`);
     document.getElementById('netList').innerHTML = rows.join('');
   }
-  document.getElementById('netNick').addEventListener('input', e => { save.nick = e.target.value.slice(0, 16) || t('netGuest'); if (!isGuestNick(save.nick) && save.nick.trim().length >= 3) save.nickSet = true; persist(); });
+  document.getElementById('netNick').addEventListener('input', e => {
+    save.nick = e.target.value.slice(0, 16) || t('netGuest'); if (!isGuestNick(save.nick) && save.nick.trim().length >= 3) save.nickSet = true; persist();
+    const me = profiles.find(pr => pr.key === SAVE_KEY); if (me && save.nick.trim().length >= 3) { me.nick = save.nick.trim(); saveProfiles(); }
+    if (typeof renderProfile === 'function') renderProfile();
+  });
   // ---------- обязательный никнейм при первом входе ----------
   function isGuestNick(v) {
     v = (v || '').trim();
     return !v || Object.keys(I18N).some(k => { const g = I18N[k].netGuest; return g && (v === g || (v.startsWith(g + ' ') && /^\d+$/.test(v.slice(g.length + 1)))); });
   }
   if (typeof save.nickSet !== 'boolean') { save.nickSet = !isGuestNick(save.nick); persist(); }
+  if (!profiles.length && save.nickSet) { profiles.push({ nick: save.nick, key: SAVE_KEY }); saveProfiles(); }   // старый игрок — уже зарегистрирован
+  const registered = () => save.nickSet && profiles.some(pr => pr.key === SAVE_KEY);
   const nickIn = document.getElementById('nickIn'), nickErr = document.getElementById('nickErr');
-  function askNick() {
+  let switching = false;
+  function switchTo(key) { SAVE_KEY = key; saveProfiles(); location.reload(); }
+  function renderProfList() {
+    const others = profiles.filter(pr => pr.key !== SAVE_KEY || !registered());
+    document.getElementById('profPick').style.display = others.length ? '' : 'none';
+    document.getElementById('profList').innerHTML = others.map(pr => `<button data-key="${esc(pr.key)}">👤 ${esc(pr.nick)}</button>`).join('');
+    document.getElementById('nickBack').style.display = registered() ? '' : 'none';
+  }
+  function askNick(sw = false) {
+    switching = sw && registered();
     showPanel('mNick'); nickErr.textContent = '';
-    if (!nickIn.value && !isGuestNick(save.nick)) nickIn.value = save.nick;
+    nickIn.value = !switching && !isGuestNick(save.nick) && !registered() ? save.nick : '';
+    renderProfList();
     setTimeout(() => nickIn.focus(), 50);
   }
   function submitNick() {
     const v = nickIn.value.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
     if (v.length < 3) { nickErr.textContent = t('nickShort'); nickIn.focus(); return; }
     if (isGuestNick(v)) { nickErr.textContent = t('nickBad'); nickIn.focus(); return; }
+    const same = profiles.find(pr => pr.nick.toLowerCase() === v.toLowerCase());
+    if (same && same.key !== SAVE_KEY) { switchTo(same.key); return; }          // такой игрок уже есть — входим в него
+    if (!same && registered()) {                                                // новый игрок на этом устройстве — с нуля
+      const key = 'mashinki_save_v1_' + Date.now().toString(36);
+      try { localStorage.setItem(key, JSON.stringify({ money: 0, owned: ['zhuk'], current: 'zhuk', friends: { names: ['Армин', 'Кинан'], on: true }, nick: v, nickSet: true })); } catch (e) {}
+      profiles.push({ nick: v, key }); switchTo(key); return;
+    }
     save.nick = v; save.nickSet = true; persist();
+    if (!same) profiles.push({ nick: v, key: SAVE_KEY });
+    saveProfiles();
     document.getElementById('netNick').value = v;
-    showPanel('mMain');
-    if (window.__gameReady) hideStart();
+    showPanel('mMain'); renderProfile();
+    if (window.__gameReady && !switching) hideStart();
+    switching = false;
   }
+  document.getElementById('profList').addEventListener('click', e => { const b = e.target.closest('button[data-key]'); if (b) switchTo(b.dataset.key); });
+  document.getElementById('nickBack').addEventListener('click', () => { switching = false; showPanel('mProfile'); });
+  // ---------- профиль: кто играет, статистика, код сохранения ----------
+  function renderProfile() {
+    const nm = registered() ? save.nick : '—';
+    document.getElementById('profName').textContent = nm;
+    document.getElementById('profTitle').textContent = t('profTitle', { n: nm });
+    document.getElementById('profStats').textContent = t('profStats', { m: fmt(save.money), c: save.owned.length, t: CARS.filter(c => !c.hidden).length, k: save.coinsTotal || 0, w: (save.weapons && save.weapons.owned.length) || 0 });
+  }
+  renderProfile(); langHooks.push(renderProfile);
+  document.getElementById('mProfileBtn').addEventListener('click', () => { renderProfile(); document.getElementById('profMsg').textContent = ''; importArm = false; });
+  document.getElementById('profSwitch').addEventListener('click', () => askNick(true));
+  const profCode = document.getElementById('profCode'), profMsg = document.getElementById('profMsg');
+  document.getElementById('profExport').addEventListener('click', () => {
+    persist();
+    const code = 'MK1:' + btoa(unescape(encodeURIComponent(JSON.stringify(save))));
+    profCode.value = code; profCode.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    try { navigator.clipboard?.writeText(code).catch(() => {}); } catch (e) {}
+    profMsg.style.color = '#7CFFB2'; profMsg.textContent = t('profCopied');
+  });
+  let importArm = false;
+  document.getElementById('profImport').addEventListener('click', () => {
+    let data = null;
+    try { const raw = profCode.value.trim(); if (raw.startsWith('MK1:')) data = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4))))); } catch (e) { data = null; }
+    if (!data || typeof data !== 'object' || !Array.isArray(data.owned) || typeof data.money !== 'number') { profMsg.style.color = '#ff8a80'; profMsg.textContent = t('profBad'); importArm = false; return; }
+    if (!importArm) { importArm = true; profMsg.style.color = '#ffd54f'; profMsg.textContent = t('profImportSure'); return; }
+    data.nick = registered() ? save.nick : (data.nick || save.nick); data.nickSet = true;
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
+    if (!profiles.some(pr => pr.key === SAVE_KEY)) profiles.push({ nick: data.nick, key: SAVE_KEY });
+    profMsg.style.color = '#7CFFB2'; profMsg.textContent = t('profLoaded');
+    switchTo(SAVE_KEY);
+  });
   document.getElementById('nickGo').addEventListener('click', submitNick);
   nickIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitNick(); } });
   nickIn.addEventListener('input', () => { nickErr.textContent = ''; });
-  window.__needNick = () => !save.nickSet;
+  window.__needNick = () => !registered();
   window.__askNick = askNick;
-  if (!save.nickSet && menuOpen) askNick();
+  if (!registered() && menuOpen) askNick();
   document.getElementById('netRoom').addEventListener('change', e => {
     const old = roomTopic();
     save.roomCode = e.target.value.trim().slice(0, 20); persist();
