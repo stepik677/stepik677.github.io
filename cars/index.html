@@ -1800,16 +1800,32 @@
   addEventListener('blur', () => { held.clear(); touchHeld.clear(); refreshKeys(); });
 
   // Экранные кнопки: зажимаются мышкой или пальцем
-  document.querySelectorAll('[data-act]').forEach(btn => {
+  // мышкой — обычные нажатия; пальцами — настоящий мультитач: под каждым пальцем своя кнопка, можно жать сразу несколько
+  const actBtns = [...document.querySelectorAll('[data-act]')];
+  actBtns.forEach(btn => {
     const act = btn.dataset.act;
-    const on = e => { e.preventDefault(); btn.setPointerCapture?.(e.pointerId); touchHeld.add(act); btn.classList.add('on'); refreshKeys(); };
-    const off = () => { touchHeld.delete(act); btn.classList.remove('on'); refreshKeys(); };
+    const on = e => { if (e.pointerType === 'touch') return; e.preventDefault(); btn.setPointerCapture?.(e.pointerId); touchHeld.add(act); btn.classList.add('on'); refreshKeys(); };
+    const off = e => { if (e.pointerType === 'touch') return; touchHeld.delete(act); btn.classList.remove('on'); refreshKeys(); };
     btn.addEventListener('pointerdown', on);
     btn.addEventListener('pointerup', off);
     btn.addEventListener('pointercancel', off);
     btn.addEventListener('lostpointercapture', off);
     btn.addEventListener('contextmenu', e => e.preventDefault());
   });
+  function syncTouches(e) {
+    const acts = new Set();
+    for (const tch of e.touches) {
+      const el = document.elementFromPoint(tch.clientX, tch.clientY), b = el && el.closest && el.closest('[data-act]');
+      if (b) acts.add(b.dataset.act);
+    }
+    touchHeld.clear(); acts.forEach(a => touchHeld.add(a));
+    for (const b of actBtns) b.classList.toggle('on', acts.has(b.dataset.act));
+    refreshKeys();
+  }
+  document.addEventListener('touchstart', e => { if (e.target.closest && e.target.closest('[data-act]')) e.preventDefault(); syncTouches(e); }, { passive: false });
+  document.addEventListener('touchmove', syncTouches, { passive: true });
+  document.addEventListener('touchend', syncTouches);
+  document.addEventListener('touchcancel', syncTouches);
 
   // Стартовый экран: клик даёт странице фокус, чтобы клавиатура работала
   const startEl = document.getElementById('start');
