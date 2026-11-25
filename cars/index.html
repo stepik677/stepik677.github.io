@@ -701,6 +701,7 @@
       profBad: '😕 Код не подошёл. Скопируй его целиком.', profCopied: '✅ Код скопирован! Вставь его здесь на другом устройстве.', profLoaded: '✅ Прогресс загружен!',
       profHint: 'Весь прогресс (деньги, машины, оружие, одежда, дом) сохраняется сам. Чтобы играть на другом устройстве — скопируй код и загрузи его там.',
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
+      bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
       stolenCar: 'чужая машина', stolenPolice: 'полицейская машина', friendCar: 'машина друга {n}',
       jackAngry: '😡 Водитель выскочил и злится!', jackRun: '🏃 Водитель испугался и убежал!', jackPolice: '🚓 Ты угнал полицейскую машину!', jackFriend: '😠 {n}: Эй! Это же моя машина!',
       mbSign1: 'ВОЕННАЯ БАЗА', mbSign2: 'ВХОД ЗАПРЕЩЁН', jetHint: 'Q / 4 / клик — ракеты 🚀',
@@ -723,6 +724,7 @@
       profBad: '😕 That code didn’t work. Copy all of it.', profCopied: '✅ Code copied! Paste it here on another device.', profLoaded: '✅ Progress loaded!',
       profHint: 'All progress (money, vehicles, weapons, clothes, house) saves by itself. To play on another device, copy the code and load it there.',
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
+      bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
       stolenCar: 'a stranger’s car', stolenPolice: 'a police car', friendCar: '{n}’s car',
       jackAngry: '😡 The driver jumped out and is angry!', jackRun: '🏃 The driver got scared and ran away!', jackPolice: '🚓 You stole a police car!', jackFriend: '😠 {n}: Hey! That’s my car!',
       mbSign1: 'MILITARY BASE', mbSign2: 'NO ENTRY', jetHint: 'Q / 4 / click — missiles 🚀',
@@ -1076,7 +1078,7 @@
   const FWX = 3 * STEP * T + ROAD_W / 2, FWH = 72;           // над 4-й вертикальной улицей, высота 72
   const BR = { y0: SHORE - 280, y1: SHORE + 80, y2: IY - 760, y3: IY - 420, h: 60, w: 160 };   // мост: въезд, пролёт, съезд на остров
   const AP = { x0: WORLD + 1500, x1: WORLD + 4300, y0: 500, y1: WORLD - 500 };   // аэропорт
-  const MB = { x0: 1500, x1: 9500, y0: -3500, y1: -1400 };                        // военная база
+  const MB = { x0: -600, x1: 10800, y0: -3550, y1: -1250 };                        // военная база
   const outerObs = [];                                        // дома и заборы за городом
   function outerSolid(px, py, z) {
     if (px < F0 + 4 || py < F0 + 4 || px > F1 - 4 || py > F1 - 4) return true;
@@ -2352,7 +2354,12 @@
     { id: 'kasatka', kind: 'heli', name: 'Вертолёт «Касатка»', desc: 'Большой и быстрый вертолёт, как у спасателей.', price: 30000,
       color: '#c62828', max: 400, accel: 320, turn: 1.6, grip: 13, size: 1.3, colL: 52, colW: 26 },
     { id: 'istrebitel', kind: 'plane', hidden: true, name: 'Военный истребитель', desc: 'Боевой самолёт с ракетами. Его можно только угнать с военной базы!', price: 0,
-      color: '#5f6b73', jet: true, missiles: true, max: 840, accel: 390, turn: 1.4, grip: 14, colL: 56, colW: 30 },
+      color: '#5f6b73', jet: true, missiles: true, bombs: true, max: 840, accel: 390, turn: 1.4, grip: 14, colL: 56, colW: 30 },
+    { id: 'shturmovik', kind: 'plane', hidden: true, name: 'Штурмовик', desc: '', price: 0, color: '#6b7354', jet: true, pods: true, missiles: true, bombs: true, max: 700, accel: 340, turn: 1.3, grip: 14, colL: 56, colW: 32 },
+    { id: 'stels', kind: 'plane', hidden: true, name: 'Стелс-бомбардировщик', desc: '', price: 0, color: '#1c1f24', style: 'stealth', missiles: true, bombs: true, max: 780, accel: 360, turn: 1.2, grip: 14, colL: 50, colW: 56 },
+    { id: 'bombardir', kind: 'plane', hidden: true, name: 'Бомбардировщик', desc: '', price: 0, color: '#4b5a32', style: 'bomber', bombs: true, max: 520, accel: 220, turn: .95, grip: 12, colL: 76, colW: 56 },
+    { id: 'transport', kind: 'plane', hidden: true, name: 'Транспортный самолёт', desc: '', price: 0, color: '#7d8790', style: 'transport', max: 470, accel: 190, turn: .85, grip: 12, colL: 96, colW: 66 },
+    { id: 'boevoy', kind: 'heli', hidden: true, name: 'Боевой вертолёт', desc: '', price: 0, color: '#3d4a2f', attack: true, missiles: true, max: 430, accel: 330, turn: 1.7, grip: 13, size: 1.1, colL: 46, colW: 18 },
     { id: 'strela', kind: 'plane', name: 'Реактивный самолёт «Стрела»', desc: 'Самый быстрый в городе! Реактивный двигатель и огонь из сопла.', price: 50000,
       color: '#90a4ae', jet: true, max: 720, accel: 330, turn: 1.25, grip: 14, colL: 56, colW: 30 },
   ];
@@ -2392,6 +2399,12 @@
     const B = airBase(spec), { add, paint, dark, metal, glass, body } = B;
     body.scale.setScalar(spec.size || 1);
     const cab = add(new THREE.SphereGeometry(10, 20, 14), paint, 0, 13, 0); cab.scale.set(1.45, 1, 1);
+    if (spec.attack) {                                                                              // боевой вертолёт: узкий, с крылышками и ракетами
+      cab.scale.set(1.9, .78, .62);
+      add(new THREE.BoxGeometry(5, 1.2, 30), paint, -3, 10, 0);
+      for (const z of [-12, 12]) { const pod = add(new THREE.CylinderGeometry(2.2, 2.2, 12, 10), dark, -3, 8, z); pod.rotation.z = Math.PI / 2; }
+      const gun = add(new THREE.CylinderGeometry(.8, .8, 10, 6), dark, 14, 5, 0); gun.rotation.z = Math.PI / 2;
+    }
     const win = add(new THREE.SphereGeometry(8.4, 18, 12, 0, Math.PI, 0, Math.PI * .62), glass, 4.5, 14.2, 0); win.rotation.y = -Math.PI / 2; win.scale.set(1.25, 1, 1);
     B.pilot(4, 9.5, -3);
     const boom = add(new THREE.CylinderGeometry(2.6, 1.3, 30, 10), paint, -24, 15, 0); boom.rotation.z = Math.PI / 2 - .06;
@@ -2415,8 +2428,41 @@
   function buildPlane(spec) {
     const B = airBase(spec), { add, paint, dark, metal, glass, body } = B;
     const paint2 = new THREE.MeshStandardMaterial({ color: spec.color2 || '#eceff1', roughness: .5 });
-    const prop = new THREE.Group();
-    if (spec.jet) {
+    const prop = new THREE.Group(), props = [];
+    const propAt = (x, y, z, len) => { const pr = new THREE.Group(); pr.position.set(x, y, z); body.add(pr); add(new THREE.SphereGeometry(1.4, 8, 6), metal, 0, 0, 0, pr); for (const a of [0, Math.PI / 2]) { const bl = add(new THREE.BoxGeometry(.6, len, 1.8), dark, 0, 0, 0, pr); bl.rotation.x = a; } props.push(pr); };
+    const wheel = (x, z, r) => { add(new THREE.BoxGeometry(1.2, 7, 1.2), metal, x, r + 3, z); const w = add(new THREE.CylinderGeometry(r, r, 2, 12), dark, x, r, z); w.rotation.x = Math.PI / 2; };
+    if (spec.style === 'stealth') {                                                                 // летающее крыло
+      const V = (x, y) => new THREE.Vector2(x, y);
+      const sh = new THREE.Shape([V(36, 0), V(-6, 48), V(-14, 48), V(-21, 36), V(-12, 24), V(-21, 12), V(-12, 0), V(-21, -12), V(-12, -24), V(-21, -36), V(-14, -48), V(-6, -48)]);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: 2.5, bevelEnabled: true, bevelSize: 1.2, bevelThickness: 1, bevelSegments: 1 }); g.rotateX(Math.PI / 2);
+      add(g, paint, 0, 12, 0);
+      const hump = add(new THREE.SphereGeometry(9, 18, 10), paint, 6, 11.5, 0); hump.scale.set(2.3, .55, 1.1);
+      const can = add(new THREE.SphereGeometry(4, 12, 8), glass, 17, 14, 0); can.scale.set(1.8, .55, 1.3);
+      B.pilot(15, 9.5, 0);
+      for (const z of [-9, 9]) add(new THREE.BoxGeometry(4, 2, 7), B.tailMat, -10, 12, z);
+      B.tailMat.color.set('#ff9800'); B.tailMat.emissive.set('#ff6d00');
+      wheel(16, 0, 2.2); wheel(-2, -10, 2.4); wheel(-2, 10, 2.4);
+    } else if (spec.style === 'bomber') {                                                           // винтовой бомбардировщик
+      const fus = add(new THREE.CylinderGeometry(6, 3.5, 74, 16), paint, 0, 17, 0); fus.rotation.z = Math.PI / 2;
+      const nose = add(new THREE.SphereGeometry(6, 14, 10), glass, 37, 17, 0); nose.scale.set(1.5, 1, 1);
+      add(new THREE.BoxGeometry(17, 2, 118), paint, 4, 16, 0);
+      add(new THREE.BoxGeometry(12, 1.5, 42), paint, -33, 18, 0);
+      add(new THREE.BoxGeometry(12, 17, 1.5), paint, -34, 25, 0);
+      for (const z of [-22, -42, 22, 42]) { const nac = add(new THREE.CylinderGeometry(3.2, 3, 16, 10), dark, 9, 14.5, z); nac.rotation.z = Math.PI / 2; propAt(17.5, 14.5, z, 17); }
+      add(new THREE.BoxGeometry(26, 2, 8), dark, 0, 11, 0);                                       // бомбовый отсек
+      B.pilot(26, 15, -2.5);
+      wheel(12, -10, 4); wheel(12, 10, 4); wheel(-30, 0, 2);
+    } else if (spec.style === 'transport') {                                                        // огромный транспортник
+      const fus = add(new THREE.CylinderGeometry(10, 7, 94, 18), paint, 0, 19, 0); fus.rotation.z = Math.PI / 2;
+      const nose = add(new THREE.SphereGeometry(10, 16, 12), paint, 47, 19, 0); nose.scale.set(1.3, .95, 1);
+      add(new THREE.BoxGeometry(6, 3, 13), glass, 53, 23, 0);
+      add(new THREE.BoxGeometry(20, 2.4, 142), paint, 6, 29, 0);
+      add(new THREE.BoxGeometry(16, 26, 2), paint, -41, 34, 0);
+      add(new THREE.BoxGeometry(12, 1.5, 46), paint, -45, 47, 0);
+      for (const z of [-26, -50, 26, 50]) { const nac = add(new THREE.CylinderGeometry(3.4, 3.2, 18, 10), dark, 14, 26, z); nac.rotation.z = Math.PI / 2; propAt(23.5, 26, z, 18); }
+      B.pilot(49, 17, -4);
+      wheel(10, -11, 4.5); wheel(10, 11, 4.5); wheel(-6, -11, 4.5); wheel(-6, 11, 4.5); wheel(40, 0, 3);
+    } else if (spec.jet) {
       const fus = add(new THREE.CylinderGeometry(3.8, 2.6, 52, 14), paint, 0, 11, 0); fus.rotation.z = Math.PI / 2;
       const nose = add(new THREE.ConeGeometry(3.8, 14, 14), paint, 33, 11, 0); nose.rotation.z = -Math.PI / 2;
       const can = add(new THREE.SphereGeometry(4, 14, 10), glass, 11, 14, 0); can.scale.set(2.4, 1, .9);
@@ -2428,6 +2474,7 @@
       const fin = new THREE.Shape([new THREE.Vector2(-15, 0), new THREE.Vector2(-25, 13), new THREE.Vector2(-29, 13), new THREE.Vector2(-27, 0)]);
       add(new THREE.ExtrudeGeometry(fin, { depth: .9, bevelEnabled: false }).translate(0, 0, -.45), paint, 0, 13, 0);
       const noz = add(new THREE.CylinderGeometry(2.4, 2.8, 3, 12), dark, -27, 11, 0); noz.rotation.z = Math.PI / 2;
+      if (spec.pods) for (const z of [-6.5, 6.5]) { const pod = add(new THREE.CylinderGeometry(2.6, 2.6, 14, 12), paint, -16, 15, z); pod.rotation.z = Math.PI / 2; add(new THREE.CylinderGeometry(2, 2, 1, 10).rotateZ(Math.PI / 2), B.tailMat, -23.5, 15, z); }
       if (spec.missiles) for (const z of [-14, 14, -22, 22]) { const ms = add(new THREE.CylinderGeometry(.9, .9, 12, 8), metal, -4, 8.2, z); ms.rotation.z = Math.PI / 2; const tip = add(new THREE.ConeGeometry(.9, 3, 8), new THREE.MeshStandardMaterial({ color: '#c62828' }), 3.5, 8.2, z); tip.rotation.z = -Math.PI / 2; }
       const flame = add(new THREE.ConeGeometry(2.2, 9, 10), B.tailMat, -32.5, 11, 0); flame.rotation.z = Math.PI / 2;
       B.tailMat.color.set('#ff9800'); B.tailMat.emissive.set('#ff6d00');
@@ -2448,7 +2495,7 @@
       for (const z of [-6.5, 6.5]) { add(new THREE.BoxGeometry(1, 8, 1), metal, 9, 5, z); const w = add(new THREE.CylinderGeometry(3.4, 3.4, 2, 14), dark, 9, 3.4, z); w.rotation.x = Math.PI / 2; }
       const tw = add(new THREE.CylinderGeometry(1.4, 1.4, 1.2, 10), dark, -19, 3.5, 0); tw.rotation.x = Math.PI / 2;
     }
-    return { root: B.root, tg: B.tg, body, wheels: [], pivots: [], tailMat: B.tailMat, r: 1, driver: B.driver, paint, rotors: [], prop: spec.jet ? null : prop };
+    return { root: B.root, tg: B.tg, body, wheels: [], pivots: [], tailMat: B.tailMat, r: 1, driver: B.driver, paint, rotors: [], props: props.length ? props : spec.jet || spec.style ? [] : [prop] };
   }
   function buildMoto(spec) {
     const root = new THREE.Group();
@@ -3536,6 +3583,8 @@
   const airFloor = (x, y, z) => Math.max(groundHeight(x, y, z), roofAt(x, y, z));
   function flyUpdate(dt) {
     const F = car.fly || (car.fly = { pitch: 0, bank: 0, vz: 0, spd: 0, rotor: 0 });
+    if (keys.down) F.dnT = (F.dnT || 0) + dt;                                // быстрое нажатие тормоза — бомба
+    else { if (F.dnT > 0 && F.dnT < .3 && spec.bombs && car.z > airFloor(car.x, car.y, car.z) + 8) dropBomb(); F.dnT = 0; }
     const { up, down, left, right, brake, run } = keys;
     car.air = false; car.ramp = null; car.stun = 0; car.loop = null;
     const floor = airFloor(car.x, car.y, car.z), onGround = car.z <= floor + .6;
@@ -4761,7 +4810,7 @@
   const MB_TOWERS = [], MB_TANKS = [], MB_LAMPS = [];
   let mbRadar = null, mbBar = null;
   const MB_RUN_Y = MB.y0 + 850, MB_TAXI_Y = MB.y0 + 1300, MB_HY0 = -2100, MB_HY1 = -1820;   // взлётка, рулёжка, ангары
-  const MB_HANGARS = [2100, 2600, 3100, 3600];
+  const MB_HANGARS = [-300, 200, 700, 1200, 2100, 2600, 3100, 3600, 9200, 9700, 10200];
   {
     flat(MB.x0, MB.y0, MB.x1 - MB.x0, MB.y1 - MB.y0, new THREE.MeshStandardMaterial({ map: concreteTex(false), roughness: .95, polygonOffset: true, polygonOffsetFactor: -1 }), .25).material.map.repeat.set(80, 21);
     const L = MB.x1 - MB.x0 - 700;
@@ -4846,7 +4895,7 @@
     }
     // вертолётные площадки
     const padTex = outerTex(256, 256, (g, w, h) => { g.fillStyle = '#3d4246'; g.fillRect(0, 0, w, h); g.strokeStyle = '#ffd54f'; g.lineWidth = 12; g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 14, 0, 7); g.stroke(); g.fillStyle = '#fff'; g.font = 'bold 150px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('H', w / 2, h / 2 + 8); }, 1, 1);
-    for (const [x, y] of [[6800, -1800], [7250, -1800]]) { const pd = new THREE.Mesh(new THREE.CircleGeometry(80, 32).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: padTex, roughness: .8, polygonOffset: true, polygonOffsetFactor: -4 })); pd.position.set(x, .8, y); scene.add(pd); }
+    for (const [x, y] of [[6800, -1800], [7250, -1800], [2300, -3150], [2700, -3150]]) { const pd = new THREE.Mesh(new THREE.CircleGeometry(80, 32).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: padTex, roughness: .8, polygonOffset: true, polygonOffsetFactor: -4 })); pd.position.set(x, .8, y); scene.add(pd); }
     // танки (два из них стреляют, если поднять тревогу)
     const tankMat = new THREE.MeshStandardMaterial({ map: camoTex('#4b5a32'), roughness: .7 }), tankDark = new THREE.MeshStandardMaterial({ color: '#2e3520', roughness: .8 });
     for (const [x, y, active] of [[4250, -1560, true], [4430, -1560, true], [4610, -1560, false]]) {
@@ -5032,7 +5081,12 @@
   placeParked('kukuruznik', AP.x0 + 700, GC + 1500, 0, 'airport');
   placeParked('strela', AP.x0 + 800, GC - 250, 0, 'airport');
   placeParked('strekoza', AP.x0 + 650, GC + 1000, 0, 'airport');
-  for (const hx of MB_HANGARS) placeParked('istrebitel', hx + 210, (MB_HY0 + MB_HY1) / 2 + 20, -Math.PI / 2, 'military');   // истребители в ангарах
+  const HANGAR_PLANES = ['istrebitel', 'istrebitel', 'shturmovik', 'istrebitel', 'stels', 'istrebitel', 'shturmovik', 'istrebitel', 'stels', 'istrebitel', 'istrebitel'];
+  MB_HANGARS.forEach((hx, i) => placeParked(HANGAR_PLANES[i % HANGAR_PLANES.length], hx + 210, (MB_HY0 + MB_HY1) / 2 + 20, -Math.PI / 2, 'military'));   // самолёты в ангарах
+  for (const [id, x, y] of [['bombardir', 4800, -3150], ['bombardir', 5500, -3150], ['transport', 6400, -3170], ['transport', 7300, -3170], ['shturmovik', 8200, -3080], ['shturmovik', 8700, -3080],
+    ['shturmovik', 9200, -3080], ['istrebitel', 9700, -3080], ['istrebitel', 10150, -3080], ['stels', 3600, -3120], ['istrebitel', 1200, -3080], ['bombardir', 400, -3150]]) placeParked(id, x, y, Math.PI / 2, 'military');   // северная стоянка
+  placeParked('boevoy', 2300, -3150, Math.PI / 2, 'military');
+  placeParked('boevoy', 2700, -3150, Math.PI / 2, 'military');
   placeParked('strela', 4600, MB_TAXI_Y + 120, 0, 'military');
   placeParked('kasatka', 6800, -1800, Math.PI / 2, 'military');
   placeParked('kasatka', 7250, -1800, Math.PI / 2, 'military');
@@ -5105,7 +5159,7 @@
     takeVehicle(pv.spec, pv.model, pv.x, pv.y, pv.z, pv.angle);
     if (pv.zone === 'military') { addWanted(Math.max(1, STAR_HEAT[4] - heat)); showMsg(t('stoleMil'), 3000); }
     else if (pv.zone === 'airport') { addWanted(Math.max(1, STAR_HEAT[2] - heat)); showMsg(t('stoleAir'), 2600); }
-    if (isAirSpec(spec)) setTimeout(() => showMsg(t(spec.kind === 'heli' ? 'flyHeli' : 'flyPlane') + (spec.missiles ? ' · ' + t('jetHint') : ''), 6000), pv.zone ? 3000 : 0);
+    if (isAirSpec(spec)) setTimeout(() => showMsg(t(spec.kind === 'heli' ? 'flyHeli' : 'flyPlane') + (spec.missiles ? ' · ' + t('jetHint') : '') + (spec.bombs ? ' · ' + t('bombHint') : ''), 7000), pv.zone ? 3000 : 0);
   }
   // солдаты на вышках базы
   const soldiers = MB_TOWERS.map(([x, y, z]) => { const p = buildPerson('#556b2f', '#3b4a1a', '#3b4a1a', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac'])); p.root.visible = true; p.root.position.set(x, z, y); p.limbs[2].rotation.z = 1.4; p.limbs[3].rotation.z = 1.4; return { x, y, z, p, cd: 1 + Math.random() }; });
@@ -5115,6 +5169,13 @@
     soldiers.push({ x, y, z: 0, p, cd: 1 + Math.random(), ground: true, hx: x, hy: y, tx: x, ty: y, ph: 0, down: 0 });
   }
   const base = { alerted: false, spawnT: 0 };
+  const bombs = [], bombGeo = new THREE.CapsuleGeometry(2.4, 8, 4, 8).rotateZ(Math.PI / 2), bombMat = new THREE.MeshStandardMaterial({ color: '#3b4a2f', roughness: .6, metalness: .3 });
+  let bombCd = 0;
+  function dropBomb() {
+    if (bombCd > 0) return; bombCd = .35;
+    const m = new THREE.Mesh(bombGeo, bombMat); m.rotation.y = -car.angle; m.position.set(car.x, car.z + 4, car.y); scene.add(m);
+    bombs.push({ m, x: car.x, y: car.y, z: car.z + 4, vx: car.vx * .9, vy: car.vy * .9, vz: (car.fly ? car.fly.vz : 0) - 10 });
+  }
   const shells = [];                                          // снаряды танков
   const shellGeo = new THREE.SphereGeometry(2.6, 8, 6), shellMat = new THREE.MeshBasicMaterial({ color: '#ffcc80' });
   function milZone() { return base.alerted && car.x > MB.x0 - 2500 && car.x < MB.x1 + 2500 && car.y > MB.y0 - 2000 && car.y < MB.y1 + 2500; }
@@ -5126,6 +5187,14 @@
     if (inBase && !base.alerted) { base.alerted = true; if (wanted < 3) addWanted(Math.max(1, STAR_HEAT[3] - heat)); showMsg(t('baseAlert'), 3000); }
     if (!inBase && wanted === 0) base.alerted = false;
     const spd = Math.hypot(car.vx, car.vy);
+    bombCd -= dt;
+    for (let i = bombs.length - 1; i >= 0; i--) {                    // падающие бомбы
+      const b = bombs[i]; b.vz -= 330 * dt; b.vx *= 1 - .15 * dt; b.vy *= 1 - .15 * dt;
+      const nx = b.x + b.vx * dt, ny = b.y + b.vy * dt, nz = b.z + b.vz * dt;
+      b.m.rotation.z = Math.atan2(b.vz, Math.hypot(b.vx, b.vy) + 1);
+      if (nz <= groundHeight(nx, ny, nz) + 2 || solidAtZ(nx, ny, nz) || nz < SEA) { explode(nx, ny, Math.max(SEA, nz - 6)); scene.remove(b.m); bombs.splice(i, 1); continue; }
+      b.x = nx; b.y = ny; b.z = nz; b.m.position.set(nx, nz, ny);
+    }
     if (mbRadar) mbRadar.rotation.y += dt * 1.6;
     if (mbBar) { const near = Math.hypot(car.x - GC, car.y - MB.y1) < 260; mbBar.rotation.z += ((near ? 1.35 : 0) - mbBar.rotation.z) * Math.min(1, dt * 3); }   // шлагбаум поднимается
     const alarm = base.alerted && wanted > 0;
@@ -6890,7 +6959,7 @@
       const on = !car.onFoot, spin = (on ? car.fly.rotor : Math.max(0, (car.fly.rotor -= dt * .3))) * dt;
       for (const r of player.rotors || []) r.rotation.y += spin * 32;
       if (player.tailRotor) player.tailRotor.rotation.z += spin * 45;
-      if (player.prop) player.prop.rotation.x += spin * (8 + car.fly.spd * .12);
+      for (const pr of player.props || []) pr.rotation.x += spin * (8 + car.fly.spd * .12);
     }
     player.root.rotation.y = -V.angle;
     player.body.rotation.x = spec.kind === 'moto' ? 0 : roll;
