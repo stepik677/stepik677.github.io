@@ -2949,6 +2949,33 @@
       RAMPS.push({ cx, cy, d, L, H, Wd, big, ux: Math.cos(d), uy: Math.sin(d), base: 0 });
     }
   }
+  {   // ещё трамплины: по городу, на кольцевом шоссе и на пляже (свой генератор случайных чисел — сам город не меняется)
+    let sd = 777; const r2 = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; };
+    let tries = 0, added = 0;
+    while (added < 26 && tries++ < 3000) {
+      const big = added < 7;
+      const k = Math.floor(r2() * (NB + 1)), sg = Math.floor(r2() * NB), vert = r2() < .5;
+      if (vert && k === 3) continue;                                  // под эстакадой не ставим
+      const a0 = roadPos(sg) + ROAD_W, a1 = roadPos(sg + 1), mid = (a0 + a1) / 2 - 50 + r2() * 100;
+      const L = big ? 220 : 160, H = big ? 34 : 24, Wd = big ? 112 : 54;
+      const lane = big ? (r2() < .5 ? ROAD_W / 4 : ROAD_W * 3 / 4) : T / 2 + T * Math.floor(r2() * (ROAD_W / T));
+      const sign = r2() < .5 ? 1 : -1;
+      const cx = vert ? roadPos(k) + lane : mid, cy = vert ? mid : roadPos(k) + lane, d = vert ? sign * Math.PI / 2 : (sign > 0 ? 0 : Math.PI);
+      if (Math.hypot(cx - T * 1.5, cy - 3 * T) < 600 || inReserved(cx, cy, 160)) continue;
+      if (RAMPS.some(r => Math.hypot(r.cx - cx, r.cy - cy) < 420)) continue;
+      RAMPS.push({ cx, cy, d, L, H, Wd, big, ux: Math.cos(d), uy: Math.sin(d), base: 0 });
+      added++;
+    }
+    const c = WORLD / 2, e = WORLD / 2 + HW_D;                        // кольцевое шоссе: большие трамплины на прямых участках
+    for (const f of [.2, .5, .8]) {
+      const v = -200 + f * (WORLD + 400), lane = f === .5 ? 70 : -70;
+      for (const [cx, cy, d] of [[v, c - e, 0], [v, c + e, Math.PI], [c - e, v, -Math.PI / 2], [c + e, v, Math.PI / 2]]) {
+        const side = Math.abs(Math.sin(d)) > .5;
+        RAMPS.push({ cx: cx + (side ? lane : 0), cy: cy + (side ? 0 : lane), d, L: 200, H: 32, Wd: 100, big: true, ux: Math.cos(d), uy: Math.sin(d), base: 0 });
+      }
+    }
+    for (const x of [GC - 1600, GC + 2200]) RAMPS.push({ cx: x, cy: SHORE - 140, d: Math.PI / 2, L: 240, H: 42, Wd: 130, big: true, ux: 0, uy: 1, base: 0 });   // мега-трамплины на пляже — прыжок в море!
+  }
 
   // ================== Трюк-трасса: мост с дыркой → крыша дома → прыжок ==================
   const PLATS = [];
