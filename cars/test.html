@@ -4931,7 +4931,7 @@
       if (car.air || car.loop || Math.hypot(car.vx, car.vy) > 45) return;          // на ходу не выпрыгнешь
       if (isFly() && car.z > groundHeight(car.x, car.y, car.z) + 3) { showMsg(t('flyLand'), 1800); return; }   // в воздухе не выпрыгнешь
       if (isBoatSpec(spec)) {                                                    // с лодки — только на берег
-        let land = null; const maxR = Math.max(110, (spec.colL || 30) / 2 + 70);
+        let land = null; const maxR = Math.max(260, (spec.colL || 30) / 2 + 120);
         for (let r = 25; r <= maxR && !land; r += 15) for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2, x = car.x + Math.cos(a) * r, y = car.y + Math.sin(a) * r; if (inCity(x, y) || (terrainH(x, y) > 2 && !solidAtZ(x, y, terrainH(x, y)))) { land = [x, y]; break; } }
         if (!land) { showMsg(t('boatShore'), 2200); return; }
         Object.assign(vstate, { x: car.x, y: car.y, z: car.z, angle: car.angle });
