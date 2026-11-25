@@ -2485,13 +2485,13 @@
       color: '#90a4ae', jet: true, max: 720, accel: 330, turn: 1.25, grip: 14, colL: 56, colW: 30 },
     // --- вода: лодки и корабли (дорогие!) ---
     { id: 'gidrocikl', kind: 'boat', style: 'jetski', name: 'Гидроцикл «Волна»', desc: 'Маленький и шустрый. Прыгает по волнам!', price: 60000,
-      color: '#00acc1', color2: '#263238', max: 400, accel: 360, turn: 2.2, grip: 12, colL: 24, colW: 10 },
+      color: '#00acc1', color2: '#263238', max: 820, accel: 720, turn: 2.2, grip: 12, colL: 24, colW: 10 },
     { id: 'kater', kind: 'boat', style: 'speed', name: 'Катер «Акула»', desc: 'Быстрый катер — до островов за минуту.', price: 150000,
-      color: '#fafafa', color2: '#e53935', max: 480, accel: 300, turn: 1.6, grip: 12, colL: 48, colW: 18 },
+      color: '#fafafa', color2: '#e53935', max: 980, accel: 620, turn: 1.6, grip: 12, colL: 48, colW: 18 },
     { id: 'yahta', kind: 'boat', style: 'yacht', name: 'Яхта «Жемчужина»', desc: 'Роскошная яхта с каютами на двух этажах.', price: 400000,
-      color: '#fafafa', color2: '#1565c0', max: 330, accel: 160, turn: 1.0, grip: 12, colL: 110, colW: 34 },
+      color: '#fafafa', color2: '#1565c0', max: 680, accel: 340, turn: 1.0, grip: 12, colL: 110, colW: 34 },
     { id: 'korabl', kind: 'boat', style: 'ship', name: 'Корабль «Титан»', desc: 'Огромный корабль! Самое дорогое, что есть в игре.', price: 1500000,
-      color: '#263238', color2: '#c62828', max: 250, accel: 90, turn: .55, grip: 12, colL: 300, colW: 64 },
+      color: '#263238', color2: '#c62828', max: 520, accel: 190, turn: .55, grip: 12, colL: 300, colW: 64 },
   ];
   const isAirSpec = c => c.kind === 'heli' || c.kind === 'plane';
   const isBoatSpec = c => c.kind === 'boat';
@@ -5385,8 +5385,22 @@
       }
     }
   }
+  // большие названия над островами — видно издалека
+  for (const I of ISLES) {
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 256; const g = c.getContext('2d');
+    g.font = '900 150px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const txt = t(I.key);
+    g.lineWidth = 22; g.strokeStyle = 'rgba(10,20,40,.85)'; g.lineJoin = 'round'; g.strokeText(txt, 512, 132);
+    const gr = g.createLinearGradient(0, 60, 0, 200); gr.addColorStop(0, '#fff8e1'); gr.addColorStop(1, '#ffd54f');
+    g.fillStyle = gr; g.fillText(txt, 512, 132);
+    const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false, fog: false }));
+    sp.scale.set(I.r * .9, I.r * .225, 1); sp.position.set(I.x, Math.max(0, terrainH(I.x, I.y)) + 260 + I.r * .12, I.y); sp.renderOrder = 6;
+    scene.add(sp); I.label = sp; I.labelY = sp.position.y;
+  }
   let isleNow = null;
   function updateIsles(dt) {
+    for (const I of ISLES) if (I.label) I.label.position.y = I.labelY + Math.sin(performance.now() / 900 + I.x) * 8;   // название покачивается
     const I = ISLES.find(q => Math.hypot(car.x - q.x, car.y - q.y) < q.r * .95) || null;
     if (I !== isleNow) { isleNow = I; if (I) showMsg('🏝 ' + t('welcomeTo', { n: t(I.key) }), 3200); }
     for (const fx of ISLE_FX) {
