@@ -486,6 +486,14 @@
       <div id="profPick"><p class="fhint" data-i18n="regHave"></p><div id="profList" class="chips"></div></div>
       <button class="mbtn back" id="nickBack" data-i18n="back"></button>
     </div>
+    <div class="mpanel" id="mStepan">
+      <h3 data-i18n="stTitle"></h3>
+      <p class="fhint" data-i18n="stHint"></p>
+      <div class="frow"><span class="fdot" style="background:#ffd54f"></span><input id="stCode" maxlength="8" inputmode="numeric" autocomplete="off" style="text-align:center;font-size:24px;letter-spacing:6px"></div>
+      <div id="stErr" style="min-height:20px;color:#ff8a80;font-weight:700;font-size:14px"></div>
+      <button class="go" id="stGo" data-i18n="stGo"></button>
+      <button class="mbtn back" id="stNotMe" data-i18n="stNotMe"></button>
+    </div>
     <div class="mpanel" id="mProfile">
       <h3 id="profTitle"></h3>
       <p class="fhint" id="profStats"></p>
@@ -728,6 +736,7 @@
       profHint: 'Весь прогресс (деньги, машины, оружие, одежда, дом) сохраняется сам. Чтобы играть на другом устройстве — скопируй код и загрузи его там.',
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
+      stTitle: '🔐 Код Степана', stHint: 'Ты зашёл как Степан Банан. Введи код, чтобы начать игру.', stGo: 'Войти ▶', stBad: '❌ Неверный код', stNotMe: 'Это не я — сменить игрока',
       phHome: '📱 Телефон', phApp1: 'Контакты', phApp2: 'Банк Степана', phApp3: 'Карта', phApp4: 'Гараж', phHintHome: '1 / 2 — выбрать · 3 — открыть · 6 — закрыть',
       bkTitle: '🏪 Банк Степана', bkHintUser: 'Здесь можно попросить денег у Степана Банана. Выбери сумму и нажми «Попросить».', bkHintAdmin: 'Ты — Степан! Можешь брать деньги себе и отправлять их другим игрокам.',
       bkHintLock: 'Это банк Степана. Если ты Степан — введи свой секретный код.', bkCode: 'Секретный код', bkUnlock: '🔓 Открыть', bkBadCode: '❌ Неверный код',
@@ -758,6 +767,7 @@
       profHint: 'All progress (money, vehicles, weapons, clothes, house) saves by itself. To play on another device, copy the code and load it there.',
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
+      stTitle: '🔐 Stepan’s code', stHint: 'You signed in as Stepan Banan. Enter the code to start the game.', stGo: 'Enter ▶', stBad: '❌ Wrong code', stNotMe: 'That’s not me — switch player',
       phHome: '📱 Phone', phApp1: 'Contacts', phApp2: 'Stepan’s Bank', phApp3: 'Map', phApp4: 'Garage', phHintHome: '1 / 2 — pick · 3 — open · 6 — close',
       bkTitle: '🏪 Stepan’s Bank', bkHintUser: 'Here you can ask Stepan Banan for money. Pick an amount and press “Ask”.', bkHintAdmin: 'You are Stepan! You can take money for yourself and send it to other players.',
       bkHintLock: 'This is Stepan’s bank. If you are Stepan, enter your secret code.', bkCode: 'Secret code', bkUnlock: '🔓 Unlock', bkBadCode: '❌ Wrong code',
@@ -916,7 +926,7 @@
   };
   for (const k in MENU_TEXT) MENU_KEYS.forEach((key, i) => { I18N[k][key] = MENU_TEXT[k][i]; });
   // переключение разделов меню
-  function showPanel(id) { if (id === 'mMain' && window.__needNick?.()) id = 'mNick'; document.querySelectorAll('.mpanel').forEach(pn => pn.classList.toggle('on', pn.id === id)); }
+  function showPanel(id) { if (id === 'mMain' && window.__needNick?.()) id = 'mNick'; else if (id === 'mMain' && window.__needStepanCode?.()) id = 'mStepan'; document.querySelectorAll('.mpanel').forEach(pn => pn.classList.toggle('on', pn.id === id)); }
   document.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => showPanel(b.dataset.open)));
   document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => showPanel('mMain')));
   document.documentElement.classList.add('menuOpen');
@@ -1874,6 +1884,7 @@
   function hideStart() {                                    // «Играть» / «Продолжить»
     if (!menuOpen) return;
     if (window.__needNick?.()) { window.__askNick?.(); return; }   // сначала — никнейм
+    if (window.__needStepanCode?.()) { window.__askStepanCode?.(); return; }   // Степан — сначала код
     menuOpen = false;
     startEl.style.display = 'none';
     document.documentElement.classList.remove('menuOpen');
@@ -5820,7 +5831,7 @@
   updateHomeOwners();
   setInterval(updateHomeOwners, 1500);
   // ================== Банк Степана ==================
-  const BANK_HASH = '600a0c6e5d52d454d8c1723b95f321c02c11dfb5ee12b2d071d4b016e080bbfa';
+  const BANK_HASH = '1bcddad20302633c01bb94d6e91a33435a664be98906d0aaff94256823aeab97';
   const STEPAN_NICKS = ['степанбанан', 'stepanbanan', 'stepanbanam', 'степанбанам'];
   const nickKey = v => (v || '').toLowerCase().replace(/[^a-zа-яё0-9]/g, '');
   const isStepanNick = () => STEPAN_NICKS.includes(nickKey(save.nick));
@@ -5900,6 +5911,22 @@
     if (on) { held.clear(); touchHeld.clear(); refreshKeys(); bankMsg = ''; renderBank(); } else if (!menuOpen) canvas.focus();
   }
   document.getElementById('bankClose').addEventListener('click', () => toggleBank(false));
+  // Степан Банан перед игрой вводит свой код (каждый раз, когда заходит)
+  let stepanOk = false;
+  window.__needStepanCode = () => isStepanNick() && !stepanOk;
+  const stCode = document.getElementById('stCode'), stErr = document.getElementById('stErr');
+  window.__askStepanCode = () => { showPanel('mStepan'); stErr.textContent = ''; stCode.value = ''; setTimeout(() => stCode.focus(), 50); };
+  async function submitStepan() {
+    let ok = false; try { ok = (await sha256hex('mashinki-bank:' + stCode.value.trim())) === BANK_HASH; } catch (err) {}
+    if (!ok) { stErr.textContent = t('stBad'); stCode.value = ''; stCode.focus(); return; }
+    stepanOk = true; save.bankOk = BANK_HASH; persist();
+    showPanel('mMain'); if (window.__gameReady) hideStart();
+  }
+  document.getElementById('stGo').addEventListener('click', submitStepan);
+  stCode.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitStepan(); } });
+  stCode.addEventListener('input', () => { stErr.textContent = ''; });
+  document.getElementById('stNotMe').addEventListener('click', () => window.__askNick?.(true));
+  if (menuOpen && isStepanNick() && !window.__needNick?.()) window.__askStepanCode();
   window.__bankOpen = () => bankOpen; window.__toggleBank = toggleBank; window.__bankReqs = () => isBanker() ? bankReqs.length : 0;
   setInterval(() => { if (bankOpen) { const a = document.activeElement; if (!a || a.id !== 'bankCode') renderBank(); } }, 2000);
   function netUpdate(dt, now) {
