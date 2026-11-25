@@ -362,7 +362,7 @@
   <p>Катайся по большому городу, делай сальто на трамплинах, прыгай с трюк-моста на крышу, убегай от полиции, покупай машины и мотоциклы в гараже. Чтобы играть, включи JavaScript в браузере.</p>
 </div></noscript>
 <div id="hud">
-  <div class="pill"><span class="coin-ico"></span><span id="coins">0</span> / <span id="total">0</span></div>
+  <div class="pill"><span class="coin-ico"></span><span id="coins">0</span> / <span id="total">0</span><span id="jackpot" style="opacity:.85;font-size:.85em">🏆 0/150</span></div>
   <div class="pill money">💶 <span id="money">0 €</span></div>
   <div class="pill stars" id="stars"></div>
   <div class="pill" id="clockPill" title="День / ночь (N)"><span>🌙 </span><span id="clock">20:30</span></div>
@@ -677,6 +677,7 @@
         frRoam: '🚗 катается по городу', frCome: '💨 едет к тебе', frWith: '😎 с тобой', frOff: 'Друзья выключены — включу!',
         flyLand: '🛬 Сначала приземлись на землю!', flyHeli: '🚁 Пробел — вверх, S — вниз, W — вперёд, A/D — поворот', flyPlane: '✈️ W — газ, разгонись и жми пробел — взлёт. S / ▼ (тормоз) — вниз',
       mapRoad: '🗺 Схема', mapSat: '🛰 Спутник',
+      coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       stolenCar: 'чужая машина', stolenPolice: 'полицейская машина', friendCar: 'машина друга {n}',
       jackAngry: '😡 Водитель выскочил и злится!', jackRun: '🏃 Водитель испугался и убежал!', jackPolice: '🚓 Ты угнал полицейскую машину!', jackFriend: '😠 {n}: Эй! Это же моя машина!',
       mbSign1: 'ВОЕННАЯ БАЗА', mbSign2: 'ВХОД ЗАПРЕЩЁН', jetHint: 'Q / 4 / клик — ракеты 🚀',
@@ -694,6 +695,7 @@
         frRoam: '🚗 driving around', frCome: '💨 coming to you', frWith: '😎 with you', frOff: 'Friends were off — turning them on!',
         flyLand: '🛬 Land on the ground first!', flyHeli: '🚁 Space — up, S — down, W — forward, A/D — turn', flyPlane: '✈️ W — throttle, speed up and press Space to take off. S / ▼ (brake) — down',
       mapRoad: '🗺 Road map', mapSat: '🛰 Satellite',
+      coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       stolenCar: 'a stranger’s car', stolenPolice: 'a police car', friendCar: '{n}’s car',
       jackAngry: '😡 The driver jumped out and is angry!', jackRun: '🏃 The driver got scared and ran away!', jackPolice: '🚓 You stole a police car!', jackFriend: '😠 {n}: Hey! That’s my car!',
       mbSign1: 'MILITARY BASE', mbSign2: 'NO ENTRY', jetHint: 'Q / 4 / click — missiles 🚀',
@@ -3316,7 +3318,13 @@
     for (const c of coins) {
       if (!c.taken && Math.hypot(c.x - car.x, c.y - car.y) < 36 && Math.abs(car.z + 10 - c.z) < 34) {
         c.taken = true; collected++; c.mesh.visible = false;
-        save.money += c.type.value; persist();
+        save.money += c.type.value;
+        save.coinsTotal = (save.coinsTotal || 0) + 1;            // все монеты за всю игру
+        if (save.coinsTotal % 150 === 0) {                       // каждые 150 монет — огромный приз
+          save.money += 500000;
+          setTimeout(() => { popMoney('+500 000 €', '#7CFFB2'); showMsg(t('coinJackpot', { n: save.coinsTotal }), 5000); shake = Math.max(shake, 3); }, 700);
+        }
+        persist();
         popMoney('+' + c.type.value + ' €', c.type.fx);
         for (let i = 0; i < 16; i++) {
           const a = Math.random() * 6.28, v = 40 + Math.random() * 100;
@@ -6724,7 +6732,8 @@
   }
 
   // ================== Цикл ==================
-  const coinsEl = document.getElementById('coins'), moneyEl = document.getElementById('money');
+  const coinsEl = document.getElementById('coins'), moneyEl = document.getElementById('money'), jackpotEl = document.getElementById('jackpot');
+  jackpotEl.title = '150 монет = 500 000 €';
   const clockEl = document.getElementById('clock'), clockPill = document.getElementById('clockPill');
   let clockTxt = '';
   function updateClock() {
@@ -6775,6 +6784,7 @@
     }
     renderFrame();
     coinsEl.textContent = collected;
+    { const j = (save.coinsTotal || 0) % 150; if (jackpotEl.dataset.v !== '' + j) { jackpotEl.dataset.v = '' + j; jackpotEl.textContent = '🏆 ' + j + '/150'; } }   // до приза 500 000 €
     moneyEl.textContent = fmt(save.money);
     drawSpeedo();
     requestAnimationFrame(loop);
