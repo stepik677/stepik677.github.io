@@ -46,6 +46,9 @@
     padding: 8px 16px; border-radius: 999px; font-size: 16px; font-weight: 600;
     box-shadow: 0 4px 16px rgba(0,0,0,.25); display: flex; align-items: center; gap: 8px;
   }
+  #abusePill { background: rgba(62,39,35,.8); border: 1px solid #ffd54f; }
+  #abusePill.hurry { background: rgba(198,40,40,.8); animation: abHurry 1s infinite; }
+  @keyframes abHurry { 50% { transform: scale(1.08); } }
   .coin-ico { width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3b0, #ffc107 45%, #b8860b); box-shadow: 0 0 6px #ffd54f; }
   #help {
     position: fixed; left: 18px; bottom: 18px; color: #eee; background: rgba(15,20,28,.55); z-index: 4;
@@ -407,6 +410,7 @@
   <div class="pill stars" id="stars"></div>
   <div class="pill" id="clockPill" title="День / ночь (N)"><span>🌙 </span><span id="clock">20:30</span></div>
   <div class="pill" id="hpPill">❤️ <span class="hpbar"><b id="hpFill"></b></span></div>
+  <div class="pill" id="abusePill" style="display:none">🏴‍☠️ <span id="abuseTime">3:00</span> · <span class="coin-ico"></span><span id="abuseCnt">0/20</span></div>
   <div class="pill" id="wpnPill" title="7" style="display:none;pointer-events:auto;cursor:pointer"></div>
 </div>
 <div id="help"><span data-i18n="help"></span><br><span data-i18n="helpExtra"></span><br><span data-i18n="fightHelp"></span><br><span data-i18n="driftHelp"></span></div>
@@ -484,6 +488,7 @@
       <div class="mgrid">
         <button class="mbtn" id="mProfileBtn" data-open="mProfile">👤 <span id="profName"></span></button>
         <button class="mbtn" id="mGarage"></button>
+        <button class="mbtn" id="mXferBtn" data-open="mXfer" data-i18n="xfBtn"></button>
         <button class="mbtn" data-open="mNet" data-i18n="netBtn"></button>
         <button class="mbtn" data-open="mFriends" data-i18n="friendsBtn"></button>
         <button class="mbtn" data-open="mHow" data-i18n="howto"></button>
@@ -491,6 +496,7 @@
         <button class="mbtn" data-open="mLang"><span data-i18n="language"></span> · <b id="curLang"></b></button>
         <button class="mbtn" id="mFs">⛶ <span data-i18n="fsTitle"></span></button>
         <button class="mbtn" id="mRestart" data-i18n="restart"></button>
+        <button class="mbtn" id="mAbuse" style="display:none;grid-column:1/-1;background:rgba(124,77,255,.35);border-color:#b388ff"></button>
       </div>
       <div id="rotateHint" data-i18n="rotate"></div>
     </div>
@@ -523,6 +529,22 @@
       <button class="mbtn" id="profImport" data-i18n="profImport"></button>
       <div id="profMsg" style="min-height:20px;font-weight:700;font-size:14px;margin:6px 0"></div>
       <button class="mbtn back" data-back data-i18n="back"></button>
+    </div>
+    <div class="mpanel" id="mXfer">
+      <h3 data-i18n="xfTitle"></h3>
+      <p class="fhint" data-i18n="xfHint"></p>
+      <div class="frow"><span class="fdot" style="background:#7CFFB2"></span><input id="xfNick" maxlength="16" autocomplete="off" data-i18n-ph="xfPh"></div>
+      <div id="xfMsg" style="min-height:20px;font-weight:700;font-size:14px;margin:6px 0"></div>
+      <button class="go" id="xfSend" data-i18n="xfSend"></button>
+      <button class="mbtn back" data-back data-i18n="back"></button>
+    </div>
+    <div class="mpanel" id="mXferIn">
+      <h3 data-i18n="xfInTitle"></h3>
+      <p class="fhint" id="xfInText"></p>
+      <div class="mgrid">
+        <button class="mbtn" id="xfYes" data-i18n="xfYes"></button>
+        <button class="mbtn" id="xfNo" data-i18n="xfNo"></button>
+      </div>
     </div>
     <div class="mpanel" id="mHow">
       <div class="howto">
@@ -750,6 +772,21 @@
       regHave: 'Уже играл на этом устройстве? Нажми на своё имя:', profTitle: '👤 Игрок: {n}', profStats: '💶 {m} · 🚗 машин: {c} из {t} · 🪙 монет за всё время: {k} · 🔫 оружия: {w}',
       profSwitch: '🔄 Сменить игрока', profExport: '📋 Скопировать код сохранения', profImport: '📥 Загрузить код сохранения', profImportSure: '⚠️ Нажми ещё раз — прогресс этого игрока заменится!',
       profBad: '😕 Код не подошёл. Скопируй его целиком.', profCopied: '✅ Код скопирован! Вставь его здесь на другом устройстве.', profLoaded: '✅ Прогресс загружен!',
+      abBtn: '🏴‍☠️ Админ-абьюз: спрятать пиратские монеты', abStop: '⏹ Закончить админ-абьюз ({s})',
+      abOffline: '😕 Нет связи с сервером — админ-абьюз работает только онлайн.',
+      abGoAdmin: '🎉 Админ-абьюз начался! Монет раскидано: {n}. У игроков 3 минуты.',
+      abGo: '🏴‍☠️ АДМИН-АБЬЮЗ! Степан Банан спрятал {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Золотые — в самых трудных местах. У тебя 3 минуты!',
+      abBronze: '🥉', abSilver: '🥈', abGold: '🥇',
+      abTook: '🪙 {n} нашёл монету! Осталось: {l}', abEnd: '⏱ Админ-абьюз закончился! Ты нашёл {n} из {t} монет: +{m}',
+      xfBtn: '📲 Перенести информацию', xfTitle: '📲 Перенести информацию',
+      xfHint: 'Напиши ник, который у тебя есть на другом устройстве, и нажми «Перенести». Все данные этого игрока (деньги, машины, оружие, одежда, дом, миссии) уйдут на тот ник. Потом открой игру на другом устройстве под этим ником и согласись.',
+      xfPh: 'Ник на другом устройстве', xfSend: '📲 Перенести', xfShort: 'Ник — хотя бы 3 буквы', xfNeedNick: 'Сначала придумай себе ник в профиле',
+      xfOffline: '😕 Нет связи с сервером. Проверь интернет и попробуй ещё раз.', xfSending: '⏳ Отправляем…',
+      xfSent: '✅ Отправлено на ник «{n}»! Открой игру на другом устройстве под этим ником и нажми «Принять».',
+      xfDone: '🎉 Готово! Данные приняты на другом устройстве под ником «{n}».', xfDeclined: '🙅 На другом устройстве отказались принимать данные.',
+      xfInTitle: '📲 Пришли данные с другого устройства',
+      xfInText: 'Игрок «{f}» хочет перенести сюда свои данные на ник «{n}»: 💶 {m} · 🚗 машин: {c} · 🔫 оружия: {w}. Весь прогресс «{n2}» на этом устройстве заменится!',
+      xfYes: '✅ Принять', xfNo: '❌ Отказаться', xfGot: '✅ Данные перенесены!',
       profHint: 'Весь прогресс (деньги, машины, оружие, одежда, дом) сохраняется сам. Чтобы играть на другом устройстве — скопируй код и загрузи его там.',
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
@@ -764,7 +801,7 @@
       mFail: '❌ Миссия провалена. Попробуй ещё раз!', mLate: '⏱ Время вышло! Миссия провалена.', mFriends: '📞 Армин и Кинан едут тебе на помощь!', mCancel: 'Миссия отменена',
       mPicked: '📦 Ты взял секретный пакет! Полиция уже знает!', mArmorStolen: '🚨 Бронеавтомобиль угнан! Вези его домой!', secretCar: 'Секретная', secretLock: '🔒 Пройди миссию «{m}»',
       flyCarUp: '🚀 «Комета» взлетела! Пробел — выше, S — ниже, W — вперёд', boostOn: '🔥 Ракетный ускоритель!', phApp5: 'Миссии', mList: '⭐ Миссии', mHint: '🗺 — поставить метку на карте',
-      isMalta: 'Мальта', isCyprus: 'Кипр', isFiji: 'Фиджи', isCosta: 'Коста-Рика', isIceland: 'Исландия', welcomeTo: 'Остров {n}', marina: 'Причал',
+      tokenFound: '🏴‍☠️ ТЫ НАШЁЛ ЗОЛОТОЙ ПИРАТСКИЙ ЖЕТОН! Он был спрятан на Таинственном острове. Награда: {m}!', lgSecret: '❓ Таинственный остров', secWelcome: '❓ Таинственный остров… Говорят, его не существует. Но он есть!', isMalta: 'Мальта', isCyprus: 'Кипр', isFiji: 'Фиджи', isCosta: 'Коста-Рика', isIceland: 'Исландия', welcomeTo: 'Остров {n}', marina: 'Причал',
       boatMarina: '🚤 Твоя лодка ждёт у причала на пляже!', boatShore: '🌊 Подплыви к берегу, чтобы выйти',
       stTitle: '🔐 Код Степана', stHint: 'Ты зашёл как Степан Банан. Введи код, чтобы начать игру.', stGo: 'Войти ▶', stBad: '❌ Неверный код', stNotMe: 'Это не я — сменить игрока',
       phHome: '📱 Телефон', phApp6: 'Сообщения', chPh: 'Напиши сообщение…', chAnnPh: '📢 Объявление для всех…', chHint: 'Enter — отправить · не больше 100 букв', chHintAdm: '👑 Ты админ: объявления, очистка, 🔇 — выключить чат игроку',
@@ -799,6 +836,21 @@
       regHave: 'Played on this device before? Tap your name:', profTitle: '👤 Player: {n}', profStats: '💶 {m} · 🚗 vehicles: {c} of {t} · 🪙 coins ever: {k} · 🔫 weapons: {w}',
       profSwitch: '🔄 Switch player', profExport: '📋 Copy save code', profImport: '📥 Load save code', profImportSure: '⚠️ Press again — this player’s progress will be replaced!',
       profBad: '😕 That code didn’t work. Copy all of it.', profCopied: '✅ Code copied! Paste it here on another device.', profLoaded: '✅ Progress loaded!',
+      abBtn: '🏴‍☠️ Admin abuse: hide pirate coins', abStop: '⏹ End admin abuse ({s})',
+      abOffline: '😕 No connection to the server — admin abuse only works online.',
+      abGoAdmin: '🎉 Admin abuse started! Coins scattered: {n}. Players have 3 minutes.',
+      abGo: '🏴‍☠️ ADMIN ABUSE! Stepan Banan hid {n} pirate coins: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. Gold ones are in the hardest places. You have 3 minutes!',
+      abBronze: '🥉', abSilver: '🥈', abGold: '🥇',
+      abTook: '🪙 {n} found a coin! Left: {l}', abEnd: '⏱ Admin abuse is over! You found {n} of {t} coins: +{m}',
+      xfBtn: '📲 Transfer progress', xfTitle: '📲 Transfer progress',
+      xfHint: 'Type the nickname you have on your other device and press “Transfer”. All of this player’s data (money, vehicles, weapons, clothes, house, missions) will go to that nickname. Then open the game on the other device under that nickname and accept.',
+      xfPh: 'Nickname on the other device', xfSend: '📲 Transfer', xfShort: 'Nickname — at least 3 letters', xfNeedNick: 'First pick your own nickname in Profile',
+      xfOffline: '😕 No connection to the server. Check the internet and try again.', xfSending: '⏳ Sending…',
+      xfSent: '✅ Sent to “{n}”! Open the game on the other device under that nickname and press “Accept”.',
+      xfDone: '🎉 Done! The data was accepted on the other device as “{n}”.', xfDeclined: '🙅 The other device declined the data.',
+      xfInTitle: '📲 Data from another device',
+      xfInText: 'Player “{f}” wants to move their data here to “{n}”: 💶 {m} · 🚗 vehicles: {c} · 🔫 weapons: {w}. All of “{n2}” progress on this device will be replaced!',
+      xfYes: '✅ Accept', xfNo: '❌ Decline', xfGot: '✅ Data transferred!',
       profHint: 'All progress (money, vehicles, weapons, clothes, house) saves by itself. To play on another device, copy the code and load it there.',
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
@@ -813,7 +865,7 @@
       mFail: '❌ Mission failed. Try again!', mLate: '⏱ Time is up! Mission failed.', mFriends: '📞 Armin and Kinan are coming to help!', mCancel: 'Mission cancelled',
       mPicked: '📦 You took the secret package! The police know!', mArmorStolen: '🚨 Armored car stolen! Drive it home!', secretCar: 'Secret', secretLock: '🔒 Complete mission “{m}”',
       flyCarUp: '🚀 “Kometa” took off! Space — up, S — down, W — forward', boostOn: '🔥 Rocket boost!', phApp5: 'Missions', mList: '⭐ Missions', mHint: '🗺 — set a map marker',
-      isMalta: 'Malta', isCyprus: 'Cyprus', isFiji: 'Fiji', isCosta: 'Costa Rica', isIceland: 'Iceland', welcomeTo: '{n} Island', marina: 'Marina',
+      tokenFound: '🏴‍☠️ YOU FOUND THE GOLDEN PIRATE TOKEN! It was hidden on Mystery Island. Reward: {m}!', lgSecret: '❓ Mystery Island', secWelcome: '❓ Mystery Island… They say it doesn’t exist. But it does!', isMalta: 'Malta', isCyprus: 'Cyprus', isFiji: 'Fiji', isCosta: 'Costa Rica', isIceland: 'Iceland', welcomeTo: '{n} Island', marina: 'Marina',
       boatMarina: '🚤 Your boat is waiting at the beach marina!', boatShore: '🌊 Get close to the shore to get off',
       stTitle: '🔐 Stepan’s code', stHint: 'You signed in as Stepan Banan. Enter the code to start the game.', stGo: 'Enter ▶', stBad: '❌ Wrong code', stNotMe: 'That’s not me — switch player',
       phHome: '📱 Phone', phApp6: 'Messages', chPh: 'Type a message…', chAnnPh: '📢 Announcement for everyone…', chHint: 'Enter — send · up to 100 letters', chHintAdm: '👑 You are the admin: announcements, clear, 🔇 — mute a player',
@@ -1093,7 +1145,28 @@
   const WORLD = NB * STEP * T + ROAD_W;      // 7232
   // ================== Мир за городом: шоссе, горы, аэропорт, военная база, пляж ==================
   const MI0 = -4400, MI1 = WORLD + 4800;                      // главный остров (город — в его середине)
-  const F0 = -10500, F1 = WORLD + 10500, FS = F1 - F0;        // весь мир: океан с островами
+  const F0 = -10500, F1 = WORLD + 25500, FS = F1 - F0;        // весь мир: океан с островами (на юго-востоке — Таинственный остров)
+  // ---------- Таинственный остров: далеко в океане, вдвое меньше главного, с городом — копией центра нашего города ----------
+  const SEC_A = 3, SEC_NB = 5;                                 // копируем кварталы 3…7 по обеим осям (центр города, без домов игроков и магазинов)
+  const SEC_S = SEC_NB * STEP * T + ROAD_W;                     // сторона города: 5 кварталов
+  const SEC_SRC = SEC_A * STEP * T;                             // откуда копируем (левый верхний угол в главном городе)
+  const SEC_CX = WORLD + 17500, SEC_CY = WORLD + 17500;         // середина острова
+  const SEC_X0 = SEC_CX - SEC_S / 2, SEC_Y0 = SEC_CY - SEC_S / 2;   // левый верхний угол тайного города
+  const SEC_DX = SEC_X0 - SEC_SRC, SEC_DY = SEC_Y0 - SEC_SRC;   // сдвиг «главный город → тайный»
+  const SEC_H = 8, SEC_R = 5200;                                // высота города над морем и размер острова
+  const inSecCity = (x, y) => x >= SEC_X0 && y >= SEC_Y0 && x <= SEC_X0 + SEC_S && y <= SEC_Y0 + SEC_S;
+  const inSecIsle = (x, y) => Math.abs(x - SEC_CX) < SEC_R + 700 && Math.abs(y - SEC_CY) < SEC_R + 700;
+  function secretH(x, y) {                                      // ровный город посередине, вокруг — холмы и пляж
+    const dx = Math.abs(x - SEC_CX), dy = Math.abs(y - SEC_CY);
+    if (dx > SEC_R + 700 || dy > SEC_R + 700) return -1e9;
+    const a = Math.atan2(y - SEC_CY, x - SEC_CX), R = SEC_R * (1 + .06 * Math.sin(a * 5 + 1) + .04 * Math.sin(a * 11));
+    const q = Math.pow(dx ** 4 + dy ** 4, .25), t = q / R;      // остров почти квадратный, с неровным берегом
+    const land = (1 - t) * 260 * (.55 + .45 * Math.sin(x * .0021) * Math.cos(y * .0017)) + (1 - t) * 40;
+    const dd = Math.max(dx, dy) - (SEC_S / 2 + 260);
+    if (dd <= 0) return SEC_H;
+    const k = sstep(0, 600, dd);
+    return t >= 1 ? (1 - t) * 300 : SEC_H + (Math.max(land, 6 * (1 - t)) - SEC_H) * k;
+  }
   // ---------- острова в океане (к ним нет мостов — только на лодке, вертолёте или самолёте) ----------
   const ISLES = [
     { key: 'isMalta', x: -7400, y: WORLD + 6300, r: 1500, kind: 'malta', park: 'skMalta' },
@@ -1201,6 +1274,7 @@
     if (e < 800) { const k = sstep(0, 800, e); h = h * k - 60 * (1 - k); }
     if (x > -900 && x < 11100 && y > -4540 && y < -1200) h = Math.max(h, 0);   // военная база стала больше — насыпная земля у моря
     if (h < 0) { const I = isleAt(x, y); if (I) h = Math.max(h, isleH(I, x, y)); }
+    if (h < 0 && inSecIsle(x, y)) h = Math.max(h, secretH(x, y));
     return h;
   }
   // дороги по холмам: серпантин на гору и извилистое прибрежное шоссе на западе
@@ -1259,13 +1333,19 @@
   const AP = { x0: WORLD + 1500, x1: WORLD + 4300, y0: 500, y1: WORLD - 500 };   // аэропорт
   const MB = { x0: -600, x1: 10800, y0: -4300, y1: -1250 };                        // военная база
   const outerObs = [];                                        // дома и заборы за городом
+  function secObjs(px, py) {                                   // дома главного города, которые стоят в этой точке тайного города
+    const mx = px - SEC_DX, my = py - SEC_DY;
+    return grid[((my / CELL) | 0) * GN + ((mx / CELL) | 0)].filter(o => o.t === 'r' && o.tall && o.H && mx > o.x && mx < o.x + o.w && my > o.y && my < o.y + o.h);
+  }
   function outerSolid(px, py, z) {
     if (px < F0 + 4 || py < F0 + 4 || px > F1 - 4 || py > F1 - 4) return true;
+    if (inSecCity(px, py)) return secObjs(px, py).some(o => z < SEC_H + o.H && z + 18 > SEC_H);
     for (const o of outerObs) if (px > o.x && px < o.x + o.w && py > o.y && py < o.y + o.h && z < o.top && z + 18 > (o.bot || 0) && !(o.lock && window.__isBanker?.())) return true;
     return false;
   }
   function outerRoof(x, y, z) {
     let b = -1e9;
+    if (inSecCity(x, y)) { for (const o of secObjs(x, y)) if (SEC_H + o.H <= z + 14 && SEC_H + o.H > b) b = SEC_H + o.H; return b; }
     for (const o of outerObs) if (!o.fence && x > o.x && x < o.x + o.w && y > o.y && y < o.y + o.h && o.top <= z + 14 && o.top > b) b = o.top;
     return b;
   }
@@ -2225,7 +2305,7 @@
     sun.color.copy(DAYC.sun).lerp(NITC.sun, night).lerp(DUSK.sun, dusk * .7);
     hemi.intensity = .85 * day + 1.45 * night;
     renderer.toneMappingExposure = 1 + .4 * night;
-    ground.material.emissiveIntensity = .2 * night;                      // дороги и разметку видно и в темноте
+    ground.material.emissiveIntensity = .2 * night; if (ground.userData.twin) ground.userData.twin.material.emissiveIntensity = .2 * night;                      // дороги и разметку видно и в темноте
     hemi.color.copy(DAYC.sky).lerp(NITC.sky, night);
     hemi.groundColor.copy(DAYC.gnd).lerp(NITC.gnd, night);
     scene.fog.color.copy(DAYC.fog).lerp(NITC.fog, night).lerp(DUSK.fog, dusk * .55);
@@ -2234,7 +2314,7 @@
     sky.material.uniforms.sunPosition.value.set(SUN_DIR.x, el, SUN_DIR.z).normalize();
     for (const m of cloudMats) m.color.setScalar(.07 + .93 * day).lerp(DUSK.sun, dusk * .45);
     for (const m of nightFacades) m.emissiveIntensity = night * m.userData.glow;
-    if (NIGHT.headMat) { NIGHT.headMat.emissiveIntensity = 1.8 + 3.5 * night; NIGHT.poolMat.opacity = .75 * night; if (NIGHT.beamMat) NIGHT.beamMat.opacity = .55 * night; if (NIGHT.tMat) { NIGHT.tMat.head.emissiveIntensity = 2 + 3 * night; NIGHT.tMat.tail.emissiveIntensity = .5 + 2 * night; } NIGHT.pools.visible = night > .02; }
+    if (NIGHT.headMat) { NIGHT.headMat.emissiveIntensity = 1.8 + 3.5 * night; NIGHT.poolMat.opacity = .75 * night; if (NIGHT.beamMat) NIGHT.beamMat.opacity = .55 * night; if (NIGHT.tMat) { NIGHT.tMat.head.emissiveIntensity = 2 + 3 * night; NIGHT.tMat.tail.emissiveIntensity = .5 + 2 * night; } NIGHT.pools.visible = night > .02; if (NIGHT.pools2) NIGHT.pools2.visible = night > .02; }
     if (!envMats.length) scene.traverse(o => { const ms = o.material ? [].concat(o.material) : []; for (const m of ms) if (m.envMap && !envMats.includes(m)) { m.userData.env0 = m.envMapIntensity; envMats.push(m); } });
     for (const m of envMats) m.envMapIntensity = m.userData.env0 * (.12 + .88 * day);
     stars.material.opacity = sstep(.5, 1, night); stars.visible = night > .5;
@@ -2290,6 +2370,17 @@
     outer.rotation.x = -Math.PI / 2; outer.position.set(WORLD / 2, -200, WORLD / 2);
     outer.receiveShadow = true;
     scene.add(outer);
+  }
+
+  {   // земля тайного города: кусок той же текстуры, что у главного города
+    const tex = groundTex.clone(); tex.needsUpdate = true;
+    tex.repeat.set(SEC_S / GS, SEC_S / GS);
+    tex.offset.set((SEC_SRC + MARGIN) / GS, 1 - (SEC_SRC + MARGIN + SEC_S) / GS);
+    const sg = new THREE.Mesh(new THREE.PlaneGeometry(SEC_S + 40, SEC_S + 40), new THREE.MeshStandardMaterial({ color: '#8f8b84', roughness: .95 }));
+    sg.rotation.x = -Math.PI / 2; sg.position.set(SEC_CX, SEC_H + .3, SEC_CY); sg.receiveShadow = true; scene.add(sg);   // бордюр по краю
+    const g2 = new THREE.Mesh(new THREE.PlaneGeometry(SEC_S, SEC_S), new THREE.MeshStandardMaterial({ map: tex, roughness: .95, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0 }));
+    g2.rotation.x = -Math.PI / 2; g2.position.set(SEC_CX, SEC_H + .6, SEC_CY); g2.receiveShadow = true; scene.add(g2);
+    ground.userData.twin = g2;
   }
 
   // ---------- Фасады ----------
@@ -2353,14 +2444,21 @@
       uv.setXY(k, uv.getX(k) * Math.max(1, Math.round(fw[f] / tw)), uv.getY(k) * fh[f] / th);
     }
   }
+  let meshTarget = scene;                                     // куда добавлять: сцена или группа тайного города
   const addMesh = (geo, material, x, y, z, cast = true, receive = true) => {
     const m = new THREE.Mesh(geo, material);
     m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = receive;
-    scene.add(m); return m;
+    meshTarget.add(m); return m;
   };
 
   // ---------- Здания и дома ----------
-  for (const o of tall) {
+  const inSecSrc = (x, y, m = 0) => x >= SEC_SRC - m && y >= SEC_SRC - m && x <= SEC_SRC + SEC_S + m && y <= SEC_SRC + SEC_S + m;
+  const secGroup = new THREE.Group(); secGroup.position.set(SEC_DX, SEC_H, SEC_DY); scene.add(secGroup);
+  for (const o of tall) meshTall(o);
+  meshTarget = secGroup;                                     // тайный город: те же дома, что в центре главного
+  for (const o of tall) if ((o.k === 'b' || o.k === 'h') && inSecSrc(o.x, o.y) && inSecSrc(o.x + o.w, o.y + o.h)) meshTall(o);
+  meshTarget = scene;
+  function meshTall(o) {
     if (o.k === 'b') {
       const [tw, th] = TILE_SZ[o.style];
       const geo = new THREE.BoxGeometry(o.w, o.H, o.h);
@@ -2380,7 +2478,7 @@
         const pad = addMesh(new THREE.CylinderGeometry(Math.min(o.w, o.h) * .28, Math.min(o.w, o.h) * .28, 1.5, 32),
           mat('heli', () => new THREE.MeshStandardMaterial({ color: '#4f555c', roughness: .8 })), o.cx, o.H + 1, o.cy, false, true);
         const ring = new THREE.Mesh(new THREE.TorusGeometry(Math.min(o.w, o.h) * .23, 1.5, 6, 40), mat('heliR', () => new THREE.MeshStandardMaterial({ color: '#ffd54f' })));
-        ring.rotation.x = Math.PI / 2; ring.position.set(o.cx, o.H + 1.9, o.cy); scene.add(ring);
+        ring.rotation.x = Math.PI / 2; ring.position.set(o.cx, o.H + 1.9, o.cy); meshTarget.add(ring);
       }
     } else if (o.k === 'h') {
       const wallCol = o.cols.n.startsWith('rgb') ? rgbToHex(o.cols.n) : o.cols.n;
@@ -2417,8 +2515,7 @@
   // ---------- Деревья (инстансы) ----------
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v3 = new THREE.Vector3(), s3 = new THREE.Vector3(), col = new THREE.Color();
   const Y = new THREE.Vector3(0, 1, 0);
-  {
-    const trees = tall.filter(o => o.k === 't');
+  function makeTrees(trees, target) {
     const trunkGeo = new THREE.CylinderGeometry(.6, .9, 1, 6); trunkGeo.translate(0, .5, 0);
     const crownGeo = new THREE.IcosahedronGeometry(1, 1);
     const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshStandardMaterial({ color: '#6b4a2f', roughness: 1 }), trees.length);
@@ -2433,12 +2530,13 @@
       m4.compose(v3.set(t.x - t.r * .12, t.h * .55 + t.r * .75, t.y - t.r * .12), q, s3.set(t.r * .68, t.r * .62, t.r * .68)); crownB.setMatrixAt(i, m4);
       crownB.setColorAt(i, col.set(t.pal[2]));
     });
-    for (const m of [trunks, crownA, crownB]) { m.castShadow = true; m.receiveShadow = true; scene.add(m); }
+    for (const m of [trunks, crownA, crownB]) { m.castShadow = true; m.receiveShadow = true; target.add(m); }
   }
+  makeTrees(tall.filter(o => o.k === 't'), scene);
+  makeTrees(tall.filter(o => o.k === 't' && inSecSrc(o.x, o.y, -30)), secGroup);
 
   // ---------- Фонари ----------
-  {
-    const lamps = tall.filter(o => o.k === 'l');
+  function makeLamps(lamps, target, twin) {
     const poleGeo = new THREE.CylinderGeometry(1.1, 1.6, 58, 6); poleGeo.translate(0, 29, 0);
     const armGeo = new THREE.BoxGeometry(14, 1.6, 1.6); armGeo.translate(7, 0, 0);
     const headGeo = new THREE.BoxGeometry(8, 2.5, 5);
@@ -2453,7 +2551,8 @@
     const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
     const pools = new THREE.InstancedMesh(new THREE.PlaneGeometry(250, 250).rotateX(-Math.PI / 2), poolMat, lamps.length);
     pools.renderOrder = 1;
-    NIGHT.headMat = headMat; NIGHT.poolMat = poolMat; NIGHT.pools = pools;
+    if (twin) { heads.material = NIGHT.headMat; pools.material = NIGHT.poolMat; NIGHT.pools2 = pools; }
+    else { NIGHT.headMat = headMat; NIGHT.poolMat = poolMat; NIGHT.pools = pools; }
     lamps.forEach((l, i) => {
       const a = -Math.atan2(l.dy, l.dx);
       q.setFromAxisAngle(Y, a);
@@ -2463,8 +2562,10 @@
       m4.compose(v3.set(l.x + l.dx * 16, .7, l.y + l.dy * 16), q, s3.set(1, 1, 1)); pools.setMatrixAt(i, m4);
     });
     poles.castShadow = arms.castShadow = true;
-    scene.add(poles, arms, heads, pools); pools.visible = false;
+    target.add(poles, arms, heads, pools); pools.visible = false;
   }
+  makeLamps(tall.filter(o => o.k === 'l'), scene, false);
+  makeLamps(tall.filter(o => o.k === 'l' && inSecSrc(o.x, o.y, -20)), secGroup, true);
 
   // ---------- Припаркованные машины ----------
   {
@@ -3009,7 +3110,7 @@
   const saveProfiles = () => { try { localStorage.setItem(PROF_KEY, JSON.stringify(profiles)); localStorage.setItem(CUR_KEY, SAVE_KEY); } catch (e) {} };
   let save = { money: 0, owned: ['zhuk'], current: 'zhuk', friends: { names: ['Армин', 'Кинан'], on: true } };
   try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY)) || {}); } catch (e) {}
-  const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
+  const persist = () => { if (window.__saveLocked) return; try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
   let spec = CARS.find(c => c.id === save.current) || CARS[0];
   let player = null;
   function setCar(id) {
@@ -3889,6 +3990,7 @@
         }
       }
     }
+    window.__abuseCollect?.(); window.__tokenCollect?.();
 
   }
 
@@ -5159,7 +5261,7 @@
   const noiseFill = (g, w, h, base, cols, n) => { g.fillStyle = base; g.fillRect(0, 0, w, h); for (let i = 0; i < n; i++) { g.fillStyle = cols[i % cols.length]; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); } };
   // --- земля острова: холмы, гора, пляж, дно моря ---
   {
-    const SEG = 400, geo = new THREE.PlaneGeometry(FS, FS, SEG, SEG); geo.rotateX(-Math.PI / 2);
+    const SEG = 600, geo = new THREE.PlaneGeometry(FS, FS, SEG, SEG); geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position, cols = new Float32Array(pos.count * 3), col = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i) + F0 + FS / 2, y = pos.getZ(i) + F0 + FS / 2;
@@ -5169,6 +5271,7 @@
       pos.setX(i, x); pos.setZ(i, y); pos.setY(i, h);
       const n = Math.sin(x * .013) * Math.cos(y * .011) * .5 + .5;
       if (h < SEA - 2) col.set('#c9b27a').lerp(new THREE.Color('#8f7f58'), Math.min(1, -h / 60));
+      else if (inSecIsle(x, y)) { if (h < 12) col.set('#eadbb0'); else col.set('#5f9a40').lerp(new THREE.Color('#4c8a35'), n); }
       else if (y > WORLD + 1100 && h < 25) col.set('#e3cf98');
       else if (h > 690) col.set('#f2f4f6');
       else if (h > 470) col.set('#8d877c').lerp(new THREE.Color('#6f6a60'), n);
@@ -5946,6 +6049,8 @@
     for (const I of ISLES) if (I.label) I.label.position.y = I.labelY + Math.sin(performance.now() / 900 + I.x) * 8;   // название покачивается
     const I = ISLES.find(q => Math.hypot(car.x - q.x, car.y - q.y) < q.r * .95) || null;
     if (I !== isleNow) { isleNow = I; if (I) showMsg('🏝 ' + t('welcomeTo', { n: t(I.key) }), 3200); }
+    const sec = inSecIsle(car.x, car.y) && secretH(car.x, car.y) > 0;
+    if (sec !== updateIsles.sec) { updateIsles.sec = sec; if (sec) showMsg(t('secWelcome'), 5000); }
     const pk = I && inParkOf(I, car.x, car.y);
     if (pk && !updateIsles.inPk) setTimeout(() => showMsg(t('skHint'), 5000), I === updateIsles.lastI ? 0 : 3300);
     updateIsles.inPk = pk; updateIsles.lastI = I;
@@ -6175,13 +6280,13 @@
   function drawOuterMap(g, style) {
     const sat = style === 'sat';
     g.fillStyle = sat ? '#1d6a99' : '#1f3d57'; g.fillRect(F0, F0, FS, FS);
-    const N = 340, cs = FS / N;
+    const N = 520, cs = FS / N;
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const x = F0 + (i + .5) * cs, y = F0 + (j + .5) * cs; if (inCity(x, y)) continue;
       const h = terrainH(x, y); if (h < SEA) continue;
       const isl = isleAt(x, y);
       if (isl) { g.fillStyle = sat ? isleColorHex(isl, h, .7) : (h < 9 ? '#4d4838' : '#3a4a3c'); g.fillRect(x - cs / 2, y - cs / 2, cs + 1, cs + 1); continue; }
-      const beach = y > WORLD + 1100 && h < 25;
+      const beach = inSecIsle(x, y) ? h < 12 : y > WORLD + 1100 && h < 25;
       g.fillStyle = sat ? (beach ? '#dcc78f' : h > 690 ? '#eef0f2' : h > 470 ? '#8a8378' : h > 170 ? '#4a7434' : '#5f8f42')
         : (beach ? '#4d4838' : h > 690 ? '#6a6f75' : h > 470 ? '#454a47' : h > 170 ? '#2f4733' : '#344a39');
       g.fillRect(x - cs / 2, y - cs / 2, cs + 1, cs + 1);
@@ -6200,7 +6305,7 @@
     g.fillStyle = sat ? '#8d6e4a' : '#7a6a52'; g.fillRect(GC - 45, SHORE - 200, 90, 820);
   }
   const OUTER_LABELS = [['lgAirport', (AP.x0 + AP.x1) / 2, GC - 200], ['lgBase', (MB.x0 + MB.x1) / 2, MB.y0 + 300], ['lgBeach', WORLD / 2 + 1400, SHORE - 150],
-    ['lgMount', MX, MY - 1150], ['lgMansion', MZ.x0 + 220, MZ.y0 - 110], ['lgBridgeBig', IX + 230, (BR.y1 + BR.y2) / 2], ['lgIsland', IX, IY + 430], ['lgFreeway', FWX + 300, WORLD * .3], ['lgCoast', -3450, 2600], ['lgOcean', WORLD * .75 + 2000, MI1 + 3300], ...ISLES.map(I => [I.key, I.x, I.y - I.r * .15]), ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
+    ['lgMount', MX, MY - 1150], ['lgMansion', MZ.x0 + 220, MZ.y0 - 110], ['lgBridgeBig', IX + 230, (BR.y1 + BR.y2) / 2], ['lgIsland', IX, IY + 430], ['lgFreeway', FWX + 300, WORLD * .3], ['lgCoast', -3450, 2600], ['lgOcean', WORLD * .75 + 2000, MI1 + 3300], ['lgSecret', SEC_CX, SEC_Y0 - 700], ...ISLES.map(I => [I.key, I.x, I.y - I.r * .15]), ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
 
   // ================== Друзья ==================
   if (!save.friends || !Array.isArray(save.friends.names)) save.friends = { names: ['Армин', 'Кинан'], on: true };
@@ -6591,14 +6696,14 @@
           do { if (i >= c.buf.length) return; d = c.buf[i++]; len += (d & 127) * mult; mult *= 128; } while (d & 128);
           if (c.buf.length < i + len) return;
           const hdr = c.buf[0], type = hdr >> 4, pkt = c.buf.slice(i, i + len); c.buf = c.buf.slice(i + len);
-          if (type === 2) { c.ok = true; mqSubscribe(c); netStateUpdate(); }                 // CONNACK
+          if (type === 2) { c.ok = true; mqSubscribe(c); window.__xfSub?.(c); netStateUpdate(); }                 // CONNACK
           else if (type === 3) {                                                            // PUBLISH
             const tl = (pkt[0] << 8) | pkt[1], topic = dec.decode(pkt.slice(2, 2 + tl)), qos = (hdr >> 1) & 3;
             onMqMessage(topic, dec.decode(pkt.slice(2 + tl + (qos ? 2 : 0))));
           }
         }
       };
-      ws.onclose = () => { c.ok = false; c.sub = null; netStateUpdate(); setTimeout(open, 4000 + Math.random() * 3000); };
+      ws.onclose = () => { c.ok = false; c.sub = null; c.xsub = null; netStateUpdate(); setTimeout(open, 4000 + Math.random() * 3000); };
       ws.onerror = () => {};
     };
     open();
@@ -6617,12 +6722,14 @@
   }
   setInterval(() => { for (const c of net.mq) if (c.ok && c.ws.readyState === 1) c.ws.send(new Uint8Array([0xc0, 0])); }, 20000);   // «я жив»
   function onMqMessage(topic, text) {
+    if (topic.startsWith('mashinki-xfer/')) { window.__xfMsg?.(topic, text); return; }   // перенос данных между устройствами
     const id = topic.split('/').pop();
     if (!id || id === net.id || id.length > 16) return;
     let m; try { m = JSON.parse(text); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
     if (m.bank && typeof m.bank === 'object') { onBank(id, m.bank); return; }
     if (m.chat && typeof m.chat === 'object') { window.__onChat?.(id, m.chat); return; }
+    if (m.abuse && typeof m.abuse === 'object') { window.__onAbuse?.(id, m.abuse); return; }
     if (m.bye) { const old = net.mqPeers.get(id); if (old) { net.mqPeers.delete(id); showMsg(t('netLeft', { n: cleanName(old.presence.nm) }), 1800); dropRemote(id); renderNet(); } return; }
     if (!Number.isFinite(m.x) || !Number.isFinite(m.y)) return;
     const isNew = !net.mqPeers.has(id);
@@ -6887,6 +6994,227 @@
   window.__chatRender = box => chatRender(box);
   window.__chatUnread = () => chatUnread;
   window.__onChat = onChat;
+  // ================== Админ-абьюз: Степан раскидывает монеты по укромным местам, у всех 3 минуты ==================
+  const AB_N = 20, AB_DUR = 180000;
+  // пиратские монеты: бронзовая, серебряная и золотая — толстые, с ободком и черепом с костями на обеих сторонах
+  const AB_TIERS = [
+    { key: 'abBronze', value: 100000, scale: 1.5, base: '#b8733a', light: '#f0b27a', dark: '#5a2e10', emissive: '#4a2208', fx: '#ffb27a' },
+    { key: 'abSilver', value: 250000, scale: 1.65, base: '#c9d1d9', light: '#ffffff', dark: '#56616c', emissive: '#3c4650', fx: '#ffffff' },
+    { key: 'abGold', value: 500000, scale: 1.85, base: '#f2b705', light: '#fff1a8', dark: '#7a5200', emissive: '#7a5200', fx: '#ffd54f' },
+  ];
+  const AB_MIX = [3, 6];                                    // 3 золотые и 6 серебряных — в самых трудных местах, остальные бронзовые
+  const abGeo = new THREE.CylinderGeometry(10, 10, 3.6, 32); abGeo.rotateX(Math.PI / 2);
+  const abRimGeo = new THREE.TorusGeometry(10, 1.3, 8, 32);
+  function pirateFace(tr) {                                 // рисуем сторону монеты: ободок с точками, череп и скрещённые кости
+    const cv = document.createElement('canvas'); cv.width = cv.height = 256; const g = cv.getContext('2d');
+    const gr = g.createRadialGradient(100, 90, 10, 128, 128, 128); gr.addColorStop(0, tr.light); gr.addColorStop(.55, tr.base); gr.addColorStop(1, tr.dark);
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+    g.strokeStyle = tr.dark; g.lineWidth = 10; g.beginPath(); g.arc(128, 128, 112, 0, 6.283); g.stroke();
+    g.fillStyle = tr.dark; for (let i = 0; i < 24; i++) { const a = i / 24 * 6.283; g.beginPath(); g.arc(128 + Math.cos(a) * 96, 128 + Math.sin(a) * 96, 4, 0, 6.283); g.fill(); }
+    g.lineCap = 'round'; g.strokeStyle = tr.dark; g.lineWidth = 16;               // кости
+    g.beginPath(); g.moveTo(62, 186); g.lineTo(194, 98); g.moveTo(62, 98); g.lineTo(194, 186); g.stroke();
+    for (const [x, y] of [[58, 190], [198, 94], [58, 94], [198, 190]]) { g.beginPath(); g.arc(x, y, 12, 0, 6.283); g.fill(); }
+    g.fillStyle = tr.light; g.strokeStyle = tr.dark; g.lineWidth = 6;             // череп
+    g.beginPath(); g.arc(128, 112, 44, 0, 6.283); g.fill(); g.stroke();
+    g.beginPath(); g.roundRect ? g.roundRect(104, 132, 48, 32, 8) : g.rect(104, 132, 48, 32); g.fill(); g.stroke();
+    g.fillStyle = tr.dark;
+    g.beginPath(); g.arc(110, 110, 12, 0, 6.283); g.arc(146, 110, 12, 0, 6.283); g.fill();
+    g.beginPath(); g.moveTo(128, 122); g.lineTo(121, 136); g.lineTo(135, 136); g.closePath(); g.fill();
+    for (const x of [114, 128, 142]) g.fillRect(x - 2, 146, 4, 16);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    return tex;
+  }
+  for (const tr of AB_TIERS) {
+    const metal = { metalness: .75, roughness: .3, emissive: tr.emissive, emissiveIntensity: .12, envMap: scene.userData.env, envMapIntensity: .55 };
+    const face = new THREE.MeshStandardMaterial({ ...metal, map: pirateFace(tr) });
+    const edge = new THREE.MeshStandardMaterial({ ...metal, color: tr.base });
+    tr.mats = [edge, face, face];                            // бок, верх, низ цилиндра
+    tr.rimMat = new THREE.MeshStandardMaterial({ ...metal, color: tr.base, emissiveIntensity: .08 });
+  }
+  const abTier = i => AB_TIERS[i] || AB_TIERS[0];
+  const ab = { id: null, end: 0, coins: [], got: 0, mine: 0, host: false, lastBeat: 0, seen: new Set() };
+  const abPill = document.getElementById('abusePill'), abTime = document.getElementById('abuseTime'), abCnt = document.getElementById('abuseCnt');
+  const abBtn = document.getElementById('mAbuse');
+  // укромные места: внутри кварталов во дворах, вплотную к домам (не на дороге), и за городом — на холмах, у горы, в полях
+  function abusePlaces(n) {
+    const out = [], BLK = STEP * T;
+    for (let tries = 0; out.length < n && tries < 20000; tries++) {
+      const city = Math.random() < .65;
+      const x = city ? Math.random() * WORLD : MI0 + Math.random() * (MI1 - MI0);
+      const y = city ? Math.random() * WORLD : MI0 + Math.random() * (MI1 - MI0);
+      if (city) {
+        const bx = x % BLK, by = y % BLK;
+        if (bx < ROAD_W + 40 || by < ROAD_W + 40 || bx > BLK - 40 || by > BLK - 40) continue;   // только во дворе квартала
+      } else {
+        if (inCity(x, y) || Math.hypot(x - WORLD / 2, y - WORLD / 2) > 9000) continue;
+        if (terrainH(x, y) < SEA + 4) continue;                                             // не в воде и не у самой кромки
+      }
+      if (x > MZ.x0 - 120 && x < MZ.x1 + 120 && y > MZ.y0 - 120 && y < MZ.y1 + 120) continue;   // особняк Степана закрыт для всех
+      if (inReserved(x, y, 30)) continue;
+      const z0 = groundHeight(x, y, 0);
+      if ([[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].some(([dx, dy]) => solidAtZ(x + dx, y + dy, z0))) continue;
+      if (city && ![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => solidTallAt(x + dx * 70, y + dy * 70))) continue;   // прижата к дому — с дороги не видно
+      if (Math.hypot(x - car.x, y - car.y) < 500) continue;
+      if (out.some(o => Math.hypot(o[0] - x, o[1] - y) < 500)) continue;
+      out.push([Math.round(x), Math.round(y), Math.round(z0 + 14)]);
+    }
+    // чем выше и дальше от центра города, тем труднее найти: туда — золото, потом серебро, остальное бронза
+    const hard = q => q[2] + (inCity(q[0], q[1]) ? 0 : 300) + Math.hypot(q[0] - WORLD / 2, q[1] - WORLD / 2) / 20;
+    [...out].sort((a, b) => hard(b) - hard(a)).forEach((q, k) => q.push(k < AB_MIX[0] ? 2 : k < AB_MIX[0] + AB_MIX[1] ? 1 : 0));
+    return out;
+  }
+  function abClear() {
+    for (const c of ab.coins) scene.remove(c.mesh);
+    ab.coins = []; ab.id = null; ab.end = 0; ab.host = false;
+    abPill.style.display = 'none'; abRender();
+  }
+  function abStart(id, pts, left) {
+    abClear();
+    ab.id = id; ab.end = performance.now() + left; ab.got = 0; ab.mine = 0; ab.mineSum = 0;
+    for (const [x, y, z, ti] of pts) {
+      const tr = abTier(ti), mesh = new THREE.Group();
+      const body = new THREE.Mesh(abGeo, tr.mats); body.castShadow = true; mesh.add(body);
+      for (const dz of [-1.8, 1.8]) { const rim = new THREE.Mesh(abRimGeo, tr.rimMat); rim.position.z = dz; mesh.add(rim); }
+      mesh.scale.setScalar(tr.scale); mesh.position.set(x, z, y); scene.add(mesh);
+      ab.coins.push({ x, y, z, ti: AB_TIERS.indexOf(tr), tr, mesh, taken: false, ph: Math.random() * 6 });
+    }
+    abPill.style.display = ''; abTick(true);
+  }
+  function abFinish() {                                     // время вышло
+    const total = ab.coins.length, mine = ab.mine, sum = ab.mineSum || 0;
+    abClear();
+    showMsg(t('abEnd', { n: mine, t: total, m: fmt(sum) }), 6000);
+  }
+  function abTick(force) {
+    if (!ab.id) return;
+    const left = Math.max(0, ab.end - performance.now());
+    if (left <= 0) { abFinish(); return; }
+    const s = Math.ceil(left / 1000), txt = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    if (force || abTime.textContent !== txt) { abTime.textContent = txt; abCnt.textContent = ab.got + '/' + ab.coins.length; abPill.classList.toggle('hurry', s <= 30); }
+    // Степан напоминает всем каждые 5 секунд — так подключаются и те, кто зашёл позже
+    if (ab.host && performance.now() - ab.lastBeat > 5000) { ab.lastBeat = performance.now(); abSendStart(left); }
+  }
+  setInterval(() => { abTick(); abRender(); }, 250);
+  function abSendStart(left) {
+    const taken = ab.coins.map((c, i) => c.taken ? i : -1).filter(i => i >= 0);
+    mqPublish(JSON.stringify({ abuse: { t: 'go', id: ab.id, left: Math.round(left), c: ab.coins.map(c => [c.x, c.y, c.z, c.ti]), tk: taken, rid: Math.random().toString(36).slice(2, 10) } }));
+  }
+  function abRender() {                                     // кнопка в меню — только у Степана (после кода)
+    if (!abBtn) return;
+    const show = isBanker();
+    abBtn.style.display = show ? '' : 'none';
+    if (!show) return;
+    const txt = ab.id && ab.host ? t('abStop', { s: abTime.textContent }) : t('abBtn');
+    if (abBtn.textContent !== txt) abBtn.textContent = txt;
+  }
+  abBtn?.addEventListener('click', () => {
+    if (!isBanker()) return;
+    if (ab.id && ab.host) {                                 // уже идёт — Степан может закончить раньше
+      mqPublish(JSON.stringify({ abuse: { t: 'stop', id: ab.id, rid: Math.random().toString(36).slice(2, 10) } }));
+      abFinish(); return;
+    }
+    if (net.room || !net.mq.some(c => c.ok)) { showMsg(t('abOffline'), 3500); return; }
+    const pts = abusePlaces(AB_N);
+    if (!pts.length) return;
+    abStart(Math.random().toString(36).slice(2, 10), pts, AB_DUR);
+    ab.host = true; ab.lastBeat = performance.now();
+    abSendStart(AB_DUR);
+    if (window.__gameReady) hideStart();
+    showMsg(t('abGoAdmin', { n: pts.length }), 5000);
+  });
+  window.__onAbuse = (from, a) => {
+    if (typeof a.rid !== 'string' || ab.seen.has(a.rid)) return;
+    ab.seen.add(a.rid); if (ab.seen.size > 500) ab.seen.clear();
+    const peer = net.mqPeers.get(from);
+    if (a.t === 'take') {                                   // кто-то нашёл монету — у всех она пропадает
+      const c = ab.id === a.id && Number.isInteger(a.i) && ab.coins[a.i];
+      if (!c || c.taken) return;
+      c.taken = true; c.mesh.visible = false; ab.got++; abTick(true);
+      showMsg(t('abTook', { n: cleanName(a.nm || (peer && peer.presence && peer.presence.nm)), l: ab.coins.length - ab.got }), 2200);
+      return;
+    }
+    if (!(peer && peer.presence && peer.presence.adm)) return;   // запускать и останавливать может только Степан
+    if (a.t === 'stop') { if (ab.id === a.id) abFinish(); return; }
+    if (a.t !== 'go' || typeof a.id !== 'string' || !Array.isArray(a.c) || a.c.length > 60) return;
+    const left = Math.min(AB_DUR, Math.max(0, +a.left || 0)); if (left < 1000) return;
+    if (ab.id === a.id) {                                   // напоминание о том же событии — подтягиваем время и найденные
+      ab.end = performance.now() + left;
+      if (Array.isArray(a.tk)) for (const i of a.tk) { const c = ab.coins[i]; if (c && !c.taken) { c.taken = true; c.mesh.visible = false; ab.got++; } }
+      abTick(true); return;
+    }
+    const pts = a.c.filter(p => Array.isArray(p) && (p.length === 3 || p.length === 4) && p.every(Number.isFinite)).map(p => p.map(Math.round));
+    if (!pts.length) return;
+    abStart(a.id, pts, left);
+    if (Array.isArray(a.tk)) for (const i of a.tk) { const c = ab.coins[i]; if (c && !c.taken) { c.taken = true; c.mesh.visible = false; ab.got++; } }
+    abTick(true);
+    showMsg(t('abGo', { n: pts.length, b: fmt(AB_TIERS[0].value), s: fmt(AB_TIERS[1].value), g: fmt(AB_TIERS[2].value) }), 7000); shake = Math.max(shake, 1.5);
+  };
+  // крутятся на месте и подбираются так же, как обычные монеты
+  window.__abuseFrame = now => {
+    for (const c of ab.coins) if (!c.taken) { c.mesh.rotation.y = now / 300 + c.ph; c.mesh.position.y = c.z + Math.sin(now / 300 + c.ph) * 3; }
+  };
+  window.__abuseCollect = () => {
+    if (!ab.id) return;
+    ab.coins.forEach((c, i) => {
+      if (c.taken || Math.hypot(c.x - car.x, c.y - car.y) >= 40 || Math.abs(car.z + 10 - c.z) >= 40) return;
+      c.taken = true; c.mesh.visible = false; ab.got++; ab.mine++; ab.mineSum = (ab.mineSum || 0) + c.tr.value;
+      save.money += c.tr.value; persist();
+      popMoney(t(c.tr.key) + ' +' + c.tr.value.toLocaleString(t('locale')) + ' €', c.tr.fx);
+      for (let k = 0; k < 26; k++) { const a = Math.random() * 6.28, v = 40 + Math.random() * 110; emit(c.x, c.z, c.y, c.tr.fx, 2.8, .7, Math.cos(a) * v, 40 + Math.random() * 70, Math.sin(a) * v, 0, 1); }
+      if (c.ti === 2) shake = Math.max(shake, 2);
+      mqPublish(JSON.stringify({ abuse: { t: 'take', id: ab.id, i, nm: save.nick, rid: Math.random().toString(36).slice(2, 10) } }));
+      abTick(true);
+      if (ab.got >= ab.coins.length) setTimeout(abFinish, 1200);   // все нашли раньше времени
+    });
+  };
+  abRender(); langHooks.push(abRender);
+  // ================== Золотой пиратский жетон: один на всю игру, спрятан на Таинственном острове ==================
+  // Место одно и то же у всех: глубоко во дворе квартала, вплотную к дому — с дороги не видно.
+  const TOKEN_VALUE = 1000000;
+  const TOKEN = (() => {
+    let sd = 7771;
+    const rnd2 = () => (sd = sd * 16807 % 2147483647) / 2147483647, BLK = STEP * T;
+    for (let k = 0; k < 6000; k++) {
+      const mx = SEC_SRC + rnd2() * SEC_S, my = SEC_SRC + rnd2() * SEC_S;   // точка в главном городе (у тайного те же дома)
+      const bx = mx % BLK, by = my % BLK;
+      if (bx < ROAD_W + 110 || by < ROAD_W + 110 || bx > BLK - 110 || by > BLK - 110) continue;   // глубоко во дворе
+      if ([[0, 0], [26, 0], [-26, 0], [0, 26], [0, -26]].some(([dx, dy]) => solidAt(mx + dx, my + dy))) continue;
+      if (![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => solidTallAt(mx + dx * 55, my + dy * 55))) continue;
+      return { x: Math.round(mx + SEC_DX), y: Math.round(my + SEC_DY), z: SEC_H + 22 };
+    }
+    return { x: SEC_CX + 40, y: SEC_CY + 40, z: SEC_H + 22 };
+  })();
+  {
+    const tr = AB_TIERS[2], g = new THREE.Group();
+    const face = new THREE.MeshStandardMaterial({ map: pirateFace({ ...tr, light: '#fff8d0', dark: '#6b4500' }), metalness: .85, roughness: .22, emissive: '#8a5c00', emissiveIntensity: .25, envMap: scene.userData.env, envMapIntensity: .9 });
+    const edge = new THREE.MeshStandardMaterial({ color: '#ffcf33', metalness: .85, roughness: .25, emissive: '#7a5200', emissiveIntensity: .2, envMap: scene.userData.env });
+    const body = new THREE.Mesh(abGeo, [edge, face, face]); body.castShadow = true; g.add(body);
+    for (const dz of [-1.8, 1.8]) { const rim = new THREE.Mesh(abRimGeo, edge); rim.position.z = dz; g.add(rim); }
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(15, .8, 6, 40), new THREE.MeshBasicMaterial({ color: '#c9a227', transparent: true, opacity: .35 }));
+    g.add(halo);
+    g.scale.setScalar(2.3); g.position.set(TOKEN.x, TOKEN.z, TOKEN.y);
+    g.visible = !save.goldToken;                             // уже нашёл — у этого игрока его больше нет
+    scene.add(g); TOKEN.mesh = g; TOKEN.halo = halo;
+  }
+  let tokenSpark = 0;
+  window.__tokenFrame = now => {
+    const g = TOKEN.mesh; if (!g.visible) return;
+    g.rotation.y = now / 520; g.position.y = TOKEN.z + Math.sin(now / 420) * 4;
+    TOKEN.halo.rotation.x = now / 700;
+    if (Math.hypot(car.x - TOKEN.x, car.y - TOKEN.y) < 500 && now - tokenSpark > 450) {   // рядом — поблёскивает
+      tokenSpark = now; const a = Math.random() * 6.28;
+      emit(TOKEN.x + Math.cos(a) * 26, TOKEN.z + Math.random() * 20, TOKEN.y + Math.sin(a) * 26, '#ffd54f', 1.2, .6, 0, 20, 0, 0, .45);
+    }
+  };
+  window.__tokenCollect = () => {
+    const g = TOKEN.mesh; if (!g.visible || save.goldToken) return;
+    if (Math.hypot(TOKEN.x - car.x, TOKEN.y - car.y) >= 50 || Math.abs(car.z + 10 - TOKEN.z) >= 50) return;
+    g.visible = false; save.goldToken = Date.now(); save.money += TOKEN_VALUE; persist();
+    popMoney('🏴‍☠️ +' + TOKEN_VALUE.toLocaleString(t('locale')) + ' €', '#ffd54f');
+    for (let k = 0; k < 60; k++) { const a = Math.random() * 6.28, v = 50 + Math.random() * 140; emit(TOKEN.x, TOKEN.z, TOKEN.y, '#ffd54f', 3.2, 1, Math.cos(a) * v, 60 + Math.random() * 90, Math.sin(a) * v, 0, 1); }
+    shake = Math.max(shake, 3);
+    showMsg(t('tokenFound', { m: fmt(TOKEN_VALUE) }), 7000);
+  };
   window.__chatClosed = () => { chatBuilt = false; };
   function netUpdate(dt, now) {
     if (!net.room && !net.mq.length) return;
@@ -6984,7 +7312,7 @@
     }
     save.nick = v; save.nickSet = true; persist();
     if (!same) profiles.push({ nick: v, key: SAVE_KEY });
-    saveProfiles();
+    saveProfiles(); for (const c of net.mq) window.__xfSub?.(c);   // новый ник — слушаем переносы на него
     document.getElementById('netNick').value = v;
     showPanel('mMain'); renderProfile();
     if (window.__gameReady && !switching) hideStart();
@@ -7023,6 +7351,97 @@
     profMsg.style.color = '#7CFFB2'; profMsg.textContent = t('profLoaded');
     switchTo(SAVE_KEY);
   });
+  // ---------- «Перенести информацию»: данные игрока уходят на ник на другом устройстве ----------
+  // Через те же общие MQTT-серверы, что и сетевая игра: сообщение «с удержанием» (retain) лежит на сервере,
+  // пока другое устройство не откроет игру под этим ником и не согласится. После ответа сообщение стирается.
+  const XF_BASE = 'mashinki-xfer/v1/';
+  const xfKey = nick => {                                        // ник → имя «почтового ящика» (сам ник в адрес не пишем)
+    const s = String(nick).trim().toLowerCase(); let a = 0x811c9dc5, b = 0x1b873593;
+    for (let i = 0; i < s.length; i++) { const ch = s.charCodeAt(i); a = Math.imul(a ^ ch, 0x01000193); b = Math.imul(b ^ ch, 0x5bd1e995); b ^= b >>> 13; }
+    return (a >>> 0).toString(16).padStart(8, '0') + (b >>> 0).toString(16).padStart(8, '0');
+  };
+  let xfDev = ''; try { xfDev = localStorage.getItem('mashinki_device') || ''; } catch (e) {}
+  if (!xfDev) { xfDev = Math.random().toString(36).slice(2, 12); try { localStorage.setItem('mashinki_device', xfDev); } catch (e) {} }
+  let xfDone = []; try { xfDone = JSON.parse(localStorage.getItem('mashinki_xfer_done')) || []; if (!Array.isArray(xfDone)) xfDone = []; } catch (e) { xfDone = []; }
+  const xfMark = id => { xfDone.push(id); xfDone = xfDone.slice(-30); try { localStorage.setItem('mashinki_xfer_done', JSON.stringify(xfDone)); } catch (e) {} };
+  const xfOnline = () => net.mq.some(c => c.ok && c.ws && c.ws.readyState === 1);
+  function xfPub(topic, text, retain) {
+    const body = [...mqStr(topic), ...enc.encode(text)];
+    for (const c of net.mq) if (c.ok && c.ws.readyState === 1) { try { c.ws.send(mqPacket(retain ? 0x31 : 0x30, body)); } catch (e) {} }
+  }
+  let xfOut = null;                                               // что мы отправили: { id, to, key }
+  const xfTopics = () => {
+    const ts = profiles.filter(pr => pr.nick).map(pr => XF_BASE + xfKey(pr.nick));
+    if (xfOut) ts.push(XF_BASE + xfOut.key + '/a');
+    return ts;
+  };
+  function xfSub(c) {
+    if (!c.ok || c.ws.readyState !== 1) return;
+    c.xsub = c.xsub || new Set();
+    for (const tp of xfTopics()) if (!c.xsub.has(tp)) { try { c.ws.send(mqPacket(0x82, [0, 3, ...mqStr(tp), 0])); c.xsub.add(tp); } catch (e) {} }
+  }
+  window.__xfSub = xfSub;
+  for (const c of net.mq) xfSub(c);
+  const xfMsgEl = document.getElementById('xfMsg'), xfNickIn = document.getElementById('xfNick');
+  const xfSay = (key, color, params) => { xfMsgEl.style.color = color; xfMsgEl.textContent = t(key, params); };
+  document.getElementById('mXferBtn').addEventListener('click', () => { if (!xfOut) xfMsgEl.textContent = ''; setTimeout(() => xfNickIn.focus(), 50); });
+  function xfSend() {
+    const to = xfNickIn.value.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+    if (!registered()) { xfSay('xfNeedNick', '#ff8a80'); return; }
+    if (to.length < 3) { xfSay('xfShort', '#ff8a80'); xfNickIn.focus(); return; }
+    if (!xfOnline()) { xfSay('xfOffline', '#ff8a80'); return; }
+    persist();
+    const data = JSON.parse(JSON.stringify(save)); delete data.nick; delete data.nickSet;
+    const id = Math.random().toString(36).slice(2, 12), key = xfKey(to);
+    xfOut = { id, to, key };
+    for (const c of net.mq) xfSub(c);                             // ждём ответ «принято / отказались»
+    xfPub(XF_BASE + key, JSON.stringify({ xf: 1, id, dev: xfDev, from: save.nick, to, ts: Date.now(), save: data }), true);
+    xfSay('xfSent', '#7CFFB2', { n: to });
+  }
+  document.getElementById('xfSend').addEventListener('click', xfSend);
+  xfNickIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); xfSend(); } });
+  let xfIn = null;                                                // пришедший перенос, ждёт ответа
+  function xfAnswer(ok) {
+    const m = xfIn; if (!m) return; xfIn = null;
+    xfMark(m.id);
+    xfPub(XF_BASE + m.key + '/a', JSON.stringify({ id: m.id, ok: ok ? 1 : 0 }), false);
+    xfPub(XF_BASE + m.key, '', true);                             // стираем сообщение с сервера
+    if (!ok) { showPanel('mMain'); return; }
+    const data = Object.assign({}, m.save, { nick: m.prof.nick, nickSet: true });
+    try { localStorage.setItem(m.prof.key, JSON.stringify(data)); } catch (e) {}
+    SAVE_KEY = m.prof.key; saveProfiles();
+    window.__saveLocked = true;                                   // чтобы до перезагрузки игра не перезаписала принятое
+    document.getElementById('xfInText').textContent = t('xfGot');
+    setTimeout(() => location.reload(), 600);                     // даём ответу уйти на сервер
+  }
+  document.getElementById('xfYes').addEventListener('click', () => xfAnswer(true));
+  document.getElementById('xfNo').addEventListener('click', () => xfAnswer(false));
+  window.__xfMsg = (topic, text) => {
+    const rest = topic.slice(XF_BASE.length);
+    if (!text || text.length > 300000) return;
+    let m; try { m = JSON.parse(text); } catch (e) { return; }
+    if (!m || typeof m !== 'object') return;
+    if (rest.endsWith('/a')) {                                    // ответ на наш перенос
+      if (!xfOut || m.id !== xfOut.id || rest !== xfOut.key + '/a') return;
+      const to = xfOut.to; xfOut = null;
+      const key = m.ok ? 'xfDone' : 'xfDeclined';
+      xfSay(key, m.ok ? '#7CFFB2' : '#ffd54f', { n: to });
+      showMsg(t(key, { n: to }), 5000);
+      return;
+    }
+    // перенос пришёл к нам
+    if (m.xf !== 1 || typeof m.id !== 'string' || m.dev === xfDev || xfDone.includes(m.id) || (xfIn && xfIn.id === m.id)) return;
+    if (typeof m.to !== 'string' || !Number.isFinite(m.ts) || Date.now() - m.ts > 14 * 864e5) return;
+    const prof = profiles.find(pr => pr.nick && pr.nick.toLowerCase() === m.to.trim().toLowerCase() && xfKey(pr.nick) === rest);
+    const sv = m.save;
+    if (!prof || !sv || typeof sv !== 'object' || Array.isArray(sv) || !Number.isFinite(sv.money) || sv.money < 0 ||
+        !Array.isArray(sv.owned) || sv.owned.length > 300 || !sv.owned.every(x => typeof x === 'string')) return;
+    delete sv.nick; delete sv.nickSet;
+    xfIn = { id: m.id, key: rest, prof, save: sv };
+    const p = { f: cleanName(m.from), n: prof.nick, n2: prof.nick, m: fmt(sv.money), c: sv.owned.length, w: (sv.weapons && Array.isArray(sv.weapons.owned) && sv.weapons.owned.length) || 0 };
+    document.getElementById('xfInText').textContent = t('xfInText', p);
+    openMenu(); showPanel('mXferIn');
+  };
   document.getElementById('nickGo').addEventListener('click', submitNick);
   nickIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitNick(); } });
   nickIn.addEventListener('input', () => { nickErr.textContent = ''; });
@@ -7618,6 +8037,10 @@
       for (const b of o.blobs) { g.fillStyle = o.pal[1]; g.beginPath(); g.arc(o.x + b.x * o.r, o.y + b.y * o.r, b.r * o.r, 0, 7); g.fill(); }
       g.fillStyle = o.pal[2]; g.beginPath(); g.arc(o.x - o.r * .2, o.y - o.r * .2, o.r * .45, 0, 7); g.fill();
     }
+    {   // Таинственный остров: копируем на карту центр города
+      const kk = c.width / FS, sx = (SEC_SRC - F0) * kk, sy = (SEC_SRC - F0) * kk, sw = SEC_S * kk;
+      g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(c, sx, sy, sw, sw, (SEC_X0 - F0) * kk, (SEC_Y0 - F0) * kk, sw, sw); g.restore();
+    }
     drawOverMap(g, 'sat');
     realMap = c;
   }
@@ -7658,6 +8081,10 @@
       g.fillStyle = pl.bot >= 50 ? '#7b828b' : '#555b63'; g.fillRect(pl.cx - w / 2, pl.cy - h / 2, w, h);
     }
     for (const r of RAMPS) { const along = Math.abs(r.ux) > .5, w = along ? r.L : r.Wd, h = along ? r.Wd : r.L; g.fillStyle = '#8c3a3a'; g.fillRect(r.cx - w / 2, r.cy - h / 2, w, h); }
+    {   // Таинственный остров: копируем на карту центр города
+      const kk = c.width / FS, sx = (SEC_SRC - F0) * kk, sy = (SEC_SRC - F0) * kk, sw = SEC_S * kk;
+      g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(c, sx, sy, sw, sw, (SEC_X0 - F0) * kk, (SEC_Y0 - F0) * kk, sw, sw); g.restore();
+    }
     drawOverMap(g, 'road');
     roadMap = c;
   }
@@ -8165,6 +8592,7 @@
     for (const pv of player.pivots) if (pv.position.x > 0) pv.rotation.y = -car.steer * .5;
     player.tailMat.emissiveIntensity = (keys.down || keys.brake) ? 2.5 : .3;
 
+    window.__abuseFrame?.(t); window.__tokenFrame?.(t);
     for (const c of coins) if (!c.taken) {
       c.mesh.rotation.y = t / 400 + c.ph;
       c.mesh.position.y = c.z + Math.sin(t / 300 + c.ph) * 2.5;
