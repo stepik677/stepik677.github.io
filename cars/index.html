@@ -304,6 +304,18 @@
   .phApp span { width: 54px; height: 54px; border-radius: 15px; display: grid; place-items: center; font-size: 30px; box-shadow: 0 4px 10px rgba(0,0,0,.35); }
   .phApp.sel { border-color: #ffd54f; background: rgba(255,213,79,.12); }
   .phApp i { position: absolute; top: 4px; right: 14px; min-width: 18px; height: 18px; border-radius: 9px; background: #e53935; font: 800 11px/18px sans-serif; font-style: normal; }
+  #phone.wide { width: 330px; }
+  #chatLog { height: 290px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px; border-radius: 14px; background: rgba(0,0,0,.25); }
+  .chM { align-self: flex-start; max-width: 88%; padding: 6px 10px; border-radius: 14px 14px 14px 4px; background: #2b3a52; font-size: 13px; line-height: 1.3; word-wrap: break-word; }
+  .chM b { display: block; font-size: 11px; color: #90caf9; }
+  .chM.me { align-self: flex-end; background: #2e7d32; border-radius: 14px 14px 4px 14px; } .chM.me b { color: #c8e6c9; }
+  .chM.adm { background: linear-gradient(#5d4300, #3a2a00); border: 2px solid #ffd54f; } .chM.adm b { color: #ffd54f; }
+  .chM.ann { align-self: stretch; max-width: none; text-align: center; font-size: 15px; font-weight: 800; background: linear-gradient(#c62828, #8e0000); border: 2px solid #ffd54f; border-radius: 14px; }
+  .chM.sys { align-self: center; background: none; opacity: .65; font-size: 12px; }
+  .chM button { border: 0; background: rgba(0,0,0,.3); color: #fff; border-radius: 8px; font-size: 11px; padding: 2px 6px; margin-left: 4px; cursor: pointer; }
+  .chIn { display: flex; gap: 6px; } .chIn input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 12px; border: 2px solid #3a4558; background: #0b1018; color: #fff; font: 600 14px "Segoe UI", sans-serif; -webkit-user-select: text; user-select: text; }
+  .chIn button, .chAdm button { border: 0; border-radius: 12px; padding: 8px 10px; font: 800 13px "Segoe UI", sans-serif; cursor: pointer; color: #fff; background: linear-gradient(#29b6f6, #0277bd); }
+  .chAdm { display: flex; gap: 6px; flex-wrap: wrap; } .chAdm button { background: linear-gradient(#ffd54f, #ffb300); color: #3a2a00; padding: 6px 9px; font-size: 12px; } .chAdm button.on { background: linear-gradient(#ef5350, #c62828); color: #fff; }
   .phBack { border: 0; background: none; color: #ffd54f; font: 800 14px "Segoe UI", sans-serif; cursor: pointer; padding: 2px 6px; text-align: left; }
   #wheel { position: fixed; inset: 0; z-index: 21; display: none; align-items: center; justify-content: center; background: radial-gradient(rgba(0,0,0,.35), rgba(0,0,0,.75)); }
   #wheel.on { display: flex; }
@@ -755,7 +767,11 @@
       isMalta: 'Мальта', isCyprus: 'Кипр', isFiji: 'Фиджи', isCosta: 'Коста-Рика', isIceland: 'Исландия', welcomeTo: 'Остров {n}', marina: 'Причал',
       boatMarina: '🚤 Твоя лодка ждёт у причала на пляже!', boatShore: '🌊 Подплыви к берегу, чтобы выйти',
       stTitle: '🔐 Код Степана', stHint: 'Ты зашёл как Степан Банан. Введи код, чтобы начать игру.', stGo: 'Войти ▶', stBad: '❌ Неверный код', stNotMe: 'Это не я — сменить игрока',
-      phHome: '📱 Телефон', phApp1: 'Контакты', phApp2: 'Банк Степана', phApp3: 'Карта', phApp4: 'Гараж', phHintHome: '1 / 2 — выбрать · 3 — открыть · 6 — закрыть',
+      phHome: '📱 Телефон', phApp6: 'Сообщения', chPh: 'Напиши сообщение…', chAnnPh: '📢 Объявление для всех…', chHint: 'Enter — отправить · не больше 100 букв', chHintAdm: '👑 Ты главный: объявления, очистка, 🔇 — выключить чат игроку',
+      chAnn: 'Объявление', chClear: 'Очистить', chBoss: 'ГЛАВНЫЙ', chEmpty: 'Пока никто не писал. Напиши первым! 👋', chOffline: 'Чат работает, когда есть интернет и мультиплеер.',
+      chWait: 'Подожди пару секунд перед следующим сообщением.', chMuted: '🔇 Степан выключил тебе чат. Осталось {m} мин.', chMutedYou: '🔇 Степан Банан выключил тебе чат на 5 минут.',
+      chMutedOther: '🔇 Чат выключен для {n} на 5 минут.', chCleared: '🧹 Степан Банан очистил чат.',
+      phApp1: 'Контакты', phApp2: 'Банк Степана', phApp3: 'Карта', phApp4: 'Гараж', phHintHome: '1 / 2 — выбрать · 3 — открыть · 6 — закрыть',
       bkLeft: 'Сегодня можно попросить ещё {n} раз(а) из 3.', bkLimit: '⏳ Ты уже 3 раза просил сегодня. Приходи завтра!',
       bkTitle: '🏪 Банк Степана', bkHintUser: 'Здесь можно попросить денег у Степана Банана. Выбери сумму и нажми «Попросить».', bkHintAdmin: 'Ты — Степан! Можешь брать деньги себе и отправлять их другим игрокам.',
       bkHintLock: 'Это банк Степана. Если ты Степан — введи свой секретный код.', bkCode: 'Секретный код', bkUnlock: '🔓 Открыть', bkBadCode: '❌ Неверный код',
@@ -768,7 +784,7 @@
       mbSign1: 'ВОЕННАЯ БАЗА', mbSign2: 'ВХОД ЗАПРЕЩЁН', jetHint: 'Q / 4 / клик — ракеты 🚀',
       stealPrompt: 'Нажми {k} — угнать: {n}', stoleMil: '🚨 Ты угнал военную технику! Армия гонится за тобой!', stoleAir: '🚨 Угон в аэропорту! Полиция уже едет!',
       baseAlert: '⚠️ Военная база! Тебя заметили солдаты!', drowned: '🌊 Утонул! Выплываешь на пляж…',
-      lgAirport: '✈️ Аэропорт', lgBase: '🪖 Военная база', lgBeach: '🏖 Пляж', lgMount: '⛰ Гора Орлиная', lgOcean: 'Океан', lgHighway: 'Кольцевое шоссе', lgBridgeBig: '🌉 Мост Чаек', lgIsland: '🏝 Остров Чаек', lgFreeway: 'Скоростная эстакада', lgCoast: 'Прибрежное шоссе',
+      lgAirport: '✈️ Аэропорт', lgBase: '🪖 Военная база', lgBeach: '🏖 Пляж', lgMount: '⛰ Гора Орлиная', lgMansion: '👑 Особняк Степана', mansionSign: 'Особняк Степана Банана', mansionLocked: '🔒 Это особняк Степана Банана — заходить может только он!', lgOcean: 'Океан', lgHighway: 'Кольцевое шоссе', lgBridgeBig: '🌉 Мост Чаек', lgIsland: '🏝 Остров Чаек', lgFreeway: 'Скоростная эстакада', lgCoast: 'Прибрежное шоссе',
       mapMe: '🎯 Где я', mapZoomHint: 'Колёсико или ➕➖ — приблизить, тяни мышкой — двигать карту',
         streetsH: 'Проспект Мира|ул. Гонщиков|Садовая ул.|Центральный пр.|ул. Победы|Солнечная ул.|Лесная ул.|ул. Трамплинов|Морская ул.|Новая ул.|Парковая ул.|Речная ул.|ул. Строителей|Школьная ул.',
         streetsV: 'ул. Ленина|Зелёная ул.|Кленовая ул.|Вокзальная ул.|Мостовая ул.|ул. Гагарина|Озёрная ул.|Широкая ул.|Звёздная ул.|ул. Механиков|Яблочная ул.|Тихая ул.|Восточная ул.|Полевая ул.',
@@ -800,7 +816,11 @@
       isMalta: 'Malta', isCyprus: 'Cyprus', isFiji: 'Fiji', isCosta: 'Costa Rica', isIceland: 'Iceland', welcomeTo: '{n} Island', marina: 'Marina',
       boatMarina: '🚤 Your boat is waiting at the beach marina!', boatShore: '🌊 Get close to the shore to get off',
       stTitle: '🔐 Stepan’s code', stHint: 'You signed in as Stepan Banan. Enter the code to start the game.', stGo: 'Enter ▶', stBad: '❌ Wrong code', stNotMe: 'That’s not me — switch player',
-      phHome: '📱 Phone', phApp1: 'Contacts', phApp2: 'Stepan’s Bank', phApp3: 'Map', phApp4: 'Garage', phHintHome: '1 / 2 — pick · 3 — open · 6 — close',
+      phHome: '📱 Phone', phApp6: 'Messages', chPh: 'Type a message…', chAnnPh: '📢 Announcement for everyone…', chHint: 'Enter — send · up to 100 letters', chHintAdm: '👑 You are the boss: announcements, clear, 🔇 — mute a player',
+      chAnn: 'Announce', chClear: 'Clear', chBoss: 'BOSS', chEmpty: 'No messages yet. Say hi first! 👋', chOffline: 'Chat works when you are online in multiplayer.',
+      chWait: 'Wait a couple of seconds before the next message.', chMuted: '🔇 Stepan muted your chat. {m} min left.', chMutedYou: '🔇 Stepan Banan muted your chat for 5 minutes.',
+      chMutedOther: '🔇 Chat muted for {n} for 5 minutes.', chCleared: '🧹 Stepan Banan cleared the chat.',
+      phApp1: 'Contacts', phApp2: 'Stepan’s Bank', phApp3: 'Map', phApp4: 'Garage', phHintHome: '1 / 2 — pick · 3 — open · 6 — close',
       bkLeft: 'You can ask {n} more time(s) today (3 per day).', bkLimit: '⏳ You already asked 3 times today. Come back tomorrow!',
       bkTitle: '🏪 Stepan’s Bank', bkHintUser: 'Here you can ask Stepan Banan for money. Pick an amount and press “Ask”.', bkHintAdmin: 'You are Stepan! You can take money for yourself and send it to other players.',
       bkHintLock: 'This is Stepan’s bank. If you are Stepan, enter your secret code.', bkCode: 'Secret code', bkUnlock: '🔓 Unlock', bkBadCode: '❌ Wrong code',
@@ -813,7 +833,7 @@
       mbSign1: 'MILITARY BASE', mbSign2: 'NO ENTRY', jetHint: 'Q / 4 / click — missiles 🚀',
       stealPrompt: 'Press {k} — steal: {n}', stoleMil: '🚨 You stole military equipment! The army is after you!', stoleAir: '🚨 Theft at the airport! The police are coming!',
       baseAlert: '⚠️ Military base! The soldiers spotted you!', drowned: '🌊 You drowned! Swimming back to the beach…',
-      lgAirport: '✈️ Airport', lgBase: '🪖 Military base', lgBeach: '🏖 Beach', lgMount: '⛰ Eagle Mountain', lgOcean: 'Ocean', lgHighway: 'Ring highway', lgBridgeBig: '🌉 Seagull Bridge', lgIsland: '🏝 Seagull Island', lgFreeway: 'Elevated freeway', lgCoast: 'Coast road',
+      lgAirport: '✈️ Airport', lgBase: '🪖 Military base', lgBeach: '🏖 Beach', lgMount: '⛰ Eagle Mountain', lgMansion: '👑 Stepan’s Mansion', mansionSign: 'Stepan Banan’s Mansion', mansionLocked: '🔒 This is Stepan Banan’s mansion — only he can go in!', lgOcean: 'Ocean', lgHighway: 'Ring highway', lgBridgeBig: '🌉 Seagull Bridge', lgIsland: '🏝 Seagull Island', lgFreeway: 'Elevated freeway', lgCoast: 'Coast road',
       mapMe: '🎯 Where am I', mapZoomHint: 'Wheel or ➕➖ — zoom, drag with the mouse — move the map',
         streetsH: 'Peace Ave|Racer St|Garden St|Central Ave|Victory St|Sunny St|Forest St|Ramp St|Ocean St|New St|Park St|River St|Builders St|School St',
         streetsV: 'Main St|Green St|Maple St|Station St|Bridge St|Star St|Lake St|Broadway|Comet St|Mechanic St|Apple St|Quiet St|East St|Field St',
@@ -1204,10 +1224,12 @@
     }
     return [Math.sqrt(bd), bh];
   }
+  const MZ = { x0: -1700, y0: 1000, x1: -1260, y1: 1320, h: 2 };   // особняк Степана Банана (у кольцевого шоссе на западе)
   function terrainH(x, y) {                                   // высота земли за городом (дороги — ровные)
     if (x > -300 && y > -300 && x < WORLD + 300 && y < WORLD + 300) return 0;
     let h = baseH(x, y);
     if (x < -700) { const [d, rh] = mrNear(x, y); if (d < 185) h = rh + (h - rh) * sstep(100, 185, d); }
+    { const dd = Math.max(MZ.x0 - 140 - x, x - MZ.x1 - 260, MZ.y0 - 140 - y, y - MZ.y1 - 200); if (dd < 240) h = MZ.h + (h - MZ.h) * sstep(0, 240, dd); }   // ровная площадка под особняк, двор и бассейн
     return h;
   }
   // скоростная эстакада над улицей города и большой мост
@@ -1218,7 +1240,7 @@
   const outerObs = [];                                        // дома и заборы за городом
   function outerSolid(px, py, z) {
     if (px < F0 + 4 || py < F0 + 4 || px > F1 - 4 || py > F1 - 4) return true;
-    for (const o of outerObs) if (px > o.x && px < o.x + o.w && py > o.y && py < o.y + o.h && z < o.top && z + 18 > (o.bot || 0)) return true;
+    for (const o of outerObs) if (px > o.x && px < o.x + o.w && py > o.y && py < o.y + o.h && z < o.top && z + 18 > (o.bot || 0) && !(o.lock && window.__isBanker?.())) return true;
     return false;
   }
   function outerRoof(x, y, z) {
@@ -5343,6 +5365,88 @@
     for (let s = -PL / 2; s <= PL / 2; s += 80) for (const x of [-40, 40]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 40, 6), new THREE.MeshStandardMaterial({ color: '#5d4037' })); p.position.set(GC + x, -12, cy + s); scene.add(p); }
     for (const x of [-44, 44]) { const r = new THREE.Mesh(new THREE.BoxGeometry(2, 8, PL), new THREE.MeshStandardMaterial({ color: '#efebe9' })); r.position.set(GC + x, 13, cy); scene.add(r); }
   }
+  // --- особняк Степана Банана: самый большой дом, 2 этажа, пандус наверх, крыша с вертолётной площадкой ---
+  const MANSION = (() => {
+    const B = MZ.h, F2 = B + 64, RF = B + 128, x0 = MZ.x0, y0 = MZ.y0, W = MZ.x1 - MZ.x0, D = MZ.y1 - MZ.y0, T = 10;
+    const stoneM = new THREE.MeshStandardMaterial({ color: '#f5f0e6', roughness: .55 }), goldM = new THREE.MeshStandardMaterial({ color: '#ffca28', metalness: .9, roughness: .25, envMap: scene.userData.env });
+    const glassM = new THREE.MeshStandardMaterial({ color: '#80deea', metalness: .6, roughness: .08, transparent: true, opacity: .35, envMap: scene.userData.env, depthWrite: false });
+    const floorM = new THREE.MeshStandardMaterial({ color: '#efe6d8', roughness: .25, metalness: .1 }), darkM = new THREE.MeshStandardMaterial({ color: '#3e2723', roughness: .6 });
+    const add = (geo, mat, x, y, z, ry = 0, cast = true) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = ry; m.castShadow = cast; m.receiveShadow = true; scene.add(m); return m; };
+    const bx = (lx, ly, w, d, z0, h, mat, cast = true) => add(new THREE.BoxGeometry(w, h, d), mat, x0 + lx + w / 2, z0 + h / 2, y0 + ly + d / 2, 0, cast);
+    const obs = (lx, ly, w, d, bot, top, extra) => outerObs.push({ x: x0 + lx, y: y0 + ly, w, h: d, bot, top, ...extra });
+    // стены: низ из камня, посередине стекло (видно, что внутри), сверху карниз
+    const wallSeg = (lx, ly, w, d, z0, glass = true) => {
+      bx(lx, ly, w, d, z0, 16, stoneM); if (glass) bx(lx + (w > d ? 0 : 2), ly + (w > d ? 2 : 0), w > d ? w : d > w ? T - 4 : w, w > d ? T - 4 : d, z0 + 16, 34, glassM, false); else bx(lx, ly, w, d, z0 + 16, 34, stoneM); bx(lx, ly, w, d, z0 + 50, 14, stoneM);
+    };
+    for (const z0 of [B, F2]) {
+      wallSeg(0, 0, W, T, z0, z0 === F2); wallSeg(0, D - T, W, T, z0); wallSeg(0, 0, T, D, z0);
+      if (z0 === B) { wallSeg(W - T, 0, T, 130, z0); wallSeg(W - T, 200, T, D - 200, z0); bx(W - T, 130, T, 70, B + 54, 10, stoneM); }   // парадный вход с востока
+      else wallSeg(W - T, 0, T, D, z0);
+    }
+    obs(0, 0, W, T, B - 20, RF); obs(0, D - T, W, T, B - 20, RF); obs(0, 0, T, D, B - 20, RF);
+    obs(W - T, 0, T, 130, B - 20, RF); obs(W - T, 200, T, D - 200, B - 20, RF); obs(W - T, 130, T, 70, B + 54, RF);
+    obs(W - T, 130, T, 70, B - 20, B + 54, { lock: true });                                      // дверь: открывается только Степану
+    const door = bx(W - T / 2 - 2, 130, 4, 70, B, 54, new THREE.MeshStandardMaterial({ color: '#6d4c41', roughness: .5 }));
+    for (const dy of [140, 172]) bx(W + 2, dy, 2, 6, B + 26, 3, goldM);                             // золотые ручки
+    // пол, второй этаж (с проёмом для пандуса) и крыша
+    bx(0, 0, W, D, B - .5, 1, floorM, false);
+    const RAMP = { lx0: 120, lx1: 400, ly0: T, ly1: 80 };
+    bx(T, RAMP.ly1, W - 2 * T, D - T - RAMP.ly1, F2 - 6, 6, floorM); bx(T, T, RAMP.lx0 - T, RAMP.ly1 - T, F2 - 6, 6, floorM);
+    bx(RAMP.lx1, T, W - T - RAMP.lx1, RAMP.ly1 - T, F2 - 6, 6, floorM);
+    PLATS.push({ cx: x0 + W / 2 + (RAMP.ly1 - T) / 2 * 0, cy: y0 + (RAMP.ly1 + D - T) / 2, ux: 1, uy: 0, L: W - 2 * T, Wd: D - T - RAMP.ly1, h0: F2, h1: F2, bot: F2 - 6, mansion: 1 });
+    PLATS.push({ cx: x0 + (T + RAMP.lx0) / 2, cy: y0 + (T + RAMP.ly1) / 2, ux: 1, uy: 0, L: RAMP.lx0 - T, Wd: RAMP.ly1 - T, h0: F2, h1: F2, bot: F2 - 6, mansion: 1 });
+    PLATS.push({ cx: x0 + (RAMP.lx1 + W - T) / 2, cy: y0 + (T + RAMP.ly1) / 2, ux: 1, uy: 0, L: W - T - RAMP.lx1, Wd: RAMP.ly1 - T, h0: F2, h1: F2, bot: F2 - 6, mansion: 1 });
+    // пандус-лестница на второй этаж (поднимается с востока на запад)
+    PLATS.push({ cx: x0 + (RAMP.lx0 + RAMP.lx1) / 2, cy: y0 + (RAMP.ly0 + RAMP.ly1) / 2, ux: -1, uy: 0, L: RAMP.lx1 - RAMP.lx0, Wd: RAMP.ly1 - RAMP.ly0, h0: B, h1: F2, bot: B, mansion: 1 });
+    { const L = RAMP.lx1 - RAMP.lx0, Wd = RAMP.ly1 - RAMP.ly0, sh = new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(L, 0), new THREE.Vector2(L, F2 - B), new THREE.Vector2(L, F2 - B - 3)]);
+      const g = new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(L, F2 - B), new THREE.Vector2(L, F2 - B - 4), new THREE.Vector2(0, -2)]), { depth: Wd, bevelEnabled: false });
+      const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: '#b71c1c', roughness: .7 })); m.rotation.y = Math.PI; m.position.set(x0 + RAMP.lx1, B, y0 + RAMP.ly1); m.castShadow = m.receiveShadow = true; scene.add(m);
+      for (let k = 0; k <= 10; k++) { const lx = RAMP.lx0 + k * L / 10; bx(lx - 1, RAMP.ly1 - 2, 2, 2, B + (RAMP.lx1 - lx) / L * (F2 - B), 14, goldM); }   // золотые перила
+      void sh; }
+    obs(RAMP.lx0, RAMP.ly1, RAMP.lx1 - RAMP.lx0 + 20, 4, F2, F2 + 16);                         // перила на втором этаже, чтобы не упасть в проём
+    bx(RAMP.lx0, RAMP.ly1, RAMP.lx1 - RAMP.lx0 + 20, 2, F2, 14, goldM);
+    PLATS.push({ cx: x0 + W / 2, cy: y0 + D / 2, ux: 1, uy: 0, L: W, Wd: D, h0: RF, h1: RF, bot: RF - 6, mansion: 1 });
+    bx(-6, -6, W + 12, D + 12, RF - 6, 6, stoneM); bx(-8, -8, W + 16, 6, RF, 6, goldM); bx(-8, D + 2, W + 16, 6, RF, 6, goldM); bx(-8, -8, 6, D + 16, RF, 6, goldM); bx(W + 2, -8, 6, D + 16, RF, 6, goldM);
+    for (const [lx, ly] of [[0, 0], [W, 0], [0, D], [W, D], [W, 130], [W, 200]]) add(new THREE.CylinderGeometry(7, 8, RF - B, 14), goldM, x0 + lx, B + (RF - B) / 2, y0 + ly);   // золотые колонны
+    // на крыше: вертолётная площадка, бассейн и большая корона
+    const padTex = outerTex(256, 256, (g, w, h) => { g.fillStyle = '#37474f'; g.fillRect(0, 0, w, h); g.strokeStyle = '#ffd54f'; g.lineWidth = 14; g.beginPath(); g.arc(128, 128, 104, 0, 7); g.stroke(); g.fillStyle = '#fff'; g.font = 'bold 150px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('H', 128, 136); });
+    add(new THREE.PlaneGeometry(150, 150).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: padTex, roughness: .8 }), x0 + 110, RF + .3, y0 + D / 2, 0, false);
+    bx(250, 60, 150, 90, RF, 2, stoneM); add(new THREE.PlaneGeometry(136, 76).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#29b6f6', metalness: .3, roughness: .05, envMap: scene.userData.env }), x0 + 325, RF + 2.3, y0 + 105, 0, false);
+    const crown = new THREE.Group(); crown.position.set(x0 + 330, RF, y0 + 240); scene.add(crown);
+    { const ring = new THREE.Mesh(new THREE.CylinderGeometry(26, 22, 18, 24, 1, true), goldM); ring.position.y = 9; crown.add(ring);
+      for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2, sp = new THREE.Mesh(new THREE.ConeGeometry(6, 22, 8), goldM); sp.position.set(Math.cos(a) * 24, 28, Math.sin(a) * 24); crown.add(sp);
+        const gem = new THREE.Mesh(new THREE.SphereGeometry(3.4, 10, 8), new THREE.MeshStandardMaterial({ color: ['#e53935', '#1e88e5', '#43a047'][k % 3], emissive: ['#e53935', '#1e88e5', '#43a047'][k % 3], emissiveIntensity: .6 })); gem.position.set(Math.cos(a) * 25.5, 12, Math.sin(a) * 25.5); crown.add(gem); } }
+    // вывеска над входом (смотрит на шоссе, на восток)
+    const sign = add(new THREE.PlaneGeometry(220, 34), new THREE.MeshBasicMaterial({ map: outerTex(1024, 160, (g, w, h) => { g.fillStyle = '#3a2a00'; g.fillRect(0, 0, w, h); g.strokeStyle = '#ffd54f'; g.lineWidth = 12; g.strokeRect(8, 8, w - 16, h - 16); g.fillStyle = '#ffd54f'; g.font = 'bold 74px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('👑 ' + t('mansionSign'), w / 2, h / 2 + 4); }) }), x0 + W + 9, F2 + 26, y0 + 165, Math.PI / 2, false);
+    void sign;
+    // мебель первого этажа: ковёр, диваны, огромный телевизор, люстры, фонтан, золотой сейф
+    bx(150, 110, 220, 150, B + .2, .6, new THREE.MeshStandardMaterial({ color: '#c62828', roughness: .9 }), false);
+    bx(170, 240, 120, 28, B, 16, new THREE.MeshStandardMaterial({ color: '#4e342e', roughness: .7 })); bx(170, 230, 120, 10, B + 16, 14, new THREE.MeshStandardMaterial({ color: '#4e342e', roughness: .7 }));
+    bx(T + 2, 140, 6, 100, B + 18, 50, new THREE.MeshStandardMaterial({ color: '#111', emissive: '#1565c0', emissiveIntensity: .5, roughness: .2 }));
+    bx(60, 250, 40, 40, B, 30, goldM); add(new THREE.PlaneGeometry(30, 14), new THREE.MeshBasicMaterial({ map: outerTex(128, 64, (g, w, h) => { g.fillStyle = '#5d4300'; g.fillRect(0, 0, w, h); g.font = 'bold 44px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('💰', w / 2, h / 2); }) }), x0 + 80, B + 18, y0 + 249, Math.PI, false);
+    { const f = add(new THREE.CylinderGeometry(24, 28, 8, 24), stoneM, x0 + 300, B + 4, y0 + 180); f.castShadow = false; add(new THREE.CylinderGeometry(20, 20, 1, 24), new THREE.MeshStandardMaterial({ color: '#4fc3f7', roughness: .05 }), x0 + 300, B + 8.2, y0 + 180, 0, false); add(new THREE.CylinderGeometry(3, 4, 18, 10), goldM, x0 + 300, B + 14, y0 + 180); }
+    obs(276, 156, 48, 48, B - 5, B + 9); obs(60, 250, 40, 40, B - 5, B + 30);
+    const chandM = new THREE.MeshStandardMaterial({ color: '#fff8e1', emissive: '#ffe082', emissiveIntensity: 1.4 });
+    for (const [lx, ly, z] of [[200, 180, F2 - 14], [330, 250, F2 - 14], [200, 180, RF - 14], [330, 230, RF - 14]]) { add(new THREE.SphereGeometry(7, 14, 10), chandM, x0 + lx, z, y0 + ly, 0, false); add(new THREE.CylinderGeometry(.6, .6, 8, 6), goldM, x0 + lx, z + 8, y0 + ly, 0, false); }
+    // второй этаж: огромная кровать, игровая с бильярдом, золотой трон
+    bx(40, 200, 90, 100, F2, 12, new THREE.MeshStandardMaterial({ color: '#fafafa', roughness: .8 })); bx(40, 290, 90, 10, F2, 28, goldM); bx(50, 205, 70, 30, F2 + 12, 4, new THREE.MeshStandardMaterial({ color: '#ffd54f', roughness: .8 }));
+    bx(230, 120, 90, 50, F2, 14, new THREE.MeshStandardMaterial({ color: '#2e7d32', roughness: .9 })); bx(226, 116, 98, 4, F2 + 14, 3, darkM); bx(226, 166, 98, 4, F2 + 14, 3, darkM);
+    bx(360, 250, 40, 40, F2, 12, goldM); bx(360, 286, 40, 8, F2 + 12, 34, goldM); bx(366, 256, 28, 26, F2 + 12, 4, new THREE.MeshStandardMaterial({ color: '#c62828', roughness: .8 }));
+    obs(40, 200, 90, 100, F2 - 5, F2 + 12); obs(230, 120, 90, 50, F2 - 5, F2 + 14); obs(360, 250, 40, 44, F2 - 5, F2 + 30);
+    // двор: бассейн, подъездная дорога к шоссе, пальмы и кусты
+    add(new THREE.PlaneGeometry(MZ.x1 + 120 - x0 + 120, MZ.y1 + 160 - y0 + 120).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#7cb342', roughness: .95, polygonOffset: true, polygonOffsetFactor: -1 }), (x0 - 120 + MZ.x1 + 120) / 2, B + .15, (y0 - 120 + MZ.y1 + 160) / 2, 0, false);
+    add(new THREE.PlaneGeometry(-HW_D - 140 - MZ.x1 + 10, 90).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#d7ccc8', roughness: .8, polygonOffset: true, polygonOffsetFactor: -2 }), (MZ.x1 - 10 + -HW_D - 140) / 2, B + .3, y0 + 165, 0, false);
+    bx(120, D + 40, 200, 90, B - 1, 2, stoneM, false); add(new THREE.PlaneGeometry(186, 76).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#29b6f6', metalness: .3, roughness: .05, envMap: scene.userData.env }), x0 + 220, B + 1.2, y0 + D + 85, 0, false);
+    for (const [lx, ly] of [[W + 60, 90], [W + 60, 240], [W + 160, 90], [W + 160, 240], [-60, 40], [-60, D - 40], [40, D + 160], [360, D + 160]]) {
+      add(new THREE.CylinderGeometry(2.4, 3.4, 44, 7), new THREE.MeshStandardMaterial({ color: '#8d6e63', roughness: .9 }), x0 + lx, B + 22, y0 + ly);
+      for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2, lf = add(new THREE.ConeGeometry(4, 30, 4), new THREE.MeshStandardMaterial({ color: '#388e3c', roughness: .8 }), x0 + lx + Math.cos(a) * 11, B + 44, y0 + ly + Math.sin(a) * 11); lf.rotation.set(Math.sin(a) * 1.3, 0, -Math.cos(a) * 1.3); }
+    }
+    return { door, x: x0 + W, y: y0 + 165, cx: x0 + W / 2, cy: y0 + D / 2, B, F2, RF };
+  })();
+  setInterval(() => {                                                     // дверь видна закрытой всем, кроме Степана
+    const ban = !!window.__isBanker?.(); MANSION.door.visible = !ban;
+    if (!ban && window.__started && Math.hypot(car.x - MANSION.x, car.y - MANSION.y) < 70 && (car.z || 0) < MANSION.F2) { const n = performance.now(); if (!(MANSION.msgT > n)) { MANSION.msgT = n + 5000; showMsg(t('mansionLocked'), 2500); } }
+  }, 400);
   // --- лес на холмах и пальмы на пляже (много деревьев одной «пачкой») ---
   {
     const pine = [], palm = [];
@@ -5350,6 +5454,7 @@
       const x = MI0 + 700 + Math.random() * (-1300 - MI0 - 700), y = MI0 + 700 + Math.random() * (MI1 - MI0 - 1400);
       const h = terrainH(x, y); if (h < 4 || h > 640) continue;
       if (Math.abs(hwDist(x, y)) < 260) continue;
+      if (x > MZ.x0 - 400 && x < MZ.x1 + 300 && y > MZ.y0 - 400 && y < MZ.y1 + 400) continue;   // двор особняка
       if (x > MX - 1400 && y > MY - 1400 && y < MY + 1400 && mrNear(x, y)[0] < 130) continue;
       pine.push([x, y, h]);
     }
@@ -5852,7 +5957,7 @@
     g.fillStyle = sat ? '#8d6e4a' : '#7a6a52'; g.fillRect(GC - 45, SHORE - 200, 90, 820);
   }
   const OUTER_LABELS = [['lgAirport', (AP.x0 + AP.x1) / 2, GC - 200], ['lgBase', (MB.x0 + MB.x1) / 2, MB.y0 + 450], ['lgBeach', WORLD / 2 + 1400, SHORE - 150],
-    ['lgMount', MX, MY - 1150], ['lgBridgeBig', IX + 230, (BR.y1 + BR.y2) / 2], ['lgIsland', IX, IY + 430], ['lgFreeway', FWX + 300, WORLD * .3], ['lgCoast', -3450, 2600], ['lgOcean', WORLD * .75 + 2000, MI1 + 3300], ...ISLES.map(I => [I.key, I.x, I.y - I.r * .15]), ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
+    ['lgMount', MX, MY - 1150], ['lgMansion', MZ.x0 + 220, MZ.y0 - 110], ['lgBridgeBig', IX + 230, (BR.y1 + BR.y2) / 2], ['lgIsland', IX, IY + 430], ['lgFreeway', FWX + 300, WORLD * .3], ['lgCoast', -3450, 2600], ['lgOcean', WORLD * .75 + 2000, MI1 + 3300], ...ISLES.map(I => [I.key, I.x, I.y - I.r * .15]), ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
 
   // ================== Друзья ==================
   if (!save.friends || !Array.isArray(save.friends.names)) save.friends = { names: ['Армин', 'Кинан'], on: true };
@@ -6131,10 +6236,11 @@
   // ================== Телефон: звоним друзьям ==================
   const phoneEl = document.getElementById('phone'), phList = document.getElementById('phList');
   let phoneOpen = false, phSel = 0, phCalling = null, phTimer = 0, phView = 'home';
-  const PH_APPS = [['contacts', '📞', 'phApp1', '#43a047'], ['bank', '🏪', 'phApp2', '#ffb300'], ['missions', '⭐', 'phApp5', '#8e24aa'], ['map', '🗺', 'phApp3', '#1e88e5'], ['garage', '🚗', 'phApp4', '#e53935']];
+  const PH_APPS = [['chat', '💬', 'phApp6', '#00acc1'], ['contacts', '📞', 'phApp1', '#43a047'], ['bank', '🏪', 'phApp2', '#ffb300'], ['missions', '⭐', 'phApp5', '#8e24aa'], ['map', '🗺', 'phApp3', '#1e88e5'], ['garage', '🚗', 'phApp4', '#e53935']];
   function openApp(id) {
     if (id === 'contacts') { phView = 'contacts'; phSel = 0; renderPhone(); return; }
     if (id === 'missions') { phView = 'missions'; phSel = 0; renderPhone(); return; }
+    if (id === 'chat') { phView = 'chat'; phList.innerHTML = ''; renderPhone(); setTimeout(() => document.getElementById('chatTx')?.focus(), 60); return; }
     togglePhone(false);
     if (id === 'bank') window.__toggleBank?.(true);
     else if (id === 'map') window.__toggleMap?.(true);
@@ -6142,21 +6248,23 @@
   }
   function renderPhone() {
     document.getElementById('phClock').textContent = document.getElementById('clock').textContent;
+    phoneEl.classList.toggle('wide', phView === 'chat');
+    if (phView === 'chat') { window.__chatRender?.(phList); return; }   // переписка: поле ввода не трогаем, обновляем только сообщения
     if (phView === 'home') {                                       // главный экран: приложения
       document.getElementById('phTitle').textContent = t('phHome');
       document.getElementById('phHint').textContent = t('phHintHome');
       const reqs = window.__bankReqs?.() || 0;
-      phList.innerHTML = '<div class="phApps">' + PH_APPS.map(([id, ic, key, col], i) => `<button class="phApp${i === phSel ? ' sel' : ''}" data-app="${id}"><span style="background:${col}">${ic}</span>${esc(t(key))}${id === 'bank' && reqs ? `<i>${reqs}</i>` : ''}</button>`).join('') + '</div>';
+      phList.innerHTML = '<div class="phApps">' + PH_APPS.map(([id, ic, key, col], i) => `<button class="phApp${i === phSel ? ' sel' : ''}" data-app="${id}"><span style="background:${col}">${ic}</span>${esc(t(key))}${id === 'bank' && reqs ? `<i>${reqs}</i>` : ''}${id === 'chat' && window.__chatUnread?.() ? `<i>${window.__chatUnread()}</i>` : ''}</button>`).join('') + '</div>';
       return;
     }
     if (phView === 'missions') {                                    // список миссий
       document.getElementById('phTitle').textContent = t('mList'); document.getElementById('phHint').textContent = t('mHint');
-      phList.innerHTML = `<button class="phBack" data-home="1">← ${esc(t('back'))}</button>` + (window.__missionList?.() || []).map(m => `<div class="phRow" data-mis="${m.id}"><div class="phAva" style="background:${m.done ? '#43a047' : '#8e24aa'}">${m.done ? '✅' : '⭐'}</div><div class="phTxt"><b>${esc(m.name)}</b><small>🎁 ${esc(m.reward)}</small></div><button data-mis="${m.id}">🗺</button></div>`).join('');
+      phList.innerHTML = `<button class="phBack" data-home="1">${esc(t('back'))}</button>` + (window.__missionList?.() || []).map(m => `<div class="phRow" data-mis="${m.id}"><div class="phAva" style="background:${m.done ? '#43a047' : '#8e24aa'}">${m.done ? '✅' : '⭐'}</div><div class="phTxt"><b>${esc(m.name)}</b><small>🎁 ${esc(m.reward)}</small></div><button data-mis="${m.id}">🗺</button></div>`).join('');
       return;
     }
     document.getElementById('phTitle').textContent = t('phTitle');
     document.getElementById('phHint').textContent = t('phHint');
-    phList.innerHTML = `<button class="phBack" data-home="1">← ${esc(t('back'))}</button>` + friends.map((f, i) => {
+    phList.innerHTML = `<button class="phBack" data-home="1">${esc(t('back'))}</button>` + friends.map((f, i) => {
       const st = !save.friends.on ? '' : t(f.mode === 'with' ? 'frWith' : f.mode === 'come' ? 'frCome' : 'frRoam');
       const btn = phCalling === f ? `<button disabled><span class="phRing">📞</span> ${t('phCalling')}</button>`
         : f.mode === 'with' && save.friends.on ? `<button class="bye" data-i="${i}">${t('phBye')}</button>`
@@ -6175,12 +6283,12 @@
   }
   function togglePhone(on = !phoneOpen) {
     phoneOpen = on; phoneEl.classList.toggle('on', on);
-    if (on) { held.clear(); refreshKeys(); phView = 'home'; phSel = 0; renderPhone(); clearInterval(phTimer); phTimer = setInterval(renderPhone, 600); }
+    if (on) { held.clear(); refreshKeys(); phView = 'home'; phSel = 0; window.__chatClosed?.(); renderPhone(); clearInterval(phTimer); phTimer = setInterval(renderPhone, 600); }
     else clearInterval(phTimer);
   }
   phList.addEventListener('click', e => {
     const ap = e.target.closest('button[data-app]'); if (ap) { openApp(ap.dataset.app); return; }
-    if (e.target.closest('[data-home]')) { phView = 'home'; phSel = 0; renderPhone(); return; }
+    if (e.target.closest('[data-home]')) { phView = 'home'; phSel = 0; window.__chatClosed?.(); renderPhone(); return; }
     const mis = e.target.closest('[data-mis]'); if (mis) { window.__missionGo?.(mis.dataset.mis); togglePhone(false); return; }
     const b = e.target.closest('button[data-i]'); if (b) { phoneAct(+b.dataset.i); return; }
     const r = e.target.closest('[data-row]'); if (r) { phSel = +r.dataset.row; renderPhone(); }
@@ -6189,6 +6297,7 @@
   window.__phoneOpen = () => phoneOpen;
   window.__togglePhone = togglePhone;
   window.__phoneKey = a => {
+    if (phView === 'chat') return;
     if (phView === 'home') {
       const n = PH_APPS.length;
       if (a === 'left') phSel = (phSel + n - 1) % n; else if (a === 'right') phSel = (phSel + 1) % n;
@@ -6270,6 +6379,7 @@
     let m; try { m = JSON.parse(text); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
     if (m.bank && typeof m.bank === 'object') { onBank(id, m.bank); return; }
+    if (m.chat && typeof m.chat === 'object') { window.__onChat?.(id, m.chat); return; }
     if (m.bye) { const old = net.mqPeers.get(id); if (old) { net.mqPeers.delete(id); showMsg(t('netLeft', { n: cleanName(old.presence.nm) }), 1800); dropRemote(id); renderNet(); } return; }
     if (!Number.isFinite(m.x) || !Number.isFinite(m.y)) return;
     const isNew = !net.mqPeers.has(id);
@@ -6343,6 +6453,7 @@
   const nickKey = v => (v || '').toLowerCase().replace(/[^a-zа-яё0-9]/g, '');
   const isStepanNick = () => STEPAN_NICKS.includes(nickKey(save.nick));
   const isBanker = () => isStepanNick() && save.bankOk === BANK_HASH;
+  window.__isBanker = isBanker;
   const bankEl = document.getElementById('bank'), bankBody = document.getElementById('bankBody'), bankBadge = document.getElementById('bankBadge');
   let bankOpen = false, bankAmt = 10000, lastAsk = 0, bankMsg = '';
   const bankReqs = [];                                                             // просьбы к Степану: { id, nm, amt }
@@ -6454,6 +6565,86 @@
   if (menuOpen && isStepanNick() && !window.__needNick?.()) window.__askStepanCode();
   window.__bankOpen = () => bankOpen; window.__toggleBank = toggleBank; window.__bankReqs = () => isBanker() ? bankReqs.length : 0;
   setInterval(() => { if (bankOpen) { const a = document.activeElement; if (!a || a.id !== 'bankCode') renderBank(); } }, 2000);
+  // ================== Чат в телефоне ==================
+  // Сообщения идут через те же серверы, что и мультиплеер (только в своей комнате). Степан Банан — главный:
+  // 👑 золотые сообщения, объявления на весь экран у всех, может выключить чат игроку и очистить чат.
+  const chatLog = []; let chatUnread = 0, chatAnn = false, lastChat = 0, chatBuilt = false, chatDirty = true;
+  const chatSeen = new Set();
+  const BAD = ['хуй', 'хуе', 'хуё', 'пизд', 'ебат', 'ебан', 'ёбан', 'выеб', 'заеб', 'бля', 'сука', 'суки', 'мудак', 'пидор', 'гандон', 'шлюх', 'fuck', 'shit', 'bitch', 'dick', 'cunt'];
+  const cleanChat = v => { let x = String(v || '').replace(/[\u0000-\u001f]/g, ' ').trim(); for (const w of BAD) x = x.replace(new RegExp(w + '[а-яёa-z]*', 'gi'), m => '*'.repeat(m.length)); return x; };
+  const chatMuted = () => (save.chatMute || 0) > Date.now();
+  function chatPush(m) {
+    chatLog.push(m); if (chatLog.length > 60) chatLog.shift();
+    const looking = window.__phoneOpen?.() && phoneEl.classList.contains('wide');
+    if (!m.me && !m.sys) {
+      if (!looking) { chatUnread++; if (!m.ann) showMsg('💬 ' + (m.adm ? '👑 ' : '') + esc(m.nm) + ': ' + esc(m.tx.slice(0, 60)), 2600); }
+    }
+    if (m.ann) showMsg('📢 👑 ' + esc(m.nm) + ': ' + esc(m.tx), 7000);
+    chatDirty = true;
+  }
+
+  function chatSend(obj) { obj.rid = Math.random().toString(36).slice(2, 10); mqPublish(JSON.stringify({ chat: obj })); return net.mq.some(c => c.ok); }
+  function onChat(from, c) {
+    if (typeof c.rid !== 'string' || chatSeen.has(c.rid)) return;
+    chatSeen.add(c.rid); if (chatSeen.size > 800) chatSeen.clear();
+    const peer = net.mqPeers.get(from), adm = !!(peer && peer.presence && peer.presence.adm);
+    const nm = cleanName(c.nm || (peer && peer.presence && peer.presence.nm));
+    if (c.t === 'clear') { if (adm) { chatLog.length = 0; chatPush({ sys: 1, tx: t('chCleared') }); } return; }
+    if (c.t === 'mute') {
+      if (adm && c.to === net.id) { save.chatMute = Date.now() + 5 * 60000; persist(); chatPush({ sys: 1, tx: t('chMutedYou') }); showMsg(t('chMutedYou'), 4000); }
+      return;
+    }
+    const tx = cleanChat(c.tx).slice(0, adm ? 300 : 100); if (!tx) return;
+    chatPush({ id: from, nm, tx, adm, ann: adm && !!c.ann });
+  }
+  function sendChat() {
+    const inp = document.getElementById('chatTx'); if (!inp) return;
+    const tx = cleanChat(inp.value).slice(0, isBanker() ? 300 : 100);
+    if (!tx) return;
+    if (net.room || !net.mq.some(q => q.ok)) { chatPush({ sys: 1, tx: t('chOffline') }); return; }
+    if (!isBanker()) {
+      if (chatMuted()) { chatPush({ sys: 1, tx: t('chMuted', { m: Math.ceil((save.chatMute - Date.now()) / 60000) }) }); return; }
+      if (performance.now() - lastChat < 3000) { chatPush({ sys: 1, tx: t('chWait') }); return; }
+    }
+    lastChat = performance.now();
+    const ann = isBanker() && chatAnn;
+    chatSend({ tx, nm: save.nick.slice(0, 16), ann: ann ? 1 : 0 });
+    chatPush({ me: 1, nm: save.nick.slice(0, 16), tx, adm: isBanker(), ann });
+    inp.value = ''; chatAnn = false; chatBuilt = false; inp.focus();
+  }
+  function chatRender(box) {
+    chatUnread = 0;
+    if (!chatBuilt || !document.getElementById('chatLog')) {
+      document.getElementById('phTitle').textContent = '💬 ' + t('phApp6');
+      document.getElementById('phHint').textContent = isBanker() ? t('chHintAdm') : t('chHint');
+      const adm = isBanker() ? `<div class="chAdm"><button data-ch="ann" class="${chatAnn ? 'on' : ''}">📢 ${esc(t('chAnn'))}</button><button data-ch="clear">🧹 ${esc(t('chClear'))}</button></div>` : '';
+      const keep = document.getElementById('chatTx')?.value || '';
+      box.innerHTML = `<button class="phBack" data-home="1">${esc(t('back'))}</button><div id="chatLog"></div>${adm}<div class="chIn"><input id="chatTx" maxlength="${isBanker() ? 300 : 100}" autocomplete="off" placeholder="${esc(t(isBanker() && chatAnn ? 'chAnnPh' : 'chPh'))}"><button data-ch="send">➤</button></div>`;
+      const inp = document.getElementById('chatTx'); inp.value = keep;
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendChat(); } else if (e.key === 'Escape') { inp.blur(); } e.stopPropagation(); });
+      chatBuilt = true; chatDirty = true;
+    }
+    if (!chatDirty) return; chatDirty = false;
+    const log = document.getElementById('chatLog');
+    const ban = isBanker();
+    log.innerHTML = chatLog.length ? chatLog.map((m, i) => m.sys ? `<div class="chM sys">${esc(m.tx)}</div>`
+      : `<div class="chM${m.me ? ' me' : ''}${m.adm ? ' adm' : ''}${m.ann ? ' ann' : ''}"><b>${m.ann ? '📢 ' : ''}${m.adm ? '👑 ' : ''}${esc(m.nm)}${m.adm ? ' · ' + esc(t('chBoss')) : ''}${ban && !m.me && !m.adm ? `<button data-mute="${i}">🔇</button>` : ''}</b>${esc(m.tx)}</div>`).join('')
+      : `<div class="chM sys">${esc(t(net.room ? 'chOffline' : 'chEmpty'))}</div>`;
+    log.scrollTop = log.scrollHeight;
+  }
+  phList.addEventListener('click', e => {
+    if (!phoneEl.classList.contains('wide')) return;
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.ch === 'send') sendChat();
+    else if (b.dataset.ch === 'ann' && isBanker()) { chatAnn = !chatAnn; chatBuilt = false; chatRender(phList); document.getElementById('chatTx')?.focus(); }
+    else if (b.dataset.ch === 'clear' && isBanker()) { chatSend({ t: 'clear' }); chatLog.length = 0; chatPush({ sys: 1, tx: t('chCleared') }); }
+    else if (b.dataset.mute && isBanker()) { const m = chatLog[+b.dataset.mute]; if (m && m.id) { chatSend({ t: 'mute', to: m.id }); chatPush({ sys: 1, tx: t('chMutedOther', { n: m.nm }) }); } }
+    chatRender(phList);
+  });
+  window.__chatRender = box => chatRender(box);
+  window.__chatUnread = () => chatUnread;
+  window.__onChat = onChat;
+  window.__chatClosed = () => { chatBuilt = false; };
   function netUpdate(dt, now) {
     if (!net.room && !net.mq.length) return;
     const moving = Math.hypot(car.vx, car.vy) > 3;
