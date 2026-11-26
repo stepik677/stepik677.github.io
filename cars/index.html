@@ -4597,7 +4597,7 @@
 
 
   // ================== Пешеходы ==================
-  const PCAP = 228;                                        // 220 прохожих + 8 мест для разозлённых водителей
+  const PCAP = 270;                                        // 220 прохожих + 8 мест для разозлённых водителей + люди в аэропорту
   const pGeo = {
     leg: new THREE.BoxGeometry(3.2, 10, 3.4).translate(0, -5, 0),
     body: new THREE.BoxGeometry(4.6, 9, 7.4).translate(0, 14.5, 0),
@@ -4620,6 +4620,7 @@
   // тротуар вокруг квартала — скруглённый прямоугольник по центру тротуара
   const P_IN = SW / 2, P_R = CR - P_IN, P_L = BS - 2 * P_IN, P_A = P_L - 2 * P_R, P_PER = 4 * P_A + 2 * Math.PI * P_R;
   function perim(b, sDist) {
+    if (b.route) return routeAt(b.route, sDist);           // свой маршрут (например, в аэропорту)
     let s2 = ((sDist % P_PER) + P_PER) % P_PER;
     const x0 = b.x + P_IN, y0 = b.y + P_IN, arc = Math.PI * P_R / 2;
     const corners = [[x0 + P_L - P_R, y0 + P_R], [x0 + P_L - P_R, y0 + P_L - P_R], [x0 + P_R, y0 + P_L - P_R], [x0 + P_R, y0 + P_R]];
@@ -4635,6 +4636,16 @@
       s2 -= arc;
     }
     return [x0 + P_R, y0, 0];
+  }
+  function makeRoute(pts) {                               // замкнутый маршрут по точкам
+    const segs = []; let len = 0;
+    pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length], l = Math.hypot(q[0] - p[0], q[1] - p[1]); segs.push({ p, q, l, h: Math.atan2(q[1] - p[1], q[0] - p[0]) }); len += l; });
+    return { segs, len };
+  }
+  function routeAt(R, sDist) {
+    let s2 = ((sDist % R.len) + R.len) % R.len;
+    for (const g of R.segs) { if (s2 <= g.l) { const f = s2 / g.l; return [g.p[0] + (g.q[0] - g.p[0]) * f, g.p[1] + (g.q[1] - g.p[1]) * f, g.h]; } s2 -= g.l; }
+    const g = R.segs[0]; return [g.p[0], g.p[1], g.h];
   }
   function spawnPeople(n) {
     while (people.length < n) {
@@ -4771,6 +4782,31 @@
     const i = people.length;
     spawnPeople(i + 1);
     Object.assign(people[i], { inactive: true, mode: 'idle', kos: 0 });
+  }
+  // люди в аэропорту: пассажиры с чемоданами ходят вокруг терминала и по парковке, на перроне — техники в оранжевых жилетах
+  {
+    const A = AP.x0;
+    const groups = [
+      { route: makeRoute([[A + 18, GC + 270], [A + 18, GC + 1430], [A + 322, GC + 1430], [A + 322, GC + 270]]), n: 16 },               // вокруг терминала
+      { route: makeRoute([[A + 20, GC + 1440], [A + 20, GC + 1800], [A + 320, GC + 1800], [A + 320, GC + 1440]]), n: 7 },             // парковка
+      { route: makeRoute([[A + 20, GC + 140], [A + 20, GC + 262], [A + 330, GC + 262], [A + 330, GC + 140]]), n: 5 },                // площадь у входа
+      { route: makeRoute([[A + 330, GC + 378], [A + 330, GC + 1322], [A + 565, GC + 1322], [A + 565, GC + 378]]), n: 8, crew: true }, // перрон у самолётов
+      { route: makeRoute([[A + 560, AP.y0 + 180], [A + 560, AP.y0 + 920], [A + 640, AP.y0 + 920], [A + 640, AP.y0 + 180]]), n: 4, crew: true },   // у ангаров
+    ];
+    const col = new THREE.Color();
+    for (const G of groups) for (let k = 0; k < G.n; k++) {
+      const i = people.length; if (i >= PCAP) break;
+      people.push({ b: { route: G.route }, s: Math.random() * G.route.len, dir: Math.random() < .5 ? 1 : -1, v: 14 + Math.random() * 14, ph: Math.random() * 6,
+        dodge: 0, side: 0, stop: 0, mode: 'walk', x: 0, y: 0, yaw: 0, downT: 0, fallA: 0, angryT: 0, hitCd: 0, punchT: 0 });
+      const shirt = G.crew ? pickR(['#ff6d00', '#ffab00', '#ff6d00']) : pickR(SHIRTS);
+      pInst.body.m.setColorAt(i, col.set(shirt));
+      const pc = new THREE.Color(G.crew ? '#263238' : pickR(PANTS));
+      pInst.leg.m.setColorAt(i * 2, pc); pInst.leg.m.setColorAt(i * 2 + 1, pc);
+      pInst.arm.m.setColorAt(i * 2, col); pInst.arm.m.setColorAt(i * 2 + 1, col);
+      pInst.head.m.setColorAt(i, col.set(pickR(SKIN)));
+      pInst.hair.m.setColorAt(i, col.set(G.crew ? '#fdd835' : pickR(HAIR)));                  // у техников — жёлтые каски
+    }
+    for (const k in pInst) if (pInst[k].m.instanceColor) pInst[k].m.instanceColor.needsUpdate = true;
   }
 
   // ================== Полиция ==================
@@ -5471,6 +5507,42 @@
       dish.add(new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 8, 8), new THREE.MeshStandardMaterial({ color: '#607d8b' })));
       window.__apRadar = dish;
     }
+  }
+  // --- забор вокруг аэропорта: сетка с колючей проволокой, на въезде — КПП со шлагбаумом ---
+  let apBar = null;
+  const AP_GATE = { y0: GC - 135, y1: GC + 135 };                                   // проём в заборе для дороги
+  {
+    const fMat = new THREE.MeshStandardMaterial({ map: outerTex(64, 64, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = 'rgba(200,206,212,.95)'; g.lineWidth = 2; for (let i = -h; i < w; i += 10) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + h, h); g.stroke(); g.beginPath(); g.moveTo(i + h, 0); g.lineTo(i, h); g.stroke(); } }, 1, 1), transparent: true, alphaTest: .3, side: THREE.DoubleSide, roughness: .5, metalness: .5 });
+    const postMat = new THREE.MeshStandardMaterial({ color: '#5f666d', roughness: .6, metalness: .4 }), wireMat = new THREE.MeshStandardMaterial({ color: '#2b2f33', roughness: .5 });
+    const baseMat = new THREE.MeshStandardMaterial({ color: '#a7a7a7', roughness: .9 }), postGeo = new THREE.BoxGeometry(3, 50, 3);
+    const lampMat = new THREE.MeshStandardMaterial({ color: '#ffcdd2', emissive: '#ff1744', emissiveIntensity: 1.6 }), lampGeo = new THREE.SphereGeometry(2.2, 8, 6);
+    const fence = (x0, y0, x1, y1) => {
+      const L = Math.hypot(x1 - x0, y1 - y0), a = -Math.atan2(y1 - y0, x1 - x0), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(L, 42), fMat.clone()); m.material.map = fMat.map.clone(); m.material.map.needsUpdate = true; m.material.map.repeat.set(L / 42, 1);
+      m.position.set(cx, 21, cy); m.rotation.y = a; scene.add(m);
+      for (const [hz, r] of [[46, 1.3], [50, 1.1]]) { const wire = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 6), wireMat); wire.rotation.z = Math.PI / 2; wire.rotation.y = a; wire.position.set(cx, hz, cy); scene.add(wire); }   // колючая проволока в два ряда
+      const base = new THREE.Mesh(new THREE.BoxGeometry(L, 5, 6), baseMat); base.rotation.y = a; base.position.set(cx, 2.5, cy); scene.add(base);
+      const n = Math.max(1, Math.round(L / 110));
+      for (let i = 0; i <= n; i++) {
+        const px = x0 + (x1 - x0) * i / n, py = y0 + (y1 - y0) * i / n;
+        const pm = new THREE.Mesh(postGeo, postMat); pm.position.set(px, 25, py); scene.add(pm);
+        if (i % 6 === 0) { const l = new THREE.Mesh(lampGeo, lampMat); l.position.set(px, 52, py); scene.add(l); }   // красные огоньки — видно ночью
+      }
+      outerObs.push({ x: Math.min(x0, x1) - 5, y: Math.min(y0, y1) - 5, w: Math.abs(x1 - x0) + 10, h: Math.abs(y1 - y0) + 10, top: 50, bot: 0, fence: true });
+    };
+    fence(AP.x0, AP.y0, AP.x1, AP.y0); fence(AP.x1, AP.y0, AP.x1, AP.y1); fence(AP.x0, AP.y1, AP.x1, AP.y1);
+    fence(AP.x0, AP.y0, AP.x0, AP_GATE.y0); fence(AP.x0, AP_GATE.y1, AP.x0, AP.y1);
+    // КПП: две будки охраны, шлагбаум, знак над въездом
+    const booth = new THREE.MeshStandardMaterial({ map: glassTex('#eceff1', '#4f7fa8'), roughness: .5 }), roofM = new THREE.MeshStandardMaterial({ color: '#1565c0' });
+    box(AP.x0 - 28, AP_GATE.y0 - 58, 56, 50, 32, booth); box(AP.x0 - 33, AP_GATE.y0 - 63, 66, 60, 4, roofM, 32, false);
+    box(AP.x0 - 28, AP_GATE.y1 + 8, 56, 50, 32, booth); box(AP.x0 - 33, AP_GATE.y1 + 3, 66, 60, 4, roofM, 32, false);
+    apBar = new THREE.Group(); apBar.position.set(AP.x0 + 8, 16, AP_GATE.y0 + 2); apBar.rotation.y = -Math.PI / 2; scene.add(apBar);
+    const barMesh = new THREE.Mesh(new THREE.BoxGeometry(266, 4, 4), new THREE.MeshStandardMaterial({ map: outerTex(64, 8, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#ffffff' : '#e53935'; g.fillRect(i * 8, 0, 8, h); } }, 1, 1) }));
+    barMesh.position.x = 133; apBar.add(barMesh);
+    for (const y of [AP_GATE.y0 - 12, AP_GATE.y1 + 12]) { const p = new THREE.Mesh(new THREE.BoxGeometry(6, 150, 6), postMat); p.position.set(AP.x0 - 40, 75, y); scene.add(p); }
+    const signTex = outerTex(512, 96, (g, w, h) => { g.fillStyle = '#0d47a1'; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 6; g.strokeRect(5, 5, w - 10, h - 10); g.fillStyle = '#fff'; g.font = 'bold 54px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('✈  AIRPORT  ✈', w / 2, h / 2 + 2); }, 1, 1);
+    for (const ry of [-Math.PI / 2, Math.PI / 2]) { const sg = new THREE.Mesh(new THREE.PlaneGeometry(300, 56), new THREE.MeshBasicMaterial({ map: signTex })); sg.position.set(AP.x0 - 40 + (ry < 0 ? -3.5 : 3.5), 124, GC); sg.rotation.y = ry; scene.add(sg); }   // высоко — камера проезжает под знаком
+    box(AP.x0 - 43, AP_GATE.y0 - 12, 6, AP_GATE.y1 - AP_GATE.y0 + 24, 6, postMat, 150, false);
   }
   // --- военная база (въезд через ворота, открытые ангары с истребителями, вышка с радаром, казармы) ---
   const MB_TOWERS = [], MB_TANKS = [], MB_LAMPS = [], MB_AA = [], MB_FLAGS = [];
@@ -6173,7 +6245,7 @@
   for (const gy of [GC + 450, GC + 850, GC + 1250]) placeParked('lainer', AP.x0 + 440, gy, 0, 'airport');   // большие лайнеры у терминала — их можно угнать
   placeParked('lainer', WORLD + 2100, GC - 1500, 0, 'airport');
   // ---------- самолёты аэропорта сами взлетают, делают большой круг над морем и садятся ----------
-  const AIR_RX = WORLD + 3500, AIR_R = 1600, AIR_YS = AP.y1 + 2600, AIR_YN = AP.y0 - 2600, AIR_YT = AP.y1 - 350, AIR_CRUISE = 650;
+  const AIR_RX = WORLD + 3500, AIR_R = 1600, AIR_YS = AP.y1 + 2600, AIR_YN = AP.y0 - 2600, AIR_YT = AP.y1 - 550, AIR_CRUISE = 650;   // касание — подальше от забора
   const AIR_LA = AIR_YS - AIR_YN, AIR_LC = Math.PI * AIR_R, AIR_TOT = 2 * AIR_LA + 2 * AIR_LC;
   function airPos(s) {                                       // овал: вдоль полосы на север, разворот над морем, обратно на юг, разворот
     s = ((s % AIR_TOT) + AIR_TOT) % AIR_TOT;
@@ -6182,12 +6254,22 @@
     s -= AIR_LC; if (s < AIR_LA) return [AIR_RX + 2 * AIR_R, AIR_YN + s, 2];
     s -= AIR_LA; const f = s / AIR_R; return [AIR_RX + AIR_R + Math.cos(f) * AIR_R, AIR_YS + Math.sin(f) * AIR_R, 3];
   }
-  const airLiners = [0, .5].map(ph => {
-    const m = buildVehicle(CARS.find(c => c.id === 'lainer')); if (m.driver) m.driver.visible = false;
+  const AIR_LIVERY = [['#f5f5f5', '#1565c0'], ['#f5f5f5', '#c62828'], ['#eceff1', '#2e7d32'], ['#fafafa', '#6a1b9a']];
+  const navGeo = new THREE.SphereGeometry(2.4, 8, 6);
+  const navMat = c => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 2.5 });
+  const airLiners = [0, .25, .5, .75].map((ph, i) => {
+    const [c1, c2] = AIR_LIVERY[i];
+    const m = buildVehicle({ ...CARS.find(c => c.id === 'lainer'), color: c1, color2: c2 }); if (m.driver) m.driver.visible = false;
     m.root.rotation.order = 'YZX'; scene.add(m.root);
-    return { m, s: AIR_TOT * ph, v: 330, alt: AIR_CRUISE, mode: ph ? 'cruise' : 'approach', wait: 0, liftY: 0, pitch: 0, bank: 0 };
+    const gear = []; m.root.traverse(o => { if (o.isMesh && o.position.y < 9.5) gear.push(o); });   // стойки и колёса шасси — самые низкие детали
+    const nav = (c, x, y, z) => { const l = new THREE.Mesh(navGeo, navMat(c)); l.position.set(x, y, z); m.body.add(l); return l; };
+    nav('#ff1744', -14, 16.5, -62); nav('#00e676', -14, 16.5, 62);                                // красный и зелёный огни на концах крыльев
+    const strobe = nav('#ffffff', -68, 30, 0), beacon = nav('#ff1744', 0, 30.5, 0);               // белый строб на хвосте и красный маячок сверху
+    return { m, gear, strobe, beacon, s: AIR_TOT * ph, v: 330, alt: AIR_CRUISE, mode: 'cruise', wait: 0, liftY: 0, pitch: 0, bank: 0 };
   });
+  let airClock = 0;
   function updateAirTraffic(dt) {
+    airClock += dt;
     if (window.__apRadar) window.__apRadar.rotation.y += dt * 1.6;
     for (const P of airLiners) {
       const [x, y, seg] = airPos(P.s);
@@ -6211,6 +6293,9 @@
       P.bank += ((seg === 1 || seg === 3 ? .32 : 0) - P.bank) * Math.min(1, dt * 1.5);
       P.m.root.position.set(x, .5 + P.alt, y); P.m.root.rotation.set(P.bank, -hd, P.pitch);
       P.x = x; P.y = y;
+      const gearDown = P.alt < 120 || P.mode === 'approach';                                     // шасси убираются после взлёта и выпускаются перед посадкой
+      if (P.gear.length && P.gear[0].visible !== gearDown) for (const g of P.gear) g.visible = gearDown;
+      P.strobe.visible = (airClock * 1.1 + P.s * .001) % 1 < .08; P.beacon.visible = (airClock * .9) % 1 < .5;
     }
   }
   const HANGAR_PLANES = ['istrebitel', 'istrebitel', 'shturmovik', 'istrebitel', 'stels', 'istrebitel', 'shturmovik', 'istrebitel', 'stels', 'istrebitel', 'istrebitel'];
@@ -6330,6 +6415,7 @@
       b.x = nx; b.y = ny; b.z = nz; b.m.position.set(nx, nz, ny);
     }
     if (mbRadar) mbRadar.rotation.y += dt * 1.6;
+    if (apBar) { const near = Math.hypot(car.x - AP.x0, car.y - GC) < 300; apBar.rotation.z += ((near ? 1.35 : 0) - apBar.rotation.z) * Math.min(1, dt * 3); }   // шлагбаум аэропорта
     if (mbBar) { const near = Math.hypot(car.x - GC, car.y - MB.y1) < 260; mbBar.rotation.z += ((near ? 1.35 : 0) - mbBar.rotation.z) * Math.min(1, dt * 3); }   // шлагбаум поднимается
     const alarm = base.alerted && wanted > 0;
     if (milZone() && wanted > 0) { base.spawnT -= dt; if (base.spawnT <= 0 && chase.cops.length < COPS_BY_STAR[wanted] + 1) { base.spawnT = 4.5; spawnCopFar(); } }   // подкрепление военных
