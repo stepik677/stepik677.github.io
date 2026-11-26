@@ -803,7 +803,7 @@
       mFail: '❌ Миссия провалена. Попробуй ещё раз!', mLate: '⏱ Время вышло! Миссия провалена.', mFriends: '📞 Армин и Кинан едут тебе на помощь!', mCancel: 'Миссия отменена',
       mPicked: '📦 Ты взял секретный пакет! Полиция уже знает!', mArmorStolen: '🚨 Бронеавтомобиль угнан! Вези его домой!', secretCar: 'Секретная', secretLock: '🔒 Пройди миссию «{m}»',
       flyCarUp: '🚀 «Комета» взлетела! Пробел — выше, S — ниже, W — вперёд', boostOn: '🔥 Ракетный ускоритель!', phApp5: 'Миссии', mList: '⭐ Миссии', mHint: '🗺 — поставить метку на карте',
-      tokenFound: '🏴‍☠️ ТЫ НАШЁЛ ЗОЛОТОЙ ПИРАТСКИЙ ЖЕТОН! Он был спрятан на Таинственном острове. Награда: {m}!', lgSecret: '❓ Таинственный остров', secWelcome: '❓ Таинственный остров… Говорят, его не существует. Но он есть!', isMalta: 'Мальта', isCyprus: 'Кипр', isFiji: 'Фиджи', isCosta: 'Коста-Рика', isIceland: 'Исландия', welcomeTo: 'Остров {n}', marina: 'Причал',
+      tokenFound: '🏴‍☠️ ТЫ НАШЁЛ ЗОЛОТОЙ ПИРАТСКИЙ ЖЕТОН! Он был спрятан на Таинственном острове. Награда: {m}!', lgSeaStrip: '🛬 Плавучая полоса', lgSecret: '❓ Таинственный остров', secWelcome: '❓ Таинственный остров… Говорят, его не существует. Но он есть!', isMalta: 'Мальта', isCyprus: 'Кипр', isFiji: 'Фиджи', isCosta: 'Коста-Рика', isIceland: 'Исландия', welcomeTo: 'Остров {n}', marina: 'Причал',
       boatMarina: '🚤 Твоя лодка ждёт у причала на пляже!', boatShore: '🌊 Подплыви к берегу, чтобы выйти',
       stTitle: '🔐 Код Степана', stHint: 'Ты зашёл как Степан Банан. Введи код, чтобы начать игру.', stGo: 'Войти ▶', stBad: '❌ Неверный код', stNotMe: 'Это не я — сменить игрока',
       phHome: '📱 Телефон', phApp6: 'Сообщения', chPh: 'Напиши сообщение…', chAnnPh: '📢 Объявление для всех…', chHint: 'Enter — отправить · не больше 100 букв', chHintAdm: '👑 Ты админ: объявления, очистка, 🔇 — выключить чат игроку',
@@ -867,7 +867,7 @@
       mFail: '❌ Mission failed. Try again!', mLate: '⏱ Time is up! Mission failed.', mFriends: '📞 Armin and Kinan are coming to help!', mCancel: 'Mission cancelled',
       mPicked: '📦 You took the secret package! The police know!', mArmorStolen: '🚨 Armored car stolen! Drive it home!', secretCar: 'Secret', secretLock: '🔒 Complete mission “{m}”',
       flyCarUp: '🚀 “Kometa” took off! Space — up, S — down, W — forward', boostOn: '🔥 Rocket boost!', phApp5: 'Missions', mList: '⭐ Missions', mHint: '🗺 — set a map marker',
-      tokenFound: '🏴‍☠️ YOU FOUND THE GOLDEN PIRATE TOKEN! It was hidden on Mystery Island. Reward: {m}!', lgSecret: '❓ Mystery Island', secWelcome: '❓ Mystery Island… They say it doesn’t exist. But it does!', isMalta: 'Malta', isCyprus: 'Cyprus', isFiji: 'Fiji', isCosta: 'Costa Rica', isIceland: 'Iceland', welcomeTo: '{n} Island', marina: 'Marina',
+      tokenFound: '🏴‍☠️ YOU FOUND THE GOLDEN PIRATE TOKEN! It was hidden on Mystery Island. Reward: {m}!', lgSeaStrip: '🛬 Floating runway', lgSecret: '❓ Mystery Island', secWelcome: '❓ Mystery Island… They say it doesn’t exist. But it does!', isMalta: 'Malta', isCyprus: 'Cyprus', isFiji: 'Fiji', isCosta: 'Costa Rica', isIceland: 'Iceland', welcomeTo: '{n} Island', marina: 'Marina',
       boatMarina: '🚤 Your boat is waiting at the beach marina!', boatShore: '🌊 Get close to the shore to get off',
       stTitle: '🔐 Stepan’s code', stHint: 'You signed in as Stepan Banan. Enter the code to start the game.', stGo: 'Enter ▶', stBad: '❌ Wrong code', stNotMe: 'That’s not me — switch player',
       phHome: '📱 Phone', phApp6: 'Messages', chPh: 'Type a message…', chAnnPh: '📢 Announcement for everyone…', chHint: 'Enter — send · up to 100 letters', chHintAdm: '👑 You are the admin: announcements, clear, 🔇 — mute a player',
@@ -2691,6 +2691,7 @@
     { id: 'stels', kind: 'plane', hidden: true, name: 'Стелс-бомбардировщик', desc: '', price: 0, color: '#1c1f24', style: 'stealth', missiles: true, bombs: true, max: 780, accel: 360, turn: 1.2, grip: 14, colL: 50, colW: 56 },
     { id: 'bombardir', kind: 'plane', hidden: true, name: 'Бомбардировщик', desc: '', price: 0, color: '#4b5a32', style: 'bomber', bombs: true, max: 520, accel: 220, turn: .95, grip: 12, colL: 76, colW: 56 },
     { id: 'transport', kind: 'plane', hidden: true, name: 'Транспортный самолёт', desc: '', price: 0, color: '#7d8790', style: 'transport', max: 470, accel: 190, turn: .85, grip: 12, colL: 96, colW: 66 },
+    { id: 'lainer', kind: 'plane', hidden: true, name: 'Пассажирский лайнер', desc: '', price: 0, color: '#f5f5f5', color2: '#1565c0', style: 'airliner', max: 640, accel: 210, turn: .8, grip: 12, colL: 118, colW: 104 },
     { id: 'boevoy', kind: 'heli', hidden: true, name: 'Боевой вертолёт', desc: '', price: 0, color: '#3d4a2f', attack: true, missiles: true, max: 430, accel: 330, turn: 1.7, grip: 13, size: 1.1, colL: 46, colW: 18 },
     { id: 'strela', kind: 'plane', name: 'Реактивный самолёт «Стрела»', desc: 'Самый быстрый в городе! Реактивный двигатель и огонь из сопла.', price: 50000,
       color: '#90a4ae', jet: true, max: 720, accel: 330, turn: 1.25, grip: 14, colL: 56, colW: 30 },
@@ -2849,6 +2850,26 @@
       for (const z of [-26, -50, 26, 50]) { const nac = add(new THREE.CylinderGeometry(3.4, 3.2, 18, 10), dark, 14, 26, z); nac.rotation.z = Math.PI / 2; propAt(23.5, 26, z, 18); }
       B.pilot(49, 17, -4);
       wheel(10, -11, 4.5); wheel(10, 11, 4.5); wheel(-6, -11, 4.5); wheel(-6, 11, 4.5); wheel(40, 0, 3);
+    } else if (spec.style === 'airliner') {                                                         // большой пассажирский лайнер
+      const fus = add(new THREE.CylinderGeometry(9, 8, 104, 20), paint, 0, 21, 0); fus.rotation.z = Math.PI / 2;
+      const nose = add(new THREE.SphereGeometry(9, 18, 14), paint, 52, 21, 0); nose.scale.set(1.7, .95, 1);
+      const cone = add(new THREE.ConeGeometry(8, 22, 18), paint, -62, 23, 0); cone.rotation.z = Math.PI / 2;
+      add(new THREE.BoxGeometry(7, 2.6, 12), dark, 61, 24.5, 0);                                  // окна кабины
+      for (const z of [-9.05, 9.05]) add(new THREE.BoxGeometry(84, 1.8, .4), dark, 2, 24, z);       // ряд иллюминаторов
+      for (const z of [-9.1, 9.1]) add(new THREE.BoxGeometry(96, 2.4, .4), paint2, 0, 18, z);       // синяя полоса
+      const wingShape = side => { const sh = new THREE.Shape([new THREE.Vector2(14, 0), new THREE.Vector2(-8, side * 62), new THREE.Vector2(-17, side * 62), new THREE.Vector2(-12, 0)]); const g = new THREE.ExtrudeGeometry(sh, { depth: 1.6, bevelEnabled: false }); g.rotateX(Math.PI / 2); return g; };
+      for (const sd of [-1, 1]) add(wingShape(sd), paint, 2, 16, 0);
+      for (const z of [-24, 24]) {                                                                   // двигатели под крыльями
+        const en = add(new THREE.CylinderGeometry(5.5, 4.8, 18, 16), metal, 6, 11, z); en.rotation.z = Math.PI / 2;
+        const intake = add(new THREE.CylinderGeometry(4.6, 4.6, 1, 16), dark, 15.2, 11, z); intake.rotation.z = Math.PI / 2;
+        add(new THREE.BoxGeometry(8, 4, 1.2), paint, 4, 15, z);
+      }
+      const tailShape = side => { const sh = new THREE.Shape([new THREE.Vector2(-44, 0), new THREE.Vector2(-58, side * 22), new THREE.Vector2(-64, side * 22), new THREE.Vector2(-62, 0)]); const g = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); g.rotateX(Math.PI / 2); return g; };
+      for (const sd of [-1, 1]) add(tailShape(sd), paint, 0, 25, 0);
+      const fin = new THREE.Shape([new THREE.Vector2(-42, 0), new THREE.Vector2(-62, 30), new THREE.Vector2(-70, 30), new THREE.Vector2(-68, 0)]);
+      add(new THREE.ExtrudeGeometry(fin, { depth: 1.4, bevelEnabled: false }).translate(0, 0, -.7), paint2, 0, 27, 0);   // синий киль
+      B.pilot(54, 19, -3.5);
+      wheel(40, 0, 3.2); wheel(-2, -8, 4); wheel(-2, 8, 4); wheel(-10, -8, 4); wheel(-10, 8, 4);
     } else if (spec.jet) {
       const fus = add(new THREE.CylinderGeometry(3.8, 2.6, 52, 14), paint, 0, 11, 0); fus.rotation.z = Math.PI / 2;
       const nose = add(new THREE.ConeGeometry(3.8, 14, 14), paint, 33, 11, 0); nose.rotation.z = -Math.PI / 2;
@@ -5402,20 +5423,50 @@
     box(WORLD + 2255, GC - 545, 90, 90, 40, new THREE.MeshStandardMaterial({ color: '#4fc3f7', roughness: .1, metalness: .6, transparent: true, opacity: .8 }), 220);
     box(WORLD + 2250, GC - 550, 100, 100, 6, new THREE.MeshStandardMaterial({ color: '#37474f' }), 260);
     outerObs.push({ x: WORLD + 2270, y: GC - 530, w: 60, h: 60, top: 220, bot: 0 });
-    // большой пассажирский самолёт (стоит у терминала)
-    {
-      const g = new THREE.Group(), white = new THREE.MeshStandardMaterial({ color: '#f5f5f5', roughness: .35, metalness: .2 }), blue = new THREE.MeshStandardMaterial({ color: '#1565c0', roughness: .4 });
-      const fus = new THREE.Mesh(new THREE.CylinderGeometry(16, 14, 230, 18), white); fus.rotation.z = Math.PI / 2; fus.position.y = 30; g.add(fus);
-      const nose = new THREE.Mesh(new THREE.SphereGeometry(16, 16, 12), white); nose.scale.set(1.6, 1, 1); nose.position.set(115, 30, 0); g.add(nose);
-      const stripe = new THREE.Mesh(new THREE.CylinderGeometry(16.3, 14.3, 200, 18, 1, true, 0, .5), blue); stripe.rotation.z = Math.PI / 2; stripe.position.y = 30; g.add(stripe);
-      const wing = new THREE.Mesh(new THREE.BoxGeometry(50, 3, 230), white); wing.position.set(5, 22, 0); g.add(wing);
-      for (const z of [-55, 55]) { const en = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 26, 12), new THREE.MeshStandardMaterial({ color: '#90a4ae', metalness: .6, roughness: .3 })); en.rotation.z = Math.PI / 2; en.position.set(14, 14, z); g.add(en); }
-      const fin = new THREE.Mesh(new THREE.BoxGeometry(34, 46, 3), blue); fin.position.set(-100, 60, 0); g.add(fin);
-      const tail = new THREE.Mesh(new THREE.BoxGeometry(26, 2, 80), white); tail.position.set(-102, 34, 0); g.add(tail);
-      for (const x of [70, -10]) for (const z of (x > 0 ? [0] : [-12, 12])) { const w = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 4, 10), new THREE.MeshStandardMaterial({ color: '#1c1f22' })); w.rotation.x = Math.PI / 2; w.position.set(x, 5, z); g.add(w); }
-      g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-      g.position.set(WORLD + 2100, 0, GC - 1500); scene.add(g);
-      outerObs.push({ x: WORLD + 1980, y: GC - 1520, w: 250, h: 40, top: 50, bot: 0 }, { x: WORLD + 2080, y: GC - 1615, w: 50, h: 230, top: 26, bot: 16 });
+    // --- терминал: телетрапы, вывеска, парковка, техника, огни полосы, флюгер ---
+    const AP_GATES = [GC + 450, GC + 850, GC + 1250];                              // у этих выходов стоят лайнеры
+    const bridgeMat = new THREE.MeshStandardMaterial({ color: '#cfd8dc', roughness: .5, metalness: .3 });
+    for (const gy of AP_GATES) { box(AP.x0 + 300, gy - 9, 72, 18, 16, bridgeMat, 22, false); box(AP.x0 + 366, gy - 12, 12, 24, 22, bridgeMat, 16, false); }
+    {   // большая вывеска на крыше терминала
+      const sg = new THREE.Mesh(new THREE.PlaneGeometry(520, 70), new THREE.MeshBasicMaterial({ map: outerTex(1024, 140, (g, w, h) => { g.fillStyle = '#0d47a1'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = 'bold 96px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('✈ АЭРОПОРТ ✈', w / 2, h / 2 + 4); }) }));
+      sg.position.set(AP.x0 + 312, 130, GC + 850); sg.rotation.y = Math.PI / 2; scene.add(sg);
+      box(AP.x0 + 300, GC + 590, 8, 520, 34, new THREE.MeshStandardMaterial({ color: '#37474f' }), 96, false);
+    }
+    {   // парковка у терминала с машинами
+      flat(AP.x0 + 30, GC + 1450, 280, 330, new THREE.MeshStandardMaterial({ map: outerTex(128, 128, (g, w, h) => { noiseFill(g, w, h, '#3e4043', ['#36383b', '#46484c'], 700); g.fillStyle = '#f2f2f2'; for (let x = 0; x < w; x += 32) g.fillRect(x, 0, 3, h * .42); for (let x = 0; x < w; x += 32) g.fillRect(x, h * .58, 3, h * .42); }, 3, 3), roughness: .9, polygonOffset: true, polygonOffsetFactor: -2 }), .4);
+      const cc = ['#e53935', '#1e88e5', '#fdd835', '#43a047', '#fafafa', '#212121', '#8e24aa', '#fb8c00', '#90a4ae'];
+      for (let r = 0; r < 2; r++) for (let i = 0; i < 9; i++) if ((i * 7 + r * 3) % 5) {
+        const x = AP.x0 + 45 + i * 30, y = GC + 1480 + r * 200, m = new THREE.MeshStandardMaterial({ color: cc[(i + r * 4) % cc.length], roughness: .4, metalness: .3 });
+        box(x, y, 21, 44, 10, m, 2, false); box(x + 2, y + 12, 17, 20, 8, new THREE.MeshStandardMaterial({ color: '#263238', roughness: .2 }), 12, false);
+      }
+    }
+    {   // топливозаправщики и багажные тележки у выходов
+      const truck = new THREE.MeshStandardMaterial({ color: '#f9a825', roughness: .5 }), tank = new THREE.MeshStandardMaterial({ color: '#eceff1', roughness: .3, metalness: .4 }), cart = new THREE.MeshStandardMaterial({ color: '#546e7a', roughness: .6 });
+      for (const gy of AP_GATES) {
+        box(AP.x0 + 500, gy + 70, 46, 18, 14, truck, 2, false);
+        const tk = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 34, 14), tank); tk.rotation.z = Math.PI / 2; tk.position.set(AP.x0 + 517, 22, gy + 79); tk.castShadow = true; scene.add(tk);
+        for (let k = 0; k < 3; k++) box(AP.x0 + 340 + k * 22, gy - 80, 16, 12, 9, cart, 2, false);
+      }
+    }
+    {   // огни вдоль взлётной полосы (ночью светятся) и на концах
+      const n = Math.floor(L / 140), lg = new THREE.BoxGeometry(5, 4, 5);
+      const wm = new THREE.MeshStandardMaterial({ color: '#fffde7', emissive: '#fff59d', emissiveIntensity: 2 }), gm = new THREE.MeshStandardMaterial({ color: '#c8e6c9', emissive: '#00e676', emissiveIntensity: 2.2 });
+      const edge = new THREE.InstancedMesh(lg, wm, n * 2 + 2), ends = new THREE.InstancedMesh(lg, gm, 26), mm = new THREE.Matrix4();
+      let k = 0; for (let i = 0; i <= n; i++) for (const sx of [-128, 128]) { mm.makeTranslation(RX + sx, 2, AP.y0 + 200 + i * L / n); edge.setMatrixAt(k++, mm); }
+      edge.count = k; k = 0;
+      for (const ey of [AP.y0 + 196, AP.y1 - 196]) for (let i = -6; i <= 6; i++) { mm.makeTranslation(RX + i * 20, 2, ey); ends.setMatrixAt(k++, mm); }
+      scene.add(edge, ends);
+    }
+    {   // полосатый флюгер
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.8, 46, 8), new THREE.MeshStandardMaterial({ color: '#eceff1' })); pole.position.set(RX - 220, 23, AP.y0 + 900); scene.add(pole);
+      const sock = new THREE.Mesh(new THREE.ConeGeometry(6, 30, 12, 1, true), new THREE.MeshStandardMaterial({ map: outerTex(64, 64, (g, w, h) => { for (let i = 0; i < 5; i++) { g.fillStyle = i % 2 ? '#ffffff' : '#ff6d00'; g.fillRect(0, i * h / 5, w, h / 5); } }), side: THREE.DoubleSide }));
+      sock.rotation.z = Math.PI / 2; sock.position.set(RX - 205, 44, AP.y0 + 900); scene.add(sock);
+    }
+    {   // радар на вышке — крутится
+      const dish = new THREE.Group(); dish.position.set(WORLD + 2300, 268, GC - 500); scene.add(dish);
+      const d = new THREE.Mesh(new THREE.BoxGeometry(46, 12, 3), new THREE.MeshStandardMaterial({ color: '#eceff1', metalness: .4, roughness: .4 })); d.position.y = 8; dish.add(d);
+      dish.add(new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 8, 8), new THREE.MeshStandardMaterial({ color: '#607d8b' })));
+      window.__apRadar = dish;
     }
   }
   // --- военная база (въезд через ворота, открытые ангары с истребителями, вышка с радаром, казармы) ---
@@ -6072,6 +6123,38 @@
     for (const dx of [-36, 36]) { const p = new THREE.Mesh(new THREE.BoxGeometry(3, 34, 3), wood); p.position.set(MARINA[0] - 70 + dx, 17, SHORE - 119); scene.add(p); }
   }
 
+  // ================== Платформы на воде недалеко от берега: вертолётные площадки и плавучая взлётная полоса ==================
+  const SEA_PADS = [];
+  {
+    const deckH = 26, legMat = new THREE.MeshStandardMaterial({ color: '#5d6d7e', roughness: .6, metalness: .5 });
+    const padTex = (runway) => outerTex(256, runway ? 512 : 256, (g, w, h) => {
+      noiseFill(g, w, h, '#4b5157', ['#43494f', '#545a60'], 1500);
+      g.strokeStyle = '#ffd54f'; g.lineWidth = 10; g.strokeRect(8, 8, w - 16, h - 16);
+      if (runway) { g.fillStyle = '#f4f4f4'; for (let v = 40; v < h - 40; v += 70) g.fillRect(w / 2 - 5, v, 10, 36); g.fillRect(24, 0, 6, h); g.fillRect(w - 30, 0, 6, h); }
+      else { g.strokeStyle = '#ffffff'; g.lineWidth = 12; g.beginPath(); g.arc(w / 2, h / 2, w * .33, 0, 6.283); g.stroke(); g.fillStyle = '#ffffff'; g.font = 'bold 120px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('H', w / 2, h / 2 + 6); }
+    }, 1, runway ? 3 : 1);
+    function seaPad(cx, cy, w, l, alongX, runway) {          // w — ширина, l — длина (вдоль X, если alongX)
+      const W = alongX ? l : w, D = alongX ? w : l;
+      PLATS.push({ cx, cy, ux: alongX ? 1 : 0, uy: alongX ? 0 : 1, L: l, Wd: w, h0: deckH, h1: deckH, bot: deckH - 6, sea: 1 });
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(W, 6, D), [legMat, legMat, new THREE.MeshStandardMaterial({ map: padTex(runway), roughness: .85 }), legMat, legMat, legMat]);
+      if (alongX && runway) { deck.material[2].map.rotation = Math.PI / 2; deck.material[2].map.center.set(.5, .5); }
+      deck.position.set(cx, deckH - 3, cy); deck.castShadow = deck.receiveShadow = true; scene.add(deck);
+      const stepX = Math.min(W - 20, 260), stepY = Math.min(D - 20, 260);
+      for (let x = cx - W / 2 + 12; x <= cx + W / 2 - 12 + 1; x += stepX) for (let y = cy - D / 2 + 12; y <= cy + D / 2 - 12 + 1; y += stepY) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(6, 7, 110, 10), legMat); leg.position.set(x, deckH - 61, y); leg.castShadow = true; scene.add(leg);
+        outerObs.push({ x: x - 7, y: y - 7, w: 14, h: 14, top: deckH - 6, bot: -200 });     // в ноги лодка не проплывёт
+      }
+      const lm = new THREE.MeshStandardMaterial({ color: '#ffcdd2', emissive: '#ff1744', emissiveIntensity: 2 });
+      for (const [ox, oy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const l2 = new THREE.Mesh(new THREE.SphereGeometry(3, 8, 6), lm); l2.position.set(cx + ox * (W / 2 - 6), deckH + 2, cy + oy * (D / 2 - 6)); scene.add(l2); }
+      SEA_PADS.push({ cx, cy, W, D, runway });
+    }
+    seaPad(GC - 1700, SHORE + 950, 240, 240, true, false);           // у пляжа
+    seaPad(GC + 2150, SHORE + 1050, 240, 240, true, false);
+    seaPad(WORLD * .25, SHORE + 1700, 200, 1500, true, true);        // плавучая взлётная полоса — для самолётов
+    seaPad(MI0 - 650, 6800, 240, 240, true, false);                  // у западного берега
+    seaPad(MI1 + 700, GC + 3000, 240, 240, true, false);             // у берега за аэропортом
+  }
+
   // ================== Угон: самолёты, вертолёты и брошенные машины ==================
   const parkedVeh = [];                                       // [{spec, x, y, z, angle, model, zone}]
   function placeParked(id, x, y, angle, zone) {
@@ -6084,6 +6167,49 @@
   placeParked('kukuruznik', AP.x0 + 700, GC + 1500, 0, 'airport');
   placeParked('strela', AP.x0 + 800, GC - 250, 0, 'airport');
   placeParked('strekoza', AP.x0 + 650, GC + 1000, 0, 'airport');
+  for (const gy of [GC + 450, GC + 850, GC + 1250]) placeParked('lainer', AP.x0 + 440, gy, 0, 'airport');   // большие лайнеры у терминала — их можно угнать
+  placeParked('lainer', WORLD + 2100, GC - 1500, 0, 'airport');
+  // ---------- самолёты аэропорта сами взлетают, делают большой круг над морем и садятся ----------
+  const AIR_RX = WORLD + 3500, AIR_R = 1600, AIR_YS = AP.y1 + 2600, AIR_YN = AP.y0 - 2600, AIR_YT = AP.y1 - 350, AIR_CRUISE = 650;
+  const AIR_LA = AIR_YS - AIR_YN, AIR_LC = Math.PI * AIR_R, AIR_TOT = 2 * AIR_LA + 2 * AIR_LC;
+  function airPos(s) {                                       // овал: вдоль полосы на север, разворот над морем, обратно на юг, разворот
+    s = ((s % AIR_TOT) + AIR_TOT) % AIR_TOT;
+    if (s < AIR_LA) return [AIR_RX, AIR_YS - s, 0];
+    s -= AIR_LA; if (s < AIR_LC) { const f = Math.PI + s / AIR_R; return [AIR_RX + AIR_R + Math.cos(f) * AIR_R, AIR_YN + Math.sin(f) * AIR_R, 1]; }
+    s -= AIR_LC; if (s < AIR_LA) return [AIR_RX + 2 * AIR_R, AIR_YN + s, 2];
+    s -= AIR_LA; const f = s / AIR_R; return [AIR_RX + AIR_R + Math.cos(f) * AIR_R, AIR_YS + Math.sin(f) * AIR_R, 3];
+  }
+  const airLiners = [0, .5].map(ph => {
+    const m = buildVehicle(CARS.find(c => c.id === 'lainer')); if (m.driver) m.driver.visible = false;
+    m.root.rotation.order = 'YZX'; scene.add(m.root);
+    return { m, s: AIR_TOT * ph, v: 330, alt: AIR_CRUISE, mode: ph ? 'cruise' : 'approach', wait: 0, liftY: 0, pitch: 0, bank: 0 };
+  });
+  function updateAirTraffic(dt) {
+    if (window.__apRadar) window.__apRadar.rotation.y += dt * 1.6;
+    for (const P of airLiners) {
+      const [x, y, seg] = airPos(P.s);
+      let tv = 330, talt = AIR_CRUISE, tp = 0;
+      if (seg === 0) {                                       // вдоль полосы: посадка → стоп → разбег → взлёт
+        if (P.mode === 'cruise') P.mode = 'approach';
+        if (P.mode === 'approach') { tv = 280; talt = Math.max(0, 380 * (y - AIR_YT) / (AIR_YS - AIR_YT)); tp = -.05; if (y <= AIR_YT) P.mode = 'roll'; }
+        if (P.mode === 'roll') { talt = 0; P.v = Math.max(0, P.v - 75 * dt); tv = P.v; if (P.v <= 0) { P.mode = 'wait'; P.wait = 7; } }
+        if (P.mode === 'wait') { talt = 0; tv = 0; P.v = 0; if ((P.wait -= dt) <= 0) P.mode = 'run'; }
+        if (P.mode === 'run') { talt = 0; P.v = Math.min(330, P.v + 70 * dt); tv = P.v; if (P.v >= 230) { P.mode = 'climb'; P.liftY = y; } }
+        if (P.mode === 'climb') { tv = 330; talt = Math.min(AIR_CRUISE, (P.liftY - y) * .22); tp = .16; }
+      } else {
+        if (P.mode === 'climb' && seg !== 0) P.mode = 'cruise';
+        if (seg === 3) { const f = (P.s % AIR_TOT - (2 * AIR_LA + AIR_LC + AIR_LC)) / AIR_LC; talt = AIR_CRUISE + (380 - AIR_CRUISE) * Math.max(0, Math.min(1, ((P.s % AIR_TOT) - (2 * AIR_LA + AIR_LC)) / AIR_LC)); tp = -.04; }
+      }
+      if (P.mode !== 'roll' && P.mode !== 'wait' && P.mode !== 'run') P.v += (tv - P.v) * Math.min(1, dt * .6);
+      P.alt = (P.mode === 'roll' || P.mode === 'wait' || P.mode === 'run') ? 0 : P.alt + (talt - P.alt) * Math.min(1, dt * (P.mode === 'approach' ? 3 : 1.2));
+      P.s += P.v * dt;
+      const [x2, y2] = airPos(P.s + 4), hd = Math.atan2(y2 - y, x2 - x);
+      P.pitch += (tp - P.pitch) * Math.min(1, dt * 2);
+      P.bank += ((seg === 1 || seg === 3 ? .32 : 0) - P.bank) * Math.min(1, dt * 1.5);
+      P.m.root.position.set(x, .5 + P.alt, y); P.m.root.rotation.set(P.bank, -hd, P.pitch);
+      P.x = x; P.y = y;
+    }
+  }
   const HANGAR_PLANES = ['istrebitel', 'istrebitel', 'shturmovik', 'istrebitel', 'stels', 'istrebitel', 'shturmovik', 'istrebitel', 'stels', 'istrebitel', 'istrebitel'];
   MB_HANGARS.forEach((hx, i) => placeParked(HANGAR_PLANES[i % HANGAR_PLANES.length], hx + 210, (MB_HY0 + MB_HY1) / 2 + 20, -Math.PI / 2, 'military'));   // самолёты в ангарах
   for (const [id, x, y] of [['bombardir', 4800, -3150], ['bombardir', 5500, -3150], ['transport', 6400, -3170], ['transport', 7300, -3170], ['shturmovik', 8200, -3080], ['shturmovik', 8700, -3080],
@@ -6307,7 +6433,7 @@
     g.fillStyle = sat ? '#8d6e4a' : '#7a6a52'; g.fillRect(GC - 45, SHORE - 200, 90, 820);
   }
   const OUTER_LABELS = [['lgAirport', (AP.x0 + AP.x1) / 2, GC - 200], ['lgBase', (MB.x0 + MB.x1) / 2, MB.y0 + 300], ['lgBeach', WORLD / 2 + 1400, SHORE - 150],
-    ['lgMount', MX, MY - 1150], ['lgMansion', MZ.x0 + 220, MZ.y0 - 110], ['lgBridgeBig', IX + 230, (BR.y1 + BR.y2) / 2], ['lgIsland', IX, IY + 430], ['lgFreeway', FWX + 300, WORLD * .3], ['lgCoast', -3450, 2600], ['lgOcean', WORLD * .75 + 2000, MI1 + 3300], ['lgSecret', SEC_CX, SEC_Y0 - 700], ...ISLES.map(I => [I.key, I.x, I.y - I.r * .15]), ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
+    ['lgMount', MX, MY - 1150], ['lgMansion', MZ.x0 + 220, MZ.y0 - 110], ['lgBridgeBig', IX + 230, (BR.y1 + BR.y2) / 2], ['lgIsland', IX, IY + 430], ['lgFreeway', FWX + 300, WORLD * .3], ['lgCoast', -3450, 2600], ['lgOcean', WORLD * .75 + 2000, MI1 + 3300], ['lgSeaStrip', WORLD * .25, SHORE + 1450], ['lgSecret', SEC_CX, SEC_Y0 - 700], ...ISLES.map(I => [I.key, I.x, I.y - I.r * .15]), ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
 
   // ================== Друзья ==================
   if (!save.friends || !Array.isArray(save.friends.names)) save.friends = { names: ['Армин', 'Кинан'], on: true };
@@ -8558,7 +8684,7 @@
     let d = car.angle - camAng; d = Math.atan2(Math.sin(d), Math.cos(d));
     camAng += d * (snap ? 1 : Math.min(1, 3.2 * dt));
     const speed = Math.hypot(car.vx, car.vy);
-    const footK = car.onFoot ? .55 : isFly() ? 1.55 : isBoatSpec(spec) ? Math.max(1, (spec.colL || 30) / 55) : 1;
+    const footK = car.onFoot ? .55 : isFly() ? 1.55 * Math.max(1, (spec.colL || 40) / 60) : isBoatSpec(spec) ? Math.max(1, (spec.colL || 30) / 55) : 1;
     let dist = (96 + speed * .02) * CAM_K * footK, height = (45 + speed * .01) * CAM_K * footK;
     // своя камера: держим поворот, пока трогаешь; потом (когда едешь) она плавно возвращается назад за машину
     if (camOff.keyL) camOff.yaw += 2.2 * dt; if (camOff.keyR) camOff.yaw -= 2.2 * dt;
@@ -8949,7 +9075,7 @@
     const subs = dt > .018 ? 2 : 1;                       // когда игра подтормаживает — считаем движение мелкими шагами, чтобы не пролетать сквозь стены
     for (let i = 0; i < subs; i++) update(dt / subs);
     if (!garageOpen) { updateTraffic(dt); drawTraffic(); updatePeople(dt); }
-    if (!garageOpen && !menuOpen && !mapOpen) { updatePolice(dt, t); collideVehicles(); updateFriends(dt); updateWeapons(dt); updateOuter(dt); updateIsles(dt); }
+    if (!garageOpen && !menuOpen && !mapOpen) { updatePolice(dt, t); collideVehicles(); updateFriends(dt); updateWeapons(dt); updateOuter(dt); updateIsles(dt); updateAirTraffic(dt); }
     netUpdate(dt, t);
     updateNav(t); drawMinimap(t); if (mapOpen) drawBigMap(t);
     if (menuOpen) { menuCamera(dt); updateMenuInfo(); } else updateCamera(dt);
