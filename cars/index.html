@@ -1199,6 +1199,7 @@
     { const d = Math.hypot(x - IX, y - IY); if (d < 1100) h = Math.max(h, d < 480 ? 42 : 42 - (d - 480) * .24); }
     const e = Math.min(x - MI0, MI1 - x, y - MI0);
     if (e < 800) { const k = sstep(0, 800, e); h = h * k - 60 * (1 - k); }
+    if (x > -900 && x < 11100 && y > -4540 && y < -1200) h = Math.max(h, 0);   // военная база стала больше — насыпная земля у моря
     if (h < 0) { const I = isleAt(x, y); if (I) h = Math.max(h, isleH(I, x, y)); }
     return h;
   }
@@ -1256,7 +1257,7 @@
   const FWX = 3 * STEP * T + ROAD_W / 2, FWH = 72;           // над 4-й вертикальной улицей, высота 72
   const BR = { y0: SHORE - 280, y1: SHORE + 80, y2: IY - 760, y3: IY - 420, h: 60, w: 160 };   // мост: въезд, пролёт, съезд на остров
   const AP = { x0: WORLD + 1500, x1: WORLD + 4300, y0: 500, y1: WORLD - 500 };   // аэропорт
-  const MB = { x0: -600, x1: 10800, y0: -3550, y1: -1250 };                        // военная база
+  const MB = { x0: -600, x1: 10800, y0: -4300, y1: -1250 };                        // военная база
   const outerObs = [];                                        // дома и заборы за городом
   function outerSolid(px, py, z) {
     if (px < F0 + 4 || py < F0 + 4 || px > F1 - 4 || py > F1 - 4) return true;
@@ -5313,9 +5314,9 @@
     }
   }
   // --- военная база (въезд через ворота, открытые ангары с истребителями, вышка с радаром, казармы) ---
-  const MB_TOWERS = [], MB_TANKS = [], MB_LAMPS = [];
+  const MB_TOWERS = [], MB_TANKS = [], MB_LAMPS = [], MB_AA = [], MB_FLAGS = [];
   let mbRadar = null, mbBar = null;
-  const MB_RUN_Y = MB.y0 + 850, MB_TAXI_Y = MB.y0 + 1300, MB_HY0 = -2100, MB_HY1 = -1820;   // взлётка, рулёжка, ангары
+  const MB_RUN_Y = -2700, MB_TAXI_Y = -2250, MB_HY0 = -2100, MB_HY1 = -1820;   // взлётка, рулёжка, ангары
   const MB_HANGARS = [-300, 200, 700, 1200, 2100, 2600, 3100, 3600, 9200, 9700, 10200];
   {
     flat(MB.x0, MB.y0, MB.x1 - MB.x0, MB.y1 - MB.y0, new THREE.MeshStandardMaterial({ map: concreteTex(false), roughness: .95, polygonOffset: true, polygonOffsetFactor: -1 }), .25).material.map.repeat.set(80, 21);
@@ -5428,6 +5429,160 @@
       box(x - 20, y - 20, 40, 40, 14, cabMat, 80); box(x - 23, y - 23, 46, 46, 3, legMat, 94, false);
       outerObs.push({ x: x - 16, y: y - 16, w: 32, h: 32, top: 80, bot: 0, fence: true });
       MB_TOWERS.push([x, y, 97]);
+    }
+    // ===== база стала больше: укрытия для самолётов, радар, склады, штаб, техника, площадки =====
+    {
+      const conc = new THREE.MeshStandardMaterial({ map: concreteTex(true), roughness: .9 });
+      const signTex = (txt, bg = '#2e3520', fg = '#ffd54f') => outerTex(512, 128, (g, w, h) => { g.fillStyle = bg; g.fillRect(0, 0, w, h); g.strokeStyle = fg; g.lineWidth = 6; g.strokeRect(5, 5, w - 10, h - 10); g.fillStyle = fg; g.font = 'bold 60px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, w / 2, h / 2 + 3); });
+      const signAt = (txt, x, y, z, ry = 0, w = 140, bg, fg) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w / 4), new THREE.MeshBasicMaterial({ map: signTex(txt, bg, fg) })); m.position.set(x, z, y); m.rotation.y = ry; scene.add(m); return m; };
+      const M4b = new THREE.Matrix4(), Qb = new THREE.Quaternion(), Sb = new THREE.Vector3(), Pb = new THREE.Vector3(), Yb = new THREE.Vector3(0, 1, 0), Cb = new THREE.Color();
+      const many = (geo, mat, list, cols) => { const m = new THREE.InstancedMesh(geo, mat, list.length); list.forEach(([x, y, z, ry = 0, sc = 1], i) => { M4b.compose(Pb.set(x, z, y), Qb.setFromAxisAngle(Yb, ry), Sb.set(sc, sc, sc)); m.setMatrixAt(i, M4b); if (cols) m.setColorAt(i, Cb.set(cols[i % cols.length])); }); m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+      const mesh = (geo, mat, x, z, y, ry = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, z, y); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+      const ob = (x, y, w, h, top, bot = 0) => outerObs.push({ x, y, w, h, top, bot });
+      const red = new THREE.MeshStandardMaterial({ color: '#c62828', roughness: .6 }), white = new THREE.MeshStandardMaterial({ color: '#eceff1', roughness: .5 }), dark = new THREE.MeshStandardMaterial({ color: '#263238', roughness: .7 });
+      const glow = new THREE.MeshStandardMaterial({ color: '#ff5252', emissive: '#ff1744', emissiveIntensity: 2 });
+      // морская стенка на северном краю
+      box(MB.x0 - 300, -4545, MB.x1 - MB.x0 + 600, 30, 70, conc, -66, false);
+      // 1) укрытия для самолётов (бетонные арки) с дорожками к взлётке
+      const shelterM = new THREE.MeshStandardMaterial({ map: concreteTex(false), roughness: .85, side: THREE.DoubleSide });
+      const SH = [200, 700, 1200, 1700, 2200, 2700, 3200], SW = 240, SD = 280, SY0 = -4180;
+      for (const hx of SH) {
+        const rg = new THREE.CylinderGeometry(SW / 2, SW / 2, SD, 24, 1, true, Math.PI / 2, Math.PI); rg.rotateX(Math.PI / 2);
+        const arch = mesh(rg, shelterM, hx + SW / 2, 0, SY0 + SD / 2); arch.scale.set(1, .62, 1);
+        const back = mesh(new THREE.CircleGeometry(SW / 2, 24, 0, Math.PI), shelterM, hx + SW / 2, 0, SY0 + 2); back.scale.set(1, .62, 1);
+        ob(hx, SY0, 26, SD, 60); ob(hx + SW - 26, SY0, 26, SD, 60); ob(hx, SY0, SW, 14, 75); ob(hx, SY0, SW, SD, 80, 62);
+        flat(hx + 20, SY0 + 10, SW - 40, SD - 10, new THREE.MeshStandardMaterial({ color: '#8f969b', roughness: .6 }), .7);
+        strip(hx + SW / 2, (SY0 + SD + MB_RUN_Y - 115) / 2, 90, MB_RUN_Y - 115 - SY0 - SD + 10, taxiTex(MB_RUN_Y - 115 - SY0 - SD), true, .46);
+        signAt(String(SH.indexOf(hx) + 12), hx + SW / 2, SY0 + SD + 1, 62, 0, 60);
+      }
+      // 2) большой радар-«мяч» и вращающийся радар
+      mesh(new THREE.CylinderGeometry(60, 66, 50, 20), conc, 4400, 25, -3960); mesh(new THREE.SphereGeometry(80, 24, 16), white, 4400, 95, -3960); ob(4334, -4026, 132, 132, 170);
+      { const g = new THREE.Group(); g.position.set(4750, 0, -3960); scene.add(g); MB_AA.push({ g, spin: .9 });
+        const ms = new THREE.Mesh(new THREE.CylinderGeometry(4, 6, 60, 8), postMat); ms.position.y = 30; g.add(ms);
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(90, 18, 3), white); bar.position.y = 66; g.add(bar); ob(4740, -3970, 20, 20, 60); }
+      // 3) антенны с красными огоньками
+      for (const [x, y, hh] of [[5200, -4050, 240], [5420, -3920, 200], [5650, -4080, 260], [5880, -3950, 180]]) {
+        mesh(new THREE.CylinderGeometry(2, 4, hh, 6), postMat, x, hh / 2, y); mesh(new THREE.SphereGeometry(4, 8, 6), glow, x, hh + 3, y);
+        for (let k = 1; k < 4; k++) mesh(new THREE.BoxGeometry(26, 2, 2), postMat, x, hh * k / 4, y);
+        ob(x - 6, y - 6, 12, 12, hh);
+      }
+      box(5300, -3880, 200, 90, 34, new THREE.MeshStandardMaterial({ map: glassTex('#9e9e8a', '#37474f'), roughness: .8 }));
+      // 4) склады боеприпасов: земляные холмы со стальными дверями
+      const earth = new THREE.MeshStandardMaterial({ color: '#5f7044', roughness: 1 });
+      for (const x of [6250, 6650, 7050, 7450, 7850]) {
+        const mound = mesh(new THREE.CylinderGeometry(55, 55, 170, 16, 1, false, Math.PI / 2, Math.PI).rotateX(Math.PI / 2), earth, x, 0, -4060); mound.scale.set(1, .8, 1);
+        mesh(new THREE.BoxGeometry(50, 36, 4), dark, x, 18, -3974); mesh(new THREE.BoxGeometry(60, 4, 6), new THREE.MeshStandardMaterial({ color: '#ffd54f' }), x, 40, -3973);
+        ob(x - 55, -4145, 110, 172, 46);
+      }
+      signAt('ОПАСНО! БОЕПРИПАСЫ', 7050, -3900, 30, 0, 200, '#ffd54f', '#212121');
+      // 5) топливный склад
+      const tankM = new THREE.MeshStandardMaterial({ color: '#e0e3e6', metalness: .5, roughness: .35 });
+      for (const [x, y] of [[8500, -4120], [8680, -4120], [8860, -4120], [8500, -3940], [8680, -3940], [8860, -3940], [9100, -4030], [9320, -4030]]) {
+        mesh(new THREE.CylinderGeometry(58, 58, 64, 24), tankM, x, 32, y); mesh(new THREE.CylinderGeometry(58.5, 58.5, 6, 24), red, x, 52, y); ob(x - 52, y - 52, 104, 104, 64);
+      }
+      for (const y of [-4200, -3860]) box(8420, y, 980, 8, 14, conc);
+      // 6) водонапорная башня
+      for (const [a, b] of [[-20, -20], [20, -20], [-20, 20], [20, 20]]) mesh(new THREE.CylinderGeometry(2.5, 3, 130, 6), postMat, 10200 + a, 65, -4000 + b);
+      mesh(new THREE.CylinderGeometry(40, 40, 46, 20), new THREE.MeshStandardMaterial({ color: '#7d8b60', roughness: .6 }), 10200, 152, -4000); mesh(new THREE.ConeGeometry(42, 18, 20), dark, 10200, 184, -4000); ob(10175, -4025, 50, 50, 175);
+      // 7) пожарная часть и техника у взлётки
+      box(5650, -3560, 380, 150, 52, new THREE.MeshStandardMaterial({ map: glassTex('#b0463a', '#ffcdd2'), roughness: .7 }));
+      for (let k = 0; k < 4; k++) mesh(new THREE.PlaneGeometry(70, 42), new THREE.MeshStandardMaterial({ color: '#b71c1c', roughness: .5 }), 5700 + k * 90, 21, -3409);
+      signAt('ПОЖАРНАЯ ЧАСТЬ', 5840, -3409, 46, 0, 220, '#b71c1c', '#ffffff');
+      const truck = (x, y, ry, col, extra) => {                           // грузовик: кабина, кузов, колёса
+        const g = new THREE.Group(); g.position.set(x, 0, y); g.rotation.y = ry; scene.add(g);
+        const cm = new THREE.MeshStandardMaterial({ color: col, roughness: .6 });
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(24, 22, 26), cm); cab.position.set(30, 16, 0); g.add(cab);
+        const win = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 22), dark); win.position.set(42.3, 21, 0); g.add(win);
+        const bed = new THREE.Mesh(new THREE.BoxGeometry(56, 24, 28), extra === 'fuel' ? tankM : cm); bed.position.set(-12, 18, 0); g.add(bed);
+        if (extra === 'fuel') bed.geometry = new THREE.CylinderGeometry(13, 13, 56, 14).rotateZ(Math.PI / 2);
+        if (extra === 'sam') { const rack = new THREE.Mesh(new THREE.BoxGeometry(44, 16, 24), new THREE.MeshStandardMaterial({ color: '#3b4a2f' })); rack.position.set(-12, 40, 0); rack.rotation.z = .5; g.add(rack); for (const z of [-7, 0, 7]) { const tip = new THREE.Mesh(new THREE.ConeGeometry(3, 8, 8), white); tip.rotation.z = -Math.PI / 2 + .5; tip.position.set(9, 52, z); g.add(tip); } }
+        if (extra === 'fire') { const ld = new THREE.Mesh(new THREE.BoxGeometry(60, 3, 8), white); ld.position.set(-10, 33, 0); g.add(ld); const lt = new THREE.Mesh(new THREE.BoxGeometry(6, 3, 16), glow); lt.position.set(30, 28.5, 0); g.add(lt); }
+        for (const [a, b] of [[30, -14], [30, 14], [-4, -14], [-4, 14], [-26, -14], [-26, 14]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 5, 12).rotateX(Math.PI / 2), tire); w.position.set(a, 7, b); g.add(w); }
+        g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+        const c = Math.abs(Math.cos(ry)) > .5; ob(x - (c ? 45 : 16), y - (c ? 16 : 45), c ? 90 : 32, c ? 32 : 90, 34);
+      };
+      truck(5720, -3330, Math.PI / 2, '#c62828', 'fire'); truck(5900, -3330, Math.PI / 2, '#c62828', 'fire');
+      for (const x of [3000, 3150, 3300]) truck(x, -3420, -Math.PI / 2, '#4b5a32', 'sam');            // зенитные ракеты
+      for (const x of [7700, 7850, 8000]) truck(x, -3420, -Math.PI / 2, '#5d6b45', 'fuel');           // топливозаправщики
+      // 8) зенитные пушки у концов взлётки (крутятся, а при тревоге следят за тобой)
+      const sandM = new THREE.MeshStandardMaterial({ color: '#b89f6a', roughness: 1 });
+      for (const [x, y] of [[-250, -3050], [-250, -2350], [10450, -3050], [10450, -2350], [4300, -3300], [6900, -3300]]) {
+        mesh(new THREE.CylinderGeometry(42, 46, 14, 16, 1, true), sandM, x, 7, y); mesh(new THREE.CylinderGeometry(14, 16, 12, 12), dark, x, 6, y);
+        const g = new THREE.Group(); g.position.set(x, 14, y); scene.add(g);
+        const tb = new THREE.Mesh(new THREE.BoxGeometry(22, 14, 20), new THREE.MeshStandardMaterial({ map: camoTex('#4b5a32') })); tb.position.y = 7; g.add(tb);
+        for (const z of [-5, 5]) { const br = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 44, 8), dark); br.rotation.z = Math.PI / 2 - .5; br.position.set(20, 20, z); g.add(br); }
+        g.traverse(o => { if (o.isMesh) o.castShadow = true; }); MB_AA.push({ g, aim: true, spin: .3 }); ob(x - 44, y - 44, 88, 88, 14);
+      }
+      // 9) огни вдоль взлётной полосы и ветроуказатель
+      const rl = []; for (let x = MB.x0 + 380; x < MB.x1 - 340; x += 130) for (const y of [MB_RUN_Y - 120, MB_RUN_Y + 120]) rl.push([x, y, 1.5]);
+      many(new THREE.BoxGeometry(5, 3, 5), new THREE.MeshStandardMaterial({ color: '#fff8e1', emissive: '#ffe082', emissiveIntensity: 2.2 }), rl);
+      mesh(new THREE.CylinderGeometry(1.5, 2, 50, 6), postMat, 5300, 25, -2560); { const ws = mesh(new THREE.ConeGeometry(7, 34, 10, 1, true), new THREE.MeshStandardMaterial({ color: '#ff6d00', side: THREE.DoubleSide }), 5316, 48, -2560); ws.rotation.z = Math.PI / 2; }
+      // 10) штаб с флагами и плац
+      box(5260, -2140, 620, 200, 70, new THREE.MeshStandardMaterial({ map: glassTex('#cfc6b0', '#3e5a70'), roughness: .7 }));
+      box(5250, -2150, 640, 220, 6, new THREE.MeshStandardMaterial({ color: '#4e5b3a' }), 70, false);
+      for (let k = 0; k < 7; k++) mesh(new THREE.CylinderGeometry(5, 5, 60, 10), white, 5300 + k * 90, 30, -1932);
+      signAt('ШТАБ', 5570, -1938, 82, 0, 180);
+      const flagTex = outerTex(128, 80, (g, w, h) => { g.fillStyle = '#2e5d32'; g.fillRect(0, 0, w, h); g.fillStyle = '#ffd54f'; g.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 12 : 28; g.lineTo(w / 2 + Math.cos(a) * r, h / 2 + Math.sin(a) * r); } g.fill(); });
+      const flagM = new THREE.MeshStandardMaterial({ map: flagTex, side: THREE.DoubleSide });
+      const flagPole = (x, y) => { mesh(new THREE.CylinderGeometry(1.2, 1.6, 90, 8), white, x, 45, y); const f = mesh(new THREE.PlaneGeometry(40, 25), flagM, x + 20, 76, y); MB_FLAGS.push(f); };
+      flat(4150, -2090, 760, 230, new THREE.MeshStandardMaterial({ map: outerTex(256, 128, (g, w, h) => { g.fillStyle = '#6f7378'; g.fillRect(0, 0, w, h); g.strokeStyle = '#f5f5f5'; g.lineWidth = 3; g.strokeRect(6, 6, w - 12, h - 12); for (let k = 1; k < 6; k++) { g.beginPath(); g.moveTo(k * w / 6, 10); g.lineTo(k * w / 6, h - 10); g.stroke(); } }), roughness: .9, polygonOffset: true, polygonOffsetFactor: -3 }), .55);
+      for (let k = 0; k < 5; k++) flagPole(4250 + k * 140, -2080);
+      // 11) столовая, связь, спортзал
+      box(8560, -2160, 560, 240, 40, new THREE.MeshStandardMaterial({ map: glassTex('#a1887f', '#ffe0b2'), roughness: .8 })); box(8550, -2170, 580, 260, 5, new THREE.MeshStandardMaterial({ color: '#5d4037' }), 40, false);
+      signAt('СТОЛОВАЯ', 8840, -1919, 30, 0, 170);
+      box(6420, -2180, 300, 190, 44, new THREE.MeshStandardMaterial({ map: glassTex('#8d8f7a', '#4fc3f7'), roughness: .7 }));
+      for (const [x, y] of [[6480, -2120], [6580, -2060], [6660, -2130]]) { const d = mesh(new THREE.SphereGeometry(26, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3), white, x, 70, y); d.rotation.x = -.9; mesh(new THREE.CylinderGeometry(2, 2, 22, 6), postMat, x, 55, y); }
+      signAt('СВЯЗЬ', 6570, -1989, 34, 0, 120);
+      // 12) южная полоса: контейнеры, стрельбище, стоянка, полоса препятствий, баскетбол, заправка, гаражи
+      const cont = [], contCols = ['#c62828', '#1565c0', '#2e7d32', '#ef6c00', '#6d4c41', '#455a64', '#f9a825'];
+      for (let i = 0; i < 9; i++) for (let j = 0; j < 3; j++) { const x = -300 + i * 140, y = -1540 + j * 80, n = 1 + ((i * 7 + j * 3) % 3); for (let k = 0; k < n; k++) cont.push([x, y, 13 + k * 26]); ob(x - 62, y - 14, 124, 28, n * 26); }
+      many(new THREE.BoxGeometry(120, 26, 26), new THREE.MeshStandardMaterial({ map: outerTex(128, 32, (g, w, h) => { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); for (let x = 0; x < w; x += 8) { g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x, 0, 3, h); } }), roughness: .7 }), cont, contCols);
+      box(2280, -1340, 1240, 26, 34, earth);                                                            // вал стрельбища
+      const tgtTex = outerTex(128, 128, (g, w, h) => { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); for (let r = 56; r > 0; r -= 14) { g.fillStyle = (r / 14) % 2 ? '#e53935' : '#fff'; g.beginPath(); g.arc(64, 64, r, 0, 7); g.fill(); } });
+      for (let k = 0; k < 8; k++) { mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshStandardMaterial({ map: tgtTex, side: THREE.DoubleSide }), 2380 + k * 150, 24, -1346); mesh(new THREE.BoxGeometry(2, 10, 2), postMat, 2380 + k * 150, 5, -1346); }
+      for (let k = 0; k < 8; k++) box(2340 + k * 150, -1560, 80, 6, 14, sandM);
+      signAt('СТРЕЛЬБИЩЕ', 2900, -1569, 30, 0, 180);
+      const jeep = (x, y, ry) => {                                    // армейский джип
+        const g = new THREE.Group(); g.position.set(x, 0, y); g.rotation.y = ry; scene.add(g);
+        const b = new THREE.Mesh(new THREE.BoxGeometry(40, 12, 20), olive); b.position.y = 11; g.add(b);
+        const c = new THREE.Mesh(new THREE.BoxGeometry(16, 10, 18), canvasM); c.position.set(-4, 22, 0); g.add(c);
+        for (const [a, bb] of [[13, -10], [13, 10], [-13, -10], [-13, 10]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 5.5, 4, 12).rotateX(Math.PI / 2), tire); w.position.set(a, 5.5, bb); g.add(w); }
+        g.traverse(o => { if (o.isMesh) o.castShadow = true; }); ob(x - 22, y - 22, 44, 44, 26);
+      };
+      for (let k = 0; k < 8; k++) jeep(1020 + k * 110, -1500, Math.PI / 2);
+      for (let k = 0; k < 6; k++) jeep(1080 + k * 140, -1380, -Math.PI / 2);
+      const camoNet = new THREE.MeshStandardMaterial({ color: '#4a5a32', roughness: 1, transparent: true, opacity: .85, side: THREE.DoubleSide });
+      mesh(new THREE.PlaneGeometry(900, 120).rotateX(-Math.PI / 2), camoNet, 1430, 40, -1500); for (let k = 0; k <= 6; k++) for (const dy of [-60, 60]) mesh(new THREE.CylinderGeometry(1.2, 1.2, 40, 6), postMat, 980 + k * 150, 20, -1500 + dy);
+      for (let k = 0; k < 6; k++) box(6050 + k * 130, -1500, 14, 70, 18 + (k % 3) * 8, new THREE.MeshStandardMaterial({ color: '#8d6e4a', roughness: .9 }));   // стенки полосы препятствий
+      many(new THREE.TorusGeometry(8, 3, 6, 14).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#212121', roughness: .9 }), Array.from({ length: 16 }, (_, k) => [6100 + (k % 8) * 20, -1380 + Math.floor(k / 8) * 22, 3]));
+      signAt('ПОЛОСА ПРЕПЯТСТВИЙ', 6400, -1569, 30, 0, 220);
+      flat(7100, -1560, 280, 160, new THREE.MeshStandardMaterial({ map: outerTex(256, 128, (g, w, h) => { g.fillStyle = '#c0573e'; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 3; g.strokeRect(4, 4, w - 8, h - 8); g.beginPath(); g.moveTo(w / 2, 4); g.lineTo(w / 2, h - 4); g.stroke(); g.beginPath(); g.arc(w / 2, h / 2, 20, 0, 7); g.stroke(); }), roughness: .9, polygonOffset: true, polygonOffsetFactor: -3 }), .55);
+      for (const x of [7105, 7375]) { mesh(new THREE.CylinderGeometry(1.5, 1.5, 34, 6), postMat, x, 17, -1480); mesh(new THREE.BoxGeometry(2, 14, 20), white, x + (x < 7200 ? 3 : -3), 36, -1480); }
+      box(8000, -1400, 300, 30, 4, red, 44, false); for (const x of [8010, 8280]) mesh(new THREE.CylinderGeometry(3, 3, 44, 8), white, x, 22, -1385);
+      for (const x of [8070, 8150, 8230]) { mesh(new THREE.BoxGeometry(14, 26, 10), red, x, 13, -1385); ob(x - 8, -1391, 16, 12, 26); }
+      signAt('ЗАПРАВКА', 8150, -1369, 54, 0, 140, '#c62828', '#ffffff');
+      for (let k = 0; k < 4; k++) {                                   // гаражи с грузовиками
+        const x = 9300 + k * 300; box(x, -1560, 280, 12, 50, conc); box(x, -1560, 12, 220, 50, conc); box(x + 268, -1560, 12, 220, 50, conc); box(x, -1560, 280, 220, 4, new THREE.MeshStandardMaterial({ color: '#455a64' }), 50, false);
+        truck(x + 140, -1450, -Math.PI / 2, '#4b5a32');
+      }
+      // 13) ящики, бочки и бетонные блоки
+      const crates = [], drums = [], jers = [];
+      for (const hx of MB_HANGARS) { for (let k = 0; k < 4; k++) crates.push([hx + 30 + (k % 2) * 22, -1850, 10 + Math.floor(k / 2) * 20]); for (let k = 0; k < 5; k++) drums.push([hx + 380 - k * 14, -1850, 9]); }
+      for (let k = 0; k < 18; k++) crates.push([9450 + (k % 6) * 22, -3420 + Math.floor(k / 6) * 22, 10]);
+      for (let x = 4150; x < 4900; x += 30) jers.push([x, -1860, 6]);
+      for (let x = 5260; x < 5880; x += 30) jers.push([x, -1890, 6]);
+      many(new THREE.BoxGeometry(20, 20, 20), new THREE.MeshStandardMaterial({ map: outerTex(64, 64, (g, w, h) => { g.fillStyle = '#8d6e4a'; g.fillRect(0, 0, w, h); g.strokeStyle = '#5d4037'; g.lineWidth = 5; g.strokeRect(3, 3, w - 6, h - 6); g.beginPath(); g.moveTo(3, 3); g.lineTo(w - 3, h - 3); g.stroke(); }), roughness: .9 }), crates);
+      many(new THREE.CylinderGeometry(6, 6, 18, 10), new THREE.MeshStandardMaterial({ roughness: .5, metalness: .3 }), drums, ['#2e7d32', '#1565c0', '#c62828', '#f9a825']);
+      many(new THREE.BoxGeometry(28, 12, 8), new THREE.MeshStandardMaterial({ color: '#cfd8dc', roughness: .9 }), jers);
+      // 14) ещё прожекторы и вышки внутри новой части
+      for (let x = MB.x0 + 400; x < MB.x1; x += 900) { const pp = mesh(new THREE.CylinderGeometry(2, 3, 90, 8), postMat, x, 45, -3600); const hd = mesh(new THREE.BoxGeometry(14, 6, 10), lampHead, x, 92, -3594); MB_LAMPS.push(hd); void pp; }
+      for (const [x, y] of [[3800, MB.y0 + 120], [7600, MB.y0 + 120], [MB.x0 + 120, -3000], [MB.x1 - 120, -3000]]) {
+        for (const [a, b] of [[-14, -14], [14, -14], [-14, 14], [14, 14]]) mesh(new THREE.BoxGeometry(3, 80, 3), legMat, x + a, 40, y + b);
+        box(x - 20, y - 20, 40, 40, 14, cabMat, 80); box(x - 23, y - 23, 46, 46, 3, legMat, 94, false);
+        outerObs.push({ x: x - 16, y: y - 16, w: 32, h: 32, top: 80, bot: 0, fence: true }); MB_TOWERS.push([x, y, 97]);
+      }
+      // 15) дорога вдоль северной части
+      ribbon(line(MB.x0 + 250, -3640, MB.x1 - 250, -3640), 110, roadMat, 160, .32);
     }
   }
   // --- пляж: пирс и пальмы ---
@@ -5826,6 +5981,7 @@
   MB_HANGARS.forEach((hx, i) => placeParked(HANGAR_PLANES[i % HANGAR_PLANES.length], hx + 210, (MB_HY0 + MB_HY1) / 2 + 20, -Math.PI / 2, 'military'));   // самолёты в ангарах
   for (const [id, x, y] of [['bombardir', 4800, -3150], ['bombardir', 5500, -3150], ['transport', 6400, -3170], ['transport', 7300, -3170], ['shturmovik', 8200, -3080], ['shturmovik', 8700, -3080],
     ['shturmovik', 9200, -3080], ['istrebitel', 9700, -3080], ['istrebitel', 10150, -3080], ['stels', 3600, -3120], ['istrebitel', 1200, -3080], ['bombardir', 400, -3150]]) placeParked(id, x, y, Math.PI / 2, 'military');   // северная стоянка
+  for (const [id, hx] of [['istrebitel', 200], ['stels', 700], ['shturmovik', 1200], ['istrebitel', 1700], ['stels', 2200], ['istrebitel', 2700], ['shturmovik', 3200]]) placeParked(id, hx + 120, -4020, Math.PI / 2, 'military');   // в бетонных укрытиях
   placeParked('boevoy', 2300, -3150, Math.PI / 2, 'military');
   placeParked('boevoy', 2700, -3150, Math.PI / 2, 'military');
   placeParked('strela', 4600, MB_TAXI_Y + 120, 0, 'military');
@@ -5905,7 +6061,8 @@
   // солдаты на вышках базы
   const soldiers = MB_TOWERS.map(([x, y, z]) => { const p = buildPerson('#556b2f', '#3b4a1a', '#3b4a1a', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac'])); p.root.visible = true; p.root.position.set(x, z, y); p.limbs[2].rotation.z = 1.4; p.limbs[3].rotation.z = 1.4; return { x, y, z, p, cd: 1 + Math.random() }; });
   // солдаты, которые ходят по базе и бегут к тебе
-  for (const [x, y] of [[GC - 300, -1560], [GC + 300, -1560], [3000, -2000], [5200, -1900], [6500, -2150], [7400, -1700], [8400, -2100], [2400, -1700]]) {
+  for (const [x, y] of [[GC - 300, -1560], [GC + 300, -1560], [3000, -2000], [5200, -1900], [6500, -2150], [7400, -1700], [8400, -2100], [2400, -1700],
+    [1500, -3700], [4400, -3750], [6900, -3800], [9000, -3780], [4400, -1990], [4700, -1990], [5600, -1880], [6600, -1440], [7300, -1440], [900, -1440], [2900, -1450], [8300, -3300], [3100, -3300], [10000, -1700]]) {
     const p = buildPerson('#556b2f', '#3b4a1a', '#3b4a1a', pickR(['#f1c27d', '#e0ac69', '#c68642', '#ffdbac'])); p.root.visible = true;
     soldiers.push({ x, y, z: 0, p, cd: 1 + Math.random(), ground: true, hx: x, hy: y, tx: x, ty: y, ph: 0, down: 0 });
   }
@@ -5941,6 +6098,11 @@
     const alarm = base.alerted && wanted > 0;
     if (milZone() && wanted > 0) { base.spawnT -= dt; if (base.spawnT <= 0 && chase.cops.length < COPS_BY_STAR[wanted] + 1) { base.spawnT = 4.5; spawnCopFar(); } }   // подкрепление военных
     // танки поворачивают башню и стреляют
+    for (const a of MB_AA) {                                                // зенитки и радар крутятся; при тревоге зенитки следят за тобой
+      if (a.aim && alarm && Math.hypot(car.x - a.g.position.x, car.y - a.g.position.z) < 2500) a.g.rotation.y += angDiff(-Math.atan2(car.y - a.g.position.z, car.x - a.g.position.x), a.g.rotation.y) * Math.min(1, dt * 2);
+      else a.g.rotation.y += a.spin * dt;
+    }
+    for (const f of MB_FLAGS) f.rotation.y = Math.sin(performance.now() / 700 + f.position.x) * .25;
     for (const tk of MB_TANKS) {
       if (!tk.active) continue;
       const dx = car.x - tk.x, dy = car.y - tk.y, d = Math.hypot(dx, dy);
@@ -6032,12 +6194,12 @@
     for (const r of OUT_ROADS) path(r, 240, road, false);
     path(MR_PTS, 110, road, false); path(COAST_PTS, 120, road, false); path(PROM_PTS, 120, road, false);
     g.fillStyle = sat ? '#36383b' : '#8a9099';
-    g.fillRect(WORLD + 3380, AP.y0 + 200, 240, AP.y1 - AP.y0 - 400); g.fillRect(MB.x0 + 350, MB.y0 + 740, MB.x1 - MB.x0 - 700, 220);
+    g.fillRect(WORLD + 3380, AP.y0 + 200, 240, AP.y1 - AP.y0 - 400); g.fillRect(MB.x0 + 350, MB_RUN_Y - 115, MB.x1 - MB.x0 - 700, 230);
     g.fillStyle = sat ? '#3e4043' : '#6d737b'; g.fillRect(WORLD + 2645, AP.y0 + 200, 110, AP.y1 - AP.y0 - 400);
     for (const o of outerObs) { g.fillStyle = o.fence ? (sat ? '#c9ccd0' : '#9aa1a8') : (sat ? '#cfd3d6' : '#5a626c'); g.fillRect(o.x, o.y, o.w, o.h); }
     g.fillStyle = sat ? '#8d6e4a' : '#7a6a52'; g.fillRect(GC - 45, SHORE - 200, 90, 820);
   }
-  const OUTER_LABELS = [['lgAirport', (AP.x0 + AP.x1) / 2, GC - 200], ['lgBase', (MB.x0 + MB.x1) / 2, MB.y0 + 450], ['lgBeach', WORLD / 2 + 1400, SHORE - 150],
+  const OUTER_LABELS = [['lgAirport', (AP.x0 + AP.x1) / 2, GC - 200], ['lgBase', (MB.x0 + MB.x1) / 2, MB.y0 + 300], ['lgBeach', WORLD / 2 + 1400, SHORE - 150],
     ['lgMount', MX, MY - 1150], ['lgMansion', MZ.x0 + 220, MZ.y0 - 110], ['lgBridgeBig', IX + 230, (BR.y1 + BR.y2) / 2], ['lgIsland', IX, IY + 430], ['lgFreeway', FWX + 300, WORLD * .3], ['lgCoast', -3450, 2600], ['lgOcean', WORLD * .75 + 2000, MI1 + 3300], ...ISLES.map(I => [I.key, I.x, I.y - I.r * .15]), ['lgHighway', WORLD / 2 + 2000, -HW_D - 240]];
 
   // ================== Друзья ==================
