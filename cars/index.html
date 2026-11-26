@@ -410,7 +410,7 @@
   <div class="pill stars" id="stars"></div>
   <div class="pill" id="clockPill" title="День / ночь (N)"><span>🌙 </span><span id="clock">20:30</span></div>
   <div class="pill" id="hpPill">❤️ <span class="hpbar"><b id="hpFill"></b></span></div>
-  <div class="pill" id="abusePill" style="display:none">🏴‍☠️ <span id="abuseTime">6:00</span> · <span class="coin-ico"></span><span id="abuseCnt">0/20</span></div>
+  <div class="pill" id="abusePill" style="display:none">🏴‍☠️ <span id="abuseTime">6:00</span> · <span class="coin-ico"></span><span id="abuseCnt">0/6</span></div>
   <div class="pill" id="wpnPill" title="7" style="display:none;pointer-events:auto;cursor:pointer"></div>
 </div>
 <div id="help"><span data-i18n="help"></span><br><span data-i18n="helpExtra"></span><br><span data-i18n="fightHelp"></span><br><span data-i18n="driftHelp"></span></div>
@@ -6998,14 +6998,14 @@
   window.__chatUnread = () => chatUnread;
   window.__onChat = onChat;
   // ================== Админ-абьюз: Степан раскидывает монеты по укромным местам, у всех 6 минут ==================
-  const AB_N = 20, AB_DUR = 360000;
+  const AB_N = 6, AB_DUR = 360000;                         // 1 золотая + 2 серебряные + 3 бронзовые
   // пиратские монеты: бронзовая, серебряная и золотая — толстые, с ободком и черепом с костями на обеих сторонах
   const AB_TIERS = [
     { key: 'abBronze', value: 100000, scale: 1.5, base: '#b8733a', light: '#f0b27a', dark: '#5a2e10', emissive: '#4a2208', fx: '#ffb27a' },
     { key: 'abSilver', value: 250000, scale: 1.65, base: '#c9d1d9', light: '#ffffff', dark: '#56616c', emissive: '#3c4650', fx: '#ffffff' },
     { key: 'abGold', value: 500000, scale: 1.85, base: '#f2b705', light: '#fff1a8', dark: '#7a5200', emissive: '#7a5200', fx: '#ffd54f' },
   ];
-  const AB_MIX = [1, 6];                                    // 3 золотые и 6 серебряных — в самых трудных местах, остальные бронзовые
+  const AB_MIX = [1, 2];                                    // 1 золотая (на Таинственном острове) и 2 серебряные, остальные бронзовые
   const abGeo = new THREE.CylinderGeometry(10, 10, 3.6, 32); abGeo.rotateX(Math.PI / 2);
   const abRimGeo = new THREE.TorusGeometry(10, 1.3, 8, 32);
   function pirateFace(tr) {                                 // рисуем сторону монеты: ободок с точками, череп и скрещённые кости
