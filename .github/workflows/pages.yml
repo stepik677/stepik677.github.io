@@ -1,0 +1,73 @@
+# Публикует сайт на GitHub Pages и готовит обновление для мобильного приложения.
+# Требует: Settings → Pages → Build and deployment → Source: «GitHub Actions».
+#
+# Результат на сайте:
+#   https://stepik677.github.io/                     — сайт (как раньше)
+#   https://stepik677.github.io/app/version.json     — последняя версия игр для приложения
+#   https://stepik677.github.io/app/bundle-<v>.zip   — архив с файлами игр
+name: Сайт и обновление приложения
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Собрать www/
+        run: npm run build
+
+      - name: Собрать сайт и архив обновления
+        run: |
+          set -euo pipefail
+          V=$(node -p "require('./www/app-version.json').version")
+          mkdir -p _site/app
+          cp -r www/. _site/
+          (cd www && zip -qr -X "../_site/app/bundle-$V.zip" .)
+          SUM=$(sha256sum "_site/app/bundle-$V.zip" | cut -d' ' -f1)
+          V="$V" SUM="$SUM" node -e '
+            const cfg = require("./app/update-config.json");
+            const v = process.env.V;
+            process.stdout.write(JSON.stringify({
+              version: v,
+              url: `https://stepik677.github.io/app/bundle-${v}.zip`,
+              checksum: process.env.SUM,
+              paused: cfg.paused === true,
+            }, null, 2) + "\n");
+          ' > _site/app/version.json
+          cat _site/app/version.json
+          du -sh "_site/app/bundle-$V.zip"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
