@@ -32,11 +32,47 @@
   // --- Полноэкранный режим
   if (P.StatusBar) P.StatusBar.hide().catch(function () {});
 
-  // --- Кнопка «Назад» на Android: назад по страницам, из меню — выход
+  function goMenu() { location.href = '../index.html'; }
+
+  // --- Кнопка «Домой» в левом верхнем углу игр (на iPhone другого способа вернуться в меню нет)
+  if (!isMenu) {
+    var addHome = function () {
+      if (document.getElementById('app-home')) return;
+      var st = document.createElement('style');
+      st.textContent =
+        '#app-home{position:fixed;z-index:2147483000;' +
+        'top:calc(6px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px));' +
+        'width:38px;height:38px;padding:0;border:0;border-radius:50%;' +
+        'background:rgba(15,21,34,.55);color:#fff;display:flex;align-items:center;justify-content:center;' +
+        'opacity:.75;-webkit-tap-highlight-color:transparent;touch-action:manipulation;cursor:pointer}' +
+        '#app-home:active{opacity:1;transform:scale(.92)}' +
+        '#app-home svg{width:20px;height:20px;pointer-events:none}' +
+        // «Машинки»: мини-карта стоит в том же углу — сдвигаем её под кнопку
+        '#minimap{top:calc(52px + env(safe-area-inset-top,0px)) !important}';
+      document.head.appendChild(st);
+      var b = document.createElement('button');
+      b.id = 'app-home';
+      b.type = 'button';
+      b.setAttribute('aria-label', 'Главное меню');
+      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" ' +
+        'stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/></svg>';
+      // не даём касанию «провалиться» в игру (джойстики, камера)
+      ['touchstart', 'pointerdown', 'mousedown'].forEach(function (t) {
+        b.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true });
+      });
+      b.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        if (window.confirm('Выйти в главное меню?')) goMenu();
+      });
+      document.body.appendChild(b);
+    };
+    if (document.body) addHome(); else document.addEventListener('DOMContentLoaded', addHome);
+  }
+
+  // --- Кнопка «Назад» на Android: из игры — в меню, из меню — выход
   if (P.App) {
-    P.App.addListener('backButton', function (e) {
-      if (!isMenu && e.canGoBack) history.back();
-      else if (!isMenu) location.href = '../index.html';
+    P.App.addListener('backButton', function () {
+      if (!isMenu) goMenu();
       else P.App.exitApp();
     });
   }
