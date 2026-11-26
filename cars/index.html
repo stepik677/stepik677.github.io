@@ -753,7 +753,7 @@
       profHint: 'Весь прогресс (деньги, машины, оружие, одежда, дом) сохраняется сам. Чтобы играть на другом устройстве — скопируй код и загрузи его там.',
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
-      skMalta: 'Скейт-парк «Бастион»', skCyprus: 'Скейт-парк «Солнечный»', skFiji: 'Скейт-парк «Лагуна»', skCosta: 'Скейт-парк «Вулкан»', skIceland: 'Скейт-парк «Ледяной»',
+      skHint: '🛹 Скейт-парк! В воздухе: ↑ сальто, ↓ назад, ← → бочка · трюки ×2', skMalta: 'Скейт-парк «Бастион»', skCyprus: 'Скейт-парк «Солнечный»', skFiji: 'Скейт-парк «Лагуна»', skCosta: 'Скейт-парк «Вулкан»', skIceland: 'Скейт-парк «Ледяной»',
       m5: 'Война банд', m6: 'Захват склада', m7: 'Засада', mGoFight: 'Езжай на место — там банда!', mFightStart: '⚔️ Бой начался! Друзья с тобой!',
       mWave: 'Волна {w} из 3 — осталось бандитов: {n}', mWaveIn: '⚠️ Волна {w}! Бандиты идут!', mStorm: 'Захвати склад! Осталось бандитов: {n} (снайперы на крышах!)',
       mAmbush: 'Продержись! Побеждено: {k} · осталось {s} с', mLeft: '❌ Ты убежал с места засады. Миссия провалена.', mBossDown: '💥 Босс банды повержен!',
@@ -802,7 +802,7 @@
       profHint: 'All progress (money, vehicles, weapons, clothes, house) saves by itself. To play on another device, copy the code and load it there.',
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
-      skMalta: 'Bastion Skatepark', skCyprus: 'Sunny Skatepark', skFiji: 'Lagoon Skatepark', skCosta: 'Volcano Skatepark', skIceland: 'Ice Skatepark',
+      skHint: '🛹 Skatepark! In the air: ↑ flip, ↓ back flip, ← → roll · tricks ×2', skMalta: 'Bastion Skatepark', skCyprus: 'Sunny Skatepark', skFiji: 'Lagoon Skatepark', skCosta: 'Volcano Skatepark', skIceland: 'Ice Skatepark',
       m5: 'Gang War', m6: 'Warehouse Raid', m7: 'Ambush', mGoFight: 'Drive to the spot — the gang is there!', mFightStart: '⚔️ The fight is on! Your friends are with you!',
       mWave: 'Wave {w} of 3 — gangsters left: {n}', mWaveIn: '⚠️ Wave {w}! Gangsters are coming!', mStorm: 'Take the warehouse! Gangsters left: {n} (snipers on the roofs!)',
       mAmbush: 'Hold on! Defeated: {k} · {s} s left', mLeft: '❌ You ran away from the ambush. Mission failed.', mBossDown: '💥 The gang boss is down!',
@@ -1102,7 +1102,21 @@
     { key: 'isCosta', x: -7800, y: 3000, r: 1900, kind: 'costa', park: 'skCosta' },
     { key: 'isIceland', x: 5600, y: -8000, r: 2000, kind: 'iceland', park: 'skIceland' },
   ];
-  function isleH(I, x, y) {                                   // высота острова (меньше нуля — дно у берега)
+  function isleH(I, x, y) {                                   // остров + огромная ровная площадка скейт-парка почти на весь остров
+    const h = isleH0(I, x, y), P = I.pk;
+    if (!P || h === -1e9) return h;
+    const dx = x - I.x, dy = y - I.y, u = dx * P.ca + dy * P.sa, v = -dx * P.sa + dy * P.ca;
+    const dd = Math.max(Math.abs(u), Math.abs(v)) - P.S / 2;
+    if (dd >= 220) return h;
+    return dd <= 0 ? P.h : P.h + (h - P.h) * sstep(0, 220, dd);
+  }
+  function inParkOf(I, x, y, m = 0) {                         // точка внутри скейт-парка острова?
+    const P = I && I.pk; if (!P) return false;
+    const dx = x - I.x, dy = y - I.y;
+    return Math.abs(dx * P.ca + dy * P.sa) < P.S / 2 + m && Math.abs(-dx * P.sa + dy * P.ca) < P.S / 2 + m;
+  }
+  const inSkatePark = (x, y) => ISLES.some(I => inParkOf(I, x, y));
+  function isleH0(I, x, y) {                                  // высота острова (меньше нуля — дно у берега)
     const dx = x - I.x, dy = y - I.y, d = Math.hypot(dx, dy);
     if (d > I.r * 1.25 + 500) return -1e9;
     const a = Math.atan2(dy, dx), R = I.r * (1 + .12 * Math.sin(a * 3 + I.x * .001) + .07 * Math.sin(a * 7 + I.y * .002));
@@ -1122,6 +1136,12 @@
     return base;
   }
   function isleAt(x, y) { for (const I of ISLES) if (Math.hypot(x - I.x, y - I.y) < I.r * 1.3 + 500) return I; return null; }
+  for (const I of ISLES) {                                    // скейт-парк: квадрат почти на весь остров, повёрнут к городу
+    const a = Math.atan2(WORLD / 2 - I.y, WORLD / 2 - I.x), S = Math.round(I.r * 1.05), ca = Math.cos(a), sa = Math.sin(a);
+    let sum = 0, n = 0;
+    for (let k = 0; k < 40; k++) { const q = k / 40 * 4, side = Math.floor(q), f = q - side - .5, u = side === 0 ? S / 2 : side === 2 ? -S / 2 : f * S, v = side === 1 ? S / 2 : side === 3 ? -S / 2 : f * S; sum += Math.max(0, isleH0(I, I.x + u * ca - v * sa, I.y + u * sa + v * ca)); n++; }
+    I.pk = { a, S, ca, sa, h: Math.round(Math.max(8, Math.min(40, sum / n))) };
+  }
   const ISLE_PAL = {
     malta: { beach: '#e6d3a3', land: '#cdb98a', land2: '#b8a874', high: '#d9c79c' },
     cyprus: { beach: '#e8d6a0', land: '#a3a862', land2: '#8f9a55', high: '#9c8f6a' },
@@ -2547,6 +2567,13 @@
       color: '#ff6f00', suit: '#2e7d32', helmet: '#263238', max: 215, accel: 200, turn: 2.4, grip: 13, wheelR: 5.4, wheelX: 12, colL: 32, colW: 10, lean: .35, fat: true },
     { id: 'pulya', kind: 'moto', bicycle: true, name: 'Шоссейный велосипед «Пуля»', desc: 'Самый быстрый велосипед: тонкие колёса и руль-баран.', price: 2500,
       color: '#263238', color2: '#00e5ff', suit: '#00e5ff', helmet: '#212121', max: 270, accel: 210, turn: 2.2, grip: 12, wheelR: 5.4, wheelX: 12.5, colL: 32, colW: 10, lean: .3 },
+    // --- скейтборды ---
+    { id: 'doska', kind: 'moto', bicycle: true, skate: true, name: 'Скейтборд «Доска»', desc: 'Классический скейт — для рамп и трюков в воздухе!', price: 200,
+      color: '#ff7043', color2: '#ffd54f', suit: '#5e35b1', helmet: '#ff7043', max: 165, accel: 180, turn: 2.9, grip: 12, wheelR: 1.8, wheelX: 9, colL: 24, colW: 9, lean: .35 },
+    { id: 'volna', kind: 'moto', bicycle: true, skate: true, long: true, name: 'Лонгборд «Волна»', desc: 'Длинная доска с мягкими колёсами — быстрая и плавная.', price: 450,
+      color: '#26a69a', color2: '#e0f2f1', suit: '#00897b', helmet: '#ffffff', max: 195, accel: 170, turn: 2.5, grip: 12, wheelR: 2.2, wheelX: 12, colL: 30, colW: 9, lean: .3 },
+    { id: 'neon', kind: 'moto', bicycle: true, skate: true, glow: true, name: 'Скейт «Неон»', desc: 'Светящиеся колёса и доска — красиво ночью, быстрый и вёрткий.', price: 900,
+      color: '#212121', color2: '#00e5ff', suit: '#212121', helmet: '#00e5ff', max: 215, accel: 230, turn: 3.1, grip: 13, wheelR: 1.9, wheelX: 9.5, colL: 25, colW: 9, lean: .4 },
     // --- воздух: вертолёты и самолёты ---
     { id: 'strekoza', kind: 'heli', name: 'Вертолёт «Стрекоза»', desc: 'Маленький вертолёт. Взлетай прямо с места и садись на крыши!', price: 15000,
       color: '#ffb300', max: 300, accel: 260, turn: 1.7, grip: 12, size: 1, colL: 40, colW: 20 },
@@ -2753,7 +2780,42 @@
     }
     return { root: B.root, tg: B.tg, body, wheels: [], pivots: [], tailMat: B.tailMat, r: 1, driver: B.driver, paint, rotors: [], props: props.length ? props : spec.jet || spec.style ? [] : [prop] };
   }
+  function buildSkateboard(spec) {                                       // скейтборд и скейтер, который стоит боком
+    const root = new THREE.Group();
+    const tg = new THREE.Group(); tg.position.y = 6; root.add(tg);
+    const inner = new THREE.Group(); inner.position.y = -6; tg.add(inner);
+    const body = new THREE.Group(); inner.add(body);
+    const env = scene.userData.env, r = spec.wheelR, wx = spec.wheelX, half = wx + (spec.long ? 6 : 5), deckY = r * 2 + 1.6;
+    const paint = new THREE.MeshPhysicalMaterial({ color: spec.color, metalness: .2, roughness: .4, clearcoat: 1, envMap: env });
+    const grip = new THREE.MeshStandardMaterial({ color: '#1b1b1b', roughness: 1 }), metal = new THREE.MeshStandardMaterial({ color: '#b0bec5', metalness: .85, roughness: .25, envMap: env });
+    const wheelM = spec.glow ? new THREE.MeshStandardMaterial({ color: spec.color2, emissive: spec.color2, emissiveIntensity: 1.6 }) : new THREE.MeshStandardMaterial({ color: spec.color2 || '#fafafa', roughness: .5 });
+    const add = (geo, m, x, y, z, parent = body) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; parent.add(o); return o; };
+    add(new THREE.BoxGeometry(half * 2 - 6, 1, 8), paint, 0, deckY, 0); add(new THREE.BoxGeometry(half * 2 - 6, .3, 7.6), grip, 0, deckY + .65, 0);
+    for (const sx of [-1, 1]) { const tail = add(new THREE.BoxGeometry(6, 1, 8), paint, sx * (half - 2.6), deckY + 1, 0); tail.rotation.z = sx * .32; }   // загнутые носик и хвост
+    if (spec.glow) add(new THREE.BoxGeometry(half * 2 - 8, .4, 8.4), wheelM, 0, deckY - .6, 0);
+    const wheels = [], pivots = [];
+    for (const x of [wx, -wx]) {
+      const pivot = new THREE.Group(); pivot.position.set(x, r, 0); inner.add(pivot);
+      add(new THREE.BoxGeometry(2, deckY - r - .5, 2), metal, 0, (deckY - r) / 2, 0, pivot); add(new THREE.BoxGeometry(1.4, 1.4, 7), metal, 0, 0, 0, pivot);
+      for (const z of [-3.6, 3.6]) { const w = new THREE.Group(); w.position.z = z; pivot.add(w); add(new THREE.CylinderGeometry(r, r, 1.8, 14).rotateX(Math.PI / 2), wheelM, 0, 0, 0, w); wheels.push(w); }
+      pivots.push(pivot);
+    }
+    const tailMat = new THREE.MeshStandardMaterial({ color: '#8a0d0d', emissive: '#ff1a1a', emissiveIntensity: .3 });
+    add(new THREE.BoxGeometry(.5, .6, 3), tailMat, -half + .6, deckY, 0);
+    // скейтер: стоит боком, ноги на доске, руки в стороны для равновесия
+    const driver = new THREE.Group(); driver.position.y = deckY + .8; body.add(driver);
+    const suit = new THREE.MeshStandardMaterial({ color: spec.suit, roughness: .8 }), pants = new THREE.MeshStandardMaterial({ color: '#37474f', roughness: .85 });
+    const skin = new THREE.MeshStandardMaterial({ color: '#f1c27d', roughness: .7 }), helmet = new THREE.MeshStandardMaterial({ color: spec.helmet, metalness: .2, roughness: .3, envMap: env }), shoe = new THREE.MeshStandardMaterial({ color: '#fafafa', roughness: .7 });
+    const limb = (x1, y1, z1, x2, y2, z2, rad, m) => { const a = new THREE.Vector3(x1, y1, z1), b = new THREE.Vector3(x2, y2, z2), L = a.distanceTo(b), o = add(new THREE.CylinderGeometry(rad, rad, L, 7), m, (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2, driver); o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); return o; };
+    for (const fx of [-5.5, 5.5]) { add(new THREE.BoxGeometry(4, 1.4, 3), shoe, fx, .6, 0, driver); limb(fx, 1, 0, fx * .6, 7, 0, 1.3, pants); limb(fx * .6, 7, 0, fx * .35, 13, 0, 1.4, pants); }
+    limb(0, 12.5, 0, -.8, 22, 0, 3, suit);
+    for (const sz of [-1, 1]) limb(-.8, 21, 0, sz * 8, 18, sz * 1.5, .9, suit);
+    add(new THREE.SphereGeometry(2.6, 12, 10), skin, -1, 25.4, 0, driver);
+    add(new THREE.SphereGeometry(2.9, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), helmet, -1, 25.8, 0, driver);
+    return { root, tg, body, wheels, pivots, tailMat, r, driver, paint };
+  }
   function buildBicycle(spec) {
+    if (spec.skate) return buildSkateboard(spec);
     const root = new THREE.Group();
     const tg = new THREE.Group(); tg.position.y = 10; root.add(tg);
     const inner = new THREE.Group(); inner.position.y = -10; tg.add(inner);
@@ -3021,7 +3083,7 @@
       else btn = `<button class="no" disabled>${t('needMore', { p: fmt(c.price - save.money) })}</button>`;
       return `<div class="card ${cur ? 'cur' : ''}">
         <img src="${thumbs[c.id]}" alt="">
-        <h3>${c.bicycle ? '🚲' : c.kind === 'moto' ? '🏍' : c.kind === 'heli' ? '🚁' : c.kind === 'plane' ? '✈️' : c.kind === 'boat' ? (c.style === 'ship' ? '🚢' : c.style === 'yacht' ? '🛥' : '🚤') : '🚗'} ${carName(c)}</h3>
+        <h3>${c.skate ? '🛹' : c.bicycle ? '🚲' : c.kind === 'moto' ? '🏍' : c.kind === 'heli' ? '🚁' : c.kind === 'plane' ? '✈️' : c.kind === 'boat' ? (c.style === 'ship' ? '🚢' : c.style === 'yacht' ? '🛥' : '🚤') : '🚗'} ${carName(c)}</h3>
         <div class="price">${c.secret ? '🎁 ' + t('secretCar') : c.price ? fmt(c.price) : t('free')}</div>
         <p>${carDesc(c)}</p>
         ${bar(t('speed'), c.max / TOP.max)}${bar(t('accel'), c.accel / TOP.accel)}${bar(t('handling'), c.turn * c.grip / TOP.hand)}
@@ -3109,30 +3171,39 @@
         RAMPS.push({ cx: cx + (side ? lane : 0), cy: cy + (side ? 0 : lane), d, L: 200, H: 32, Wd: 100, big: true, ux: Math.cos(d), uy: Math.sin(d), base: 0 });
       }
     }
-    // скейт-парки на островах — у каждого свой
+    // скейт-парки на островах — почти на весь остров: кикеры с приземлением, большие рампы, спайны, пирамиды, перила
     for (const I of ISLES) {
-      const MC = WORLD / 2, a = Math.atan2(MC - I.y, MC - I.x), t = { malta: .58, cyprus: .74, fiji: .6, costa: .88, iceland: .7 }[I.kind];
-      const R = I.r * (1 + .12 * Math.sin(a * 3 + I.x * .001) + .07 * Math.sin(a * 7 + I.y * .002));
-      const sx = I.x + Math.cos(a) * R * t, sy = I.y + Math.sin(a) * R * t;
-      let hmax = -1e9, hmin = 1e9; for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) { const hh = terrainH(sx + i * 60, sy + j * 60); hmax = Math.max(hmax, hh); hmin = Math.min(hmin, hh); }
-      const h = hmax + .5; I.skate = { x: sx, y: sy, h, hmin, a };
+      const P = I.pk, h = P.h, a = P.a, sx = I.x, sy = I.y;
+      I.skate = { x: sx, y: sy, h, hmin: h, a, S: P.S };
       I.parts = []; I.flats = []; I.rails = [];
       const ca = Math.cos(a), sa = Math.sin(a), at = (dx, dy) => [sx + dx * ca - dy * sa, sy + dx * sa + dy * ca];
       const part = (type, dx, dy, d, L, H, Wd, extra) => { const [x, y] = at(dx, dy), dd = d + a; const r = { cx: x, cy: y, d: dd, L, H, Wd, kick: true, custom: true, type, ux: Math.cos(dd), uy: Math.sin(dd), base: h, ...extra }; RAMPS.push(r); I.parts.push(r); return r; };
-      const QP = (dx, dy, d, L, H, Wd) => part('qp', dx, dy, d, L, H, Wd, { curve: true, vzCap: 150, minVz: 70 });          // изогнутая рампа (quarter pipe)
-      const KICK = (dx, dy, d, L, H, Wd) => part('kick', dx, dy, d, L, H, Wd, { vzCap: 120, minVz: 60 });                    // кикер
-      const FUNBOX = (dx, dy, d, Lr, H, top, Wd) => {                                                                       // фанбокс: заезд, ровный верх, съезд
+      const off = (cx, cy, d, k) => [cx + Math.cos(d) * k, cy + Math.sin(d) * k];
+      const KICK = (cx, cy, d, L, H, Wd, minVz, vzCap) => part('kick', cx, cy, d, L, H, Wd, { minVz, vzCap });                     // кикер — подбрасывает
+      const AIR = (cx, cy, d, L, H, Wd, minVz, vzCap) => part('air', cx, cy, d, L, H, Wd, { curve: true, minVz, vzCap });          // изогнутая рампа — высоко вверх
+      const LAND = (cx, cy, d, L, H, Wd) => part('land', cx, cy, d + Math.PI, L, H, Wd, { minVz: 20, vzCap: 40 });               // горка для приземления
+      const FUNBOX = (dx, dy, d, Lr, H, top, Wd) => {
         const ux = Math.cos(d), uy = Math.sin(d), o = top / 2 + Lr / 2;
-        part('box', dx - ux * o, dy - uy * o, d, Lr, H, Wd, { vzCap: 35, minVz: 18 });
-        part('box', dx + ux * o, dy + uy * o, d + Math.PI, Lr, H, Wd, { vzCap: 35, minVz: 18 });
+        part('box', dx - ux * o, dy - uy * o, d, Lr, H, Wd, { vzCap: 60, minVz: 30 });
+        part('box', dx + ux * o, dy + uy * o, d + Math.PI, Lr, H, Wd, { vzCap: 60, minVz: 30 });
         const [x, y] = at(dx, dy); I.flats.push({ x, y, d: d + a, L: top, Wd, H });
       };
       const RAIL = (dx, dy, d, L) => { const [x, y] = at(dx, dy); I.rails.push({ x, y, d: d + a, L }); };
-      if (I.kind === 'malta') { QP(0, -120, -Math.PI / 2, 70, 34, 210); QP(0, 120, Math.PI / 2, 70, 34, 210); RAIL(150, 0, Math.PI / 2, 120); }                         // хафпайп
-      else if (I.kind === 'cyprus') { FUNBOX(-10, 0, 0, 60, 18, 90, 110); QP(150, 0, 0, 50, 26, 170); RAIL(0, -130, 0, 170); RAIL(0, 130, 0, 170); }                      // фанбокс и рампа
-      else if (I.kind === 'fiji') { QP(0, -100, -Math.PI / 2, 55, 20, 170); QP(0, 100, Math.PI / 2, 55, 20, 170); KICK(140, 0, 0, 50, 12, 60); RAIL(-70, 150, 0, 110); }   // мини-рампа
-      else if (I.kind === 'costa') { QP(0, -115, -Math.PI / 2, 80, 54, 190); QP(0, 115, Math.PI / 2, 80, 54, 190); KICK(150, 0, 0, 60, 20, 60); }                        // большой вертикальный хафпайп
-      else { QP(150, 0, 0, 55, 28, 210); FUNBOX(-40, 0, 0, 50, 16, 70, 100); KICK(10, -135, 0, 50, 12, 60); RAIL(10, 135, 0, 180); }                                   // ледяной парк
+      let seed = Math.abs(Math.round(I.x * 7 + I.y * 13)) % 2147483646 + 1; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+      const C = 340, n = Math.max(3, Math.floor((P.S - 140) / C)), o0 = -(n - 1) / 2 * C, mid = (n - 1) / 2;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        const cx = o0 + i * C, cy = o0 + j * C, d = Math.floor(rnd() * 4) * Math.PI / 2;
+        if (Math.abs(i - mid) < .6 && Math.abs(j - mid) < .6) {                       // в центре — мега-рампа с горкой для приземления
+          KICK(...off(cx, cy, d, -120), d, 110, 46, 120, 170, 250); LAND(...off(cx, cy, d, 130), d, 140, 42, 130); continue;
+        }
+        const type = Math.floor(rnd() * 6);
+        if (type === 0) { KICK(...off(cx, cy, d, -100), d, 60, 24, 90, 120, 180); LAND(...off(cx, cy, d, 95), d, 90, 24, 100); }          // прыжок через яму
+        else if (type === 1) AIR(...off(cx, cy, d, -110), d, 70, 36, 110, 150, 230);                                                        // большой «эйр» — высоко в небо
+        else if (type === 2) { FUNBOX(cx, cy, d, 50, 18, 80, 80); FUNBOX(cx, cy, d + Math.PI / 2, 50, 18, 80, 80); }                         // пирамида
+        else if (type === 3) { AIR(...off(cx, cy, d, -34), d, 64, 30, 130, 130, 200); AIR(...off(cx, cy, d, 34), d + Math.PI, 64, 30, 130, 130, 200); }   // спайн — перелетаешь через гребень
+        else if (type === 4) { FUNBOX(cx, cy, d, 46, 14, 70, 70); const [rx, ry] = off(cx, cy, d + Math.PI / 2, 95), [qx, qy] = off(cx, cy, d - Math.PI / 2, 95); RAIL(rx, ry, d, 170); RAIL(qx, qy, d, 170); }   // фанбокс и перила
+        else { const p1 = off(cx, cy, d + Math.PI / 2, 50), p2 = off(cx, cy, d - Math.PI / 2, 50); KICK(...off(...p1, d, -60), d, 50, 16, 70, 100, 150); KICK(...off(...p2, d, -60), d, 70, 30, 70, 140, 210); }   // два кикера: маленький и большой
+      }
     }
     for (const x of [GC - 1600, GC + 2200]) RAMPS.push({ cx: x, cy: SHORE - 140, d: Math.PI / 2, L: 240, H: 42, Wd: 130, big: true, ux: 0, uy: 1, base: 0 });   // мега-трамплины на пляже — прыжок в море!
   }
@@ -3191,6 +3262,7 @@
   // трамплин под машиной (только тот, до которого она достаёт по высоте)
   function rampAt(x, y, z = car.z) {
     for (const r of RAMPS) {
+      const e = r.ext ??= Math.hypot(r.L, r.Wd) / 2 + 4; if (Math.abs(x - r.cx) > e || Math.abs(y - r.cy) > e) continue;
       const [u, v] = rampLocal(r, x, y);
       if (!inside(r, u, v)) continue;
       const h = rampH(r, u);
@@ -3201,7 +3273,7 @@
   // высота «земли» под машиной: самая высокая поверхность, на которую она может встать
   function groundHeight(x, y, z = car.z) {
     let best = (x < 0 || y < 0 || x > WORLD || y > WORLD) ? terrainH(x, y) : 0;   // за городом — холмы, горы, пляж
-    for (const r of RAMPS) { const [u, v] = rampLocal(r, x, y); if (inside(r, u, v)) { const h = rampH(r, u); if (h <= z + 14 && h > best) best = h; } }
+    for (const r of RAMPS) { const e = r.ext ??= Math.hypot(r.L, r.Wd) / 2 + 4; if (Math.abs(x - r.cx) > e || Math.abs(y - r.cy) > e) continue; const [u, v] = rampLocal(r, x, y); if (inside(r, u, v)) { const h = rampH(r, u); if (h <= z + 14 && h > best) best = h; } }
     for (const p of PLATS) { const [u, v] = rampLocal(p, x, y); if (inside(p, u, v)) { const h = platH(p, u); if (h <= z + 14 && h > best) best = h; } }
     return best;
   }
@@ -3226,6 +3298,7 @@
     const outC = px < 2 || py < 2 || px > WORLD - 2 || py > WORLD - 2;      // за городом — свои дома и заборы
     const z = zz ?? (car.z || 0);
     for (const r of RAMPS) {
+      const e = r.ext ??= Math.hypot(r.L, r.Wd) / 2 + 4; if (Math.abs(px - r.cx) > e || Math.abs(py - r.cy) > e) continue;
       const [u, v] = rampLocal(r, px, py);
       if (!r.curve && inside(r, u, v) && rampH(r, u) > z + tol && r.base < z + 18) return true;   // на изогнутую рампу можно заехать до самого верха
     }
@@ -3913,14 +3986,16 @@
     const flips = Math.round(Math.abs(trick.pitchT) / TAU), rolls = Math.round(Math.abs(trick.rollT) / TAU);
     if (ok) {
       let reward = 0; const names = [];
+      const inPark = inSkatePark(car.x, car.y);
       if (flips) { reward += flips * 300; names.push((flips > 1 ? flips + '× ' : '') + (trick.pitchT < 0 ? t('flip') : t('backflip'))); }
       if (rolls) { reward += rolls * 200; names.push((rolls > 1 ? rolls + '× ' : '') + t('roll')); }
       if (!flips && !rolls && car.airT > .45) { reward = 50; names.push(t('jump')); }
+      if (reward && inPark) reward *= 2;                     // в скейт-парке трюки ×2
       if (reward) {
         save.money += reward; persist();
         popMoney(names.join(' + ') + '! +' + reward + ' €', flips || rolls ? '#7CFFB2' : '#ffffff');
       }
-      if (flips || rolls) setTimeout(() => addWanted(1), 900);   // после каждого трюка — звезда розыска
+      if ((flips || rolls) && !inPark) setTimeout(() => addWanted(1), 900);   // после трюка — звезда розыска (в скейт-парке — нет)
       Object.assign(trick, { pitch: 0, pitchT: 0, roll: 0, rollT: 0 });
       shake = 3;
     } else {
@@ -4150,8 +4225,7 @@
         if (along > 40 && r.boost && along < r.boost) {      // подталкиваем вперёд
           car.vx += r.ux * (r.boost - along); car.vy += r.uy * (r.boost - along); along = r.boost;
         }
-        launch(along > 40 ? Math.min(r.vzCap || 1e9, Math.max(r.minVz || 95, along * .5)) : 0);
-        if (r.curve && along > 40) { car.vx -= r.ux * along * 1.85; car.vy -= r.uy * along * 1.85; car.angle += Math.PI; }   // с изогнутой рампы — вверх и разворот назад, как скейтер
+        launch(along > 40 ? Math.min(r.vzCap || 1e9, Math.max(r.minVz || 95, along * (r.curve ? .8 : .5))) : 0);   // с изогнутой рампы — высоко вверх и вперёд
       } else if (g < car.z - 8) {                   // съехал с края моста / крыши / в дырку
         car.ramp = null; launch(Math.max(0, car.climb || 0));
       } else { car.z = g; car.ramp = null; }
@@ -5588,32 +5662,41 @@
   const ISLE_FX = [];                                         // вулкан и гейзер — дым и пар
   {
     const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3(), Yax = new THREE.Vector3(0, 1, 0), C = new THREE.Color();
-    const spot = (I, t0, t1, h0, h1) => { for (let k = 0; k < 60; k++) { const a = Math.random() * Math.PI * 2, r = I.r * (t0 + Math.random() * (t1 - t0)), x = I.x + Math.cos(a) * r, y = I.y + Math.sin(a) * r, h = terrainH(x, y); if (I.skate && Math.hypot(x - I.skate.x, y - I.skate.y) < 300) continue; if (h >= h0 && h <= h1) return [x, y, h]; } return null; };
+    const spot = (I, t0, t1, h0, h1) => { for (let k = 0; k < 60; k++) { const a = Math.random() * Math.PI * 2, r = I.r * (t0 + Math.random() * (t1 - t0)), x = I.x + Math.cos(a) * r, y = I.y + Math.sin(a) * r, h = terrainH(x, y); if (inParkOf(I, x, y, 90)) continue; if (h >= h0 && h <= h1) return [x, y, h]; } return null; };
     const SK_COL = { malta: ['#ffb300', '#e53935'], cyprus: ['#1e88e5', '#ffffff'], fiji: ['#26c6da', '#ff7043'], costa: ['#43a047', '#ffeb3b'], iceland: ['#90caf9', '#7e57c2'] };
     for (const I of ISLES) {                                   // скейт-парки: бетонная площадка, граффити, бортики, вывеска
       const K = I.skate; if (!K) continue;
-      const [c1, c2] = SK_COL[I.kind], S = 380;
-      PLATS.push({ cx: K.x, cy: K.y, ux: Math.cos(K.a), uy: Math.sin(K.a), L: S, Wd: S, h0: K.h, h1: K.h, bot: K.hmin - 20 });
-      const tex = outerTex(512, 512, (g, w, h) => {
-        g.fillStyle = '#9ea4a8'; g.fillRect(0, 0, w, h);
-        for (let i = 0; i < 1600; i++) { g.fillStyle = Math.random() < .5 ? '#949a9e' : '#a8aeb2'; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
-        g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 3; for (let k = 0; k <= 4; k++) { g.beginPath(); g.moveTo(k * w / 4, 0); g.lineTo(k * w / 4, h); g.moveTo(0, k * h / 4); g.lineTo(w, k * h / 4); g.stroke(); }
-        for (let k = 0; k < 7; k++) { g.fillStyle = k % 2 ? c1 : c2; g.globalAlpha = .55; g.beginPath(); g.ellipse(60 + Math.random() * 390, 60 + Math.random() * 390, 20 + Math.random() * 50, 10 + Math.random() * 30, Math.random() * 3, 0, 7); g.fill(); }
-        g.globalAlpha = .7; g.font = 'bold 64px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.fillStyle = c1; g.fillText('SKATE', w / 2, h / 2 + 20); g.globalAlpha = 1;
-      }, 1, 1);
-      const blk = new THREE.Mesh(new THREE.BoxGeometry(S, K.h - K.hmin + 20, S), [concreteM, concreteM, new THREE.MeshStandardMaterial({ map: tex, roughness: .8 }), concreteM, concreteM, concreteM]);
-      blk.position.set(K.x, (K.h + K.hmin - 20) / 2, K.y); blk.rotation.y = -K.a; blk.receiveShadow = true; scene.add(blk);
-      const rail = new THREE.MeshStandardMaterial({ color: c1, metalness: .4, roughness: .4 });
-      for (const [dx, dy, L, vert] of [[0, -S / 2, S, false], [0, S / 2, S, false], [S / 2, 0, S, true]]) {   // въезд — со стороны вывески
-        const m = new THREE.Mesh(new THREE.BoxGeometry(vert ? 4 : L, 8, vert ? L : 4), rail), ca = Math.cos(K.a), sa = Math.sin(K.a);
-        m.position.set(K.x + dx * ca - dy * sa, K.h + 4, K.y + dx * sa + dy * ca); m.rotation.y = -K.a; scene.add(m);
+      const [c1, c2] = SK_COL[I.kind], S = K.S;
+      const tile = outerTex(256, 256, (g, w, h) => {                                // бетон с швами
+        g.fillStyle = '#a7adb1'; g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 900; i++) { g.fillStyle = Math.random() < .5 ? '#9ca2a6' : '#b1b7bb'; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+        g.strokeStyle = 'rgba(0,0,0,.2)'; g.lineWidth = 3; g.strokeRect(0, 0, w, h);
+      }, S / 120, S / 120);
+      const fl = new THREE.Mesh(new THREE.PlaneGeometry(S, S).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: tile, roughness: .8, polygonOffset: true, polygonOffsetFactor: -4 }));
+      fl.position.set(K.x, K.h + .3, K.y); fl.rotation.y = -K.a; fl.receiveShadow = true; scene.add(fl);
+      const art = new THREE.Mesh(new THREE.PlaneGeometry(S * .9, S * .9).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, map: outerTex(1024, 1024, (g, w, h) => {   // граффити на полу
+        g.clearRect(0, 0, w, h);
+        for (let k = 0; k < 26; k++) { g.globalAlpha = .35; g.fillStyle = [c1, c2, '#ff4081', '#00e676', '#ffea00'][k % 5]; g.beginPath(); g.ellipse(Math.random() * w, Math.random() * h, 20 + Math.random() * 60, 10 + Math.random() * 30, Math.random() * 3, 0, 7); g.fill(); }
+        g.globalAlpha = .55; g.font = '900 120px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.fillStyle = c1; g.lineWidth = 10; g.strokeStyle = '#fff'; g.strokeText('SKATE', w / 2, h / 2 + 40); g.fillText('SKATE', w / 2, h / 2 + 40); g.globalAlpha = 1;
+      }) }));
+      art.position.set(K.x, K.h + .5, K.y); art.rotation.y = -K.a; scene.add(art);
+      const rail = new THREE.MeshStandardMaterial({ color: c1, metalness: .4, roughness: .4 }), ca0 = Math.cos(K.a), sa0 = Math.sin(K.a);
+      for (const [dx, dy, L, vert] of [[0, -S / 2, S, false], [0, S / 2, S, false], [S / 2, 0, S, true], [-S / 2, 0, S, true]]) {   // цветной бортик по краю
+        const m = new THREE.Mesh(new THREE.BoxGeometry(vert ? 4 : L, 2.5, vert ? L : 4), rail);
+        m.position.set(K.x + dx * ca0 - dy * sa0, K.h + 1.2, K.y + dx * sa0 + dy * ca0); m.rotation.y = -K.a; scene.add(m);
+      }
+      const lampM = new THREE.MeshStandardMaterial({ color: '#fffde7', emissive: '#fff59d', emissiveIntensity: 1.5 }), poleM = new THREE.MeshStandardMaterial({ color: '#455a64', metalness: .6, roughness: .4 });
+      for (const [ex, ey] of [[1, 1], [1, -1], [-1, 1], [-1, -1], [0, 1], [0, -1], [1, 0], [-1, 0]]) {   // фонари вокруг парка
+        const dx = ex * (S / 2 + 14), dy = ey * (S / 2 + 14), x = K.x + dx * ca0 - dy * sa0, y = K.y + dx * sa0 + dy * ca0;
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(2, 2.6, 90, 8), poleM); pole.position.set(x, K.h + 45, y); scene.add(pole);
+        const lamp = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 10), lampM); lamp.position.set(x, K.h + 91, y); scene.add(lamp);
       }
       const rampM = new THREE.MeshStandardMaterial({ color: '#cfd4d8', roughness: .45, metalness: .1, side: THREE.DoubleSide }), sideM = new THREE.MeshStandardMaterial({ color: c1, roughness: .6 });
       const copingM = new THREE.MeshStandardMaterial({ color: '#eceff1', metalness: .9, roughness: .2, envMap: scene.userData.env });
       for (const r of I.parts) {                                // рампы как в настоящем скейт-парке
         const grp = new THREE.Group(); grp.position.set(r.cx, r.base, r.cy); grp.rotation.y = -r.d; scene.add(grp);
         const pts = [new THREE.Vector2(-r.L / 2, 0)];
-        if (r.type === 'qp') { for (let k = 1; k <= 14; k++) { const q = k / 14; pts.push(new THREE.Vector2(-r.L / 2 + q * r.L, r.H * q * q)); } pts.push(new THREE.Vector2(r.L / 2 + 14, r.H), new THREE.Vector2(r.L / 2 + 14, 0)); }
+        if (r.curve) { for (let k = 1; k <= 14; k++) { const q = k / 14; pts.push(new THREE.Vector2(-r.L / 2 + q * r.L, r.H * q * q)); } pts.push(new THREE.Vector2(r.L / 2 + (r.type === 'qp' ? 14 : 3), r.H), new THREE.Vector2(r.L / 2 + (r.type === 'qp' ? 14 : 3), 0)); }
         else pts.push(new THREE.Vector2(r.L / 2, r.H), new THREE.Vector2(r.L / 2, 0));
         const geo = new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth: r.Wd, bevelEnabled: false }); geo.translate(0, 0, -r.Wd / 2);
         const m = new THREE.Mesh(geo, [sideM, rampM]); m.castShadow = m.receiveShadow = true; grp.add(m);
@@ -5633,8 +5716,9 @@
         for (const x of [-rl.L / 2 + 6, 0, rl.L / 2 - 6]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(1.6, 9, 1.6), copingM); leg.position.set(x, 4.5, 0); g.add(leg); }
       }
       const sign = new THREE.Mesh(new THREE.PlaneGeometry(130, 32), new THREE.MeshBasicMaterial({ map: outerTex(512, 128, (g, w, h) => { g.fillStyle = c2 === '#ffffff' ? c1 : c2; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 8; g.strokeRect(6, 6, w - 12, h - 12); g.fillStyle = '#fff'; g.font = 'bold 46px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🛹 ' + t(I.park), w / 2, h / 2 + 3); }, 1, 1), side: THREE.DoubleSide }));
-      const ox = K.x - Math.cos(K.a) * (S / 2 + 20), oy = K.y - Math.sin(K.a) * (S / 2 + 20);
-      sign.position.set(ox, K.h + 40, oy); sign.rotation.y = -K.a - Math.PI / 2; scene.add(sign);
+      const ox = K.x + Math.cos(K.a) * (S / 2 + 40), oy = K.y + Math.sin(K.a) * (S / 2 + 40);   // вывеска со стороны города
+      sign.scale.set(2.2, 2.2, 1); sign.position.set(ox, K.h + 70, oy); sign.rotation.y = Math.PI / 2 - K.a; scene.add(sign);
+      for (const k of [-1, 1]) { const pole = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 70, 8), poleM); pole.position.set(ox - Math.sin(K.a) * k * 120, K.h + 35, oy + Math.cos(K.a) * k * 120); scene.add(pole); }
     }
     const forest = (list, trunkGeo, crownGeo, trunkCol, hue, sat, lig) => {
       if (!list.length) return;
@@ -5652,12 +5736,6 @@
       if (I.kind === 'malta') {                                 // крепость, город из светлого камня, собор с куполом
         const stone = new THREE.MeshStandardMaterial({ map: concreteTex(true), color: '#e8d7aa', roughness: .9 });
         const s = 170;
-        box(I.x - s, I.y - s, s * 2, 16, 42, stone, top); box(I.x - s, I.y + s - 16, s * 2, 16, 42, stone, top);
-        box(I.x - s, I.y - s, 16, s * 2, 42, stone, top); box(I.x + s - 16, I.y - s, 16, s * 2 - 120, 42, stone, top);
-        for (const [cx, cy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const tw = new THREE.Mesh(new THREE.CylinderGeometry(22, 26, 60, 12), stone); tw.position.set(I.x + cx * s, top + 30, I.y + cy * s); tw.castShadow = true; scene.add(tw); }
-        const ch = new THREE.MeshStandardMaterial({ color: '#f1e3bd', roughness: .8 });
-        box(I.x - 40, I.y - 30, 80, 60, 40, ch, top);
-        const dome = new THREE.Mesh(new THREE.SphereGeometry(28, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#c62828', roughness: .6 })); dome.position.set(I.x, top + 40, I.y); scene.add(dome);
         const wall = new THREE.MeshStandardMaterial({ map: glassTex('#e6d3a3', '#5d4037'), roughness: .9 });
         for (let i = 0; i < 18; i++) { const p = spot(I, .25, .75, 20, 40); if (p && Math.hypot(p[0] - I.x, p[1] - I.y) > s + 50) houseAt(p[0], p[1], 50 + Math.random() * 30, 40 + Math.random() * 20, 24 + Math.random() * 14, wall, '#d7c08f'); }
         forest(many(I, 20, .3, .85, 10, 40), palmT, palmC, '#8d6e4a', .3, .5, .38);
@@ -5665,7 +5743,7 @@
         const white = new THREE.MeshStandardMaterial({ map: glassTex('#f7f7f2', '#1e88e5'), roughness: .8 });
         for (let i = 0; i < 14; i++) { const p = spot(I, .45, .8, 12, 60); if (p) houseAt(p[0], p[1], 46, 40, 26, white, '#d35400'); }
         forest(many(I, 90, .2, .9, 10, 200), new THREE.CylinderGeometry(1.6, 2.4, 14, 6).translate(0, 7, 0), new THREE.SphereGeometry(13, 8, 6).translate(0, 20, 0), '#6d5a3a', .2, .2, .38);
-        const ruin = spot(I, .3, .5, 30, 200) || [I.x, I.y, top];
+        const ruin = spot(I, .6, .98, 4, 200) || [I.x + I.r * .9, I.y, terrainH(I.x + I.r * .9, I.y)];
         const marble = new THREE.MeshStandardMaterial({ color: '#efebe4', roughness: .6 });
         box(ruin[0] - 70, ruin[1] - 40, 140, 80, 4, marble, ruin[2], false);
         for (let i = 0; i < 10; i++) { const c = new THREE.Mesh(new THREE.CylinderGeometry(4, 4.6, i % 3 === 2 ? 18 : 40, 10), marble); c.position.set(ruin[0] - 60 + (i % 5) * 30, ruin[2] + (i % 3 === 2 ? 13 : 24), ruin[1] + (i < 5 ? -30 : 30)); c.castShadow = true; scene.add(c); }
@@ -5680,9 +5758,9 @@
         forest(many(I, 140, .15, .95, 2, 50), palmT, palmC, '#8d6e4a', .3, .55, .36);
       } else if (I.kind === 'costa') {                          // густые джунгли и вулкан с лавой
         forest(many(I, 240, .3, 1, 8, 220), new THREE.CylinderGeometry(2.4, 3.4, 40, 6).translate(0, 20, 0), new THREE.SphereGeometry(24, 9, 7).translate(0, 50, 0), '#4e342e', .32, .6, .2);
-        const lava = new THREE.Mesh(new THREE.CircleGeometry(I.r * .34 * .15, 24).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ff6d00', emissive: '#ff3d00', emissiveIntensity: 2.5 }));
+        if (!inParkOf(I, I.x, I.y)) { const lava = new THREE.Mesh(new THREE.CircleGeometry(I.r * .34 * .15, 24).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ff6d00', emissive: '#ff3d00', emissiveIntensity: 2.5 }));
         lava.position.set(I.x, terrainH(I.x, I.y) + 6, I.y); scene.add(lava);
-        ISLE_FX.push({ kind: 'volcano', x: I.x, y: I.y, z: terrainH(I.x, I.y) + 10 });
+        ISLE_FX.push({ kind: 'volcano', x: I.x, y: I.y, z: terrainH(I.x, I.y) + 10 }); }
         const hutW = new THREE.MeshStandardMaterial({ color: '#795548' });
         for (let i = 0; i < 5; i++) { const p = spot(I, .78, .9, 5, 20); if (p) houseAt(p[0], p[1], 40, 34, 20, hutW, '#33691e'); }
       } else if (I.kind === 'iceland') {                        // чёрный песок, ледник, домики с красными крышами и гейзер
@@ -5713,6 +5791,9 @@
     for (const I of ISLES) if (I.label) I.label.position.y = I.labelY + Math.sin(performance.now() / 900 + I.x) * 8;   // название покачивается
     const I = ISLES.find(q => Math.hypot(car.x - q.x, car.y - q.y) < q.r * .95) || null;
     if (I !== isleNow) { isleNow = I; if (I) showMsg('🏝 ' + t('welcomeTo', { n: t(I.key) }), 3200); }
+    const pk = I && inParkOf(I, car.x, car.y);
+    if (pk && !updateIsles.inPk) setTimeout(() => showMsg(t('skHint'), 5000), I === updateIsles.lastI ? 0 : 3300);
+    updateIsles.inPk = pk; updateIsles.lastI = I;
     for (const fx of ISLE_FX) {
       if (Math.hypot(car.x - fx.x, car.y - fx.y) > 3500) continue;
       if (fx.kind === 'volcano') { if (Math.random() < .5) emit(fx.x + (Math.random() - .5) * 40, fx.z + 20, fx.y + (Math.random() - .5) * 40, Math.random() < .3 ? '#ff7043' : '#4e4e4e', 14, 4, (Math.random() - .5) * 20, 50 + Math.random() * 40, (Math.random() - .5) * 20, 30, .6); }
