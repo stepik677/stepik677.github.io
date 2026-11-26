@@ -808,7 +808,7 @@
       chAnn: 'Объявление', chClear: 'Очистить', chBoss: 'АДМИН', chEmpty: 'Пока никто не писал. Напиши первым! 👋', chOffline: 'Чат работает, когда есть интернет и мультиплеер.',
       chWait: 'Подожди пару секунд перед следующим сообщением.', chMuted: '🔇 Степан выключил тебе чат. Осталось {m} мин.', chMutedYou: '🔇 Степан Банан выключил тебе чат на 5 минут.',
       chMutedOther: '🔇 Чат выключен для {n} на 5 минут.', chCleared: '🧹 Степан Банан очистил чат.',
-      phApp1: 'Контакты', phApp2: 'Банк Степана', phApp3: 'Карта', phApp4: 'Гараж', phHintHome: '1 / 2 — выбрать · 3 — открыть · 6 — закрыть',
+      phAbuse: 'Админ-абьюз', phApp1: 'Контакты', phApp2: 'Банк Степана', phApp3: 'Карта', phApp4: 'Гараж', phHintHome: '1 / 2 — выбрать · 3 — открыть · 6 — закрыть',
       bkLeft: 'Сегодня можно попросить ещё {n} раз(а) из 3.', bkLimit: '⏳ Ты уже 3 раза просил сегодня. Приходи завтра!',
       bkTitle: '🏪 Банк Степана', bkHintUser: 'Здесь можно попросить денег у Степана Банана. Выбери сумму и нажми «Попросить».', bkHintAdmin: 'Ты — Степан! Можешь брать деньги себе и отправлять их другим игрокам.',
       bkHintLock: 'Это банк Степана. Если ты Степан — введи свой секретный код.', bkCode: 'Секретный код', bkUnlock: '🔓 Открыть', bkBadCode: '❌ Неверный код',
@@ -872,7 +872,7 @@
       chAnn: 'Announce', chClear: 'Clear', chBoss: 'ADMIN', chEmpty: 'No messages yet. Say hi first! 👋', chOffline: 'Chat works when you are online in multiplayer.',
       chWait: 'Wait a couple of seconds before the next message.', chMuted: '🔇 Stepan muted your chat. {m} min left.', chMutedYou: '🔇 Stepan Banan muted your chat for 5 minutes.',
       chMutedOther: '🔇 Chat muted for {n} for 5 minutes.', chCleared: '🧹 Stepan Banan cleared the chat.',
-      phApp1: 'Contacts', phApp2: 'Stepan’s Bank', phApp3: 'Map', phApp4: 'Garage', phHintHome: '1 / 2 — pick · 3 — open · 6 — close',
+      phAbuse: 'Admin abuse', phApp1: 'Contacts', phApp2: 'Stepan’s Bank', phApp3: 'Map', phApp4: 'Garage', phHintHome: '1 / 2 — pick · 3 — open · 6 — close',
       bkLeft: 'You can ask {n} more time(s) today (3 per day).', bkLimit: '⏳ You already asked 3 times today. Come back tomorrow!',
       bkTitle: '🏪 Stepan’s Bank', bkHintUser: 'Here you can ask Stepan Banan for money. Pick an amount and press “Ask”.', bkHintAdmin: 'You are Stepan! You can take money for yourself and send it to other players.',
       bkHintLock: 'This is Stepan’s bank. If you are Stepan, enter your secret code.', bkCode: 'Secret code', bkUnlock: '🔓 Unlock', bkBadCode: '❌ Wrong code',
@@ -6585,7 +6585,9 @@
   const phoneEl = document.getElementById('phone'), phList = document.getElementById('phList');
   let phoneOpen = false, phSel = 0, phCalling = null, phTimer = 0, phView = 'home';
   const PH_APPS = [['chat', '💬', 'phApp6', '#00acc1'], ['contacts', '📞', 'phApp1', '#43a047'], ['bank', '🏪', 'phApp2', '#ffb300'], ['missions', '⭐', 'phApp5', '#8e24aa'], ['map', '🗺', 'phApp3', '#1e88e5'], ['garage', '🚗', 'phApp4', '#e53935']];
+  const phApps = () => window.__canAbuse?.() ? [...PH_APPS, ['abuse', '🏴‍☠️', window.__abuseLabel(), '#6d4c41']] : PH_APPS;   // у Степана — админ-абьюз
   function openApp(id) {
+    if (id === 'abuse') { togglePhone(false); window.__abuseToggle?.(); return; }
     if (id === 'contacts') { phView = 'contacts'; phSel = 0; renderPhone(); return; }
     if (id === 'missions') { phView = 'missions'; phSel = 0; renderPhone(); return; }
     if (id === 'chat') { phView = 'chat'; phList.innerHTML = ''; renderPhone(); setTimeout(() => document.getElementById('chatTx')?.focus(), 60); return; }
@@ -6602,7 +6604,7 @@
       document.getElementById('phTitle').textContent = t('phHome');
       document.getElementById('phHint').textContent = t('phHintHome');
       const reqs = window.__bankReqs?.() || 0;
-      phList.innerHTML = '<div class="phApps">' + PH_APPS.map(([id, ic, key, col], i) => `<button class="phApp${i === phSel ? ' sel' : ''}" data-app="${id}"><span style="background:${col}">${ic}</span>${esc(t(key))}${id === 'bank' && reqs ? `<i>${reqs}</i>` : ''}${id === 'chat' && window.__chatUnread?.() ? `<i>${window.__chatUnread()}</i>` : ''}</button>`).join('') + '</div>';
+      phList.innerHTML = '<div class="phApps">' + phApps().map(([id, ic, key, col], i) => `<button class="phApp${i === phSel ? ' sel' : ''}" data-app="${id}"><span style="background:${col}">${ic}</span>${esc(t(key))}${id === 'bank' && reqs ? `<i>${reqs}</i>` : ''}${id === 'chat' && window.__chatUnread?.() ? `<i>${window.__chatUnread()}</i>` : ''}</button>`).join('') + '</div>';
       return;
     }
     if (phView === 'missions') {                                    // список миссий
@@ -6647,10 +6649,10 @@
   window.__phoneKey = a => {
     if (phView === 'chat') return;
     if (phView === 'home') {
-      const n = PH_APPS.length;
+      const apps = phApps(), n = apps.length;
       if (a === 'left') phSel = (phSel + n - 1) % n; else if (a === 'right') phSel = (phSel + 1) % n;
       else if (a === 'up') phSel = (phSel + n - 2) % n; else if (a === 'down') phSel = (phSel + 2) % n;
-      else if (a === 'exit' || a === 'play') { openApp(PH_APPS[phSel][0]); return; }
+      else if (a === 'exit' || a === 'play') { openApp(apps[phSel][0]); return; }
       renderPhone(); return;
     }
     if (a === 'up' || a === 'left') { phSel = (phSel + friends.length - 1) % friends.length; renderPhone(); }
@@ -6899,9 +6901,7 @@
   document.getElementById('bankClose').addEventListener('click', () => toggleBank(false));
   // Степан Банан перед игрой вводит свой код (каждый раз, когда заходит)
   let stepanOk = false;
-  // настоящий Степан: тот, у кого было около 4 000 000 €, когда вышло это обновление (отметка ставится один раз, до 3 декабря)
-  const REAL_STEPAN_MARK = 'rs-2026-11', REAL_STEPAN_UNTIL = Date.UTC(2026, 11, 3);
-  const isRealStepan = () => isBanker() && stepanOk && save.realStepan === REAL_STEPAN_MARK;
+  const isRealStepan = () => isBanker() && stepanOk;         // Степан Банан, который ввёл свой код
   window.__needStepanCode = () => isStepanNick() && !stepanOk;
   const stCode = document.getElementById('stCode'), stErr = document.getElementById('stErr');
   window.__askStepanCode = () => { showPanel('mStepan'); stErr.textContent = ''; stCode.value = ''; setTimeout(() => stCode.focus(), 50); };
@@ -7131,6 +7131,9 @@
     const txt = ab.id && ab.host ? t('abStop', { s: abTime.textContent }) : t('abBtn');
     if (abBtn.textContent !== txt) abBtn.textContent = txt;
   }
+  window.__canAbuse = isRealStepan;
+  window.__abuseLabel = () => ab.id && ab.host ? t('abStop', { s: abTime.textContent }) : t('phAbuse');
+  window.__abuseToggle = () => abBtn.click();
   abBtn?.addEventListener('click', () => {
     if (!isRealStepan()) return;
     if (ab.id && ab.host) {                                 // уже идёт — Степан может закончить раньше
@@ -7220,8 +7223,7 @@
     if (isStepanNick() && save.goldToken) {                   // Степан (админ) нашёл жетон — забираем жетон и награду
       save.money = Math.max(0, save.money - TOKEN_VALUE); delete save.goldToken; persist();
     }
-    g.visible = !save.goldToken && !isStepanNick();
-    if (isStepanNick() && !save.realStepan && Date.now() < REAL_STEPAN_UNTIL && save.money >= 3500000 && save.money <= 4600000) { save.realStepan = REAL_STEPAN_MARK; persist(); }          // уже нашёл — у этого игрока его больше нет; админу жетон не положен
+    g.visible = !save.goldToken && !isStepanNick();          // уже нашёл — у этого игрока его больше нет; админу жетон не положен
     scene.add(g); TOKEN.mesh = g; TOKEN.halo = halo;
   }
   let tokenSpark = 0;
