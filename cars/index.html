@@ -753,7 +753,7 @@
       profHint: 'Весь прогресс (деньги, машины, оружие, одежда, дом) сохраняется сам. Чтобы играть на другом устройстве — скопируй код и загрузи его там.',
       coinJackpot: '🎉 Ты собрал {n} монет! Тебе переведено 500 000 € 💶', coinProgress: 'Монет собрано: {n}. До приза 500 000 € осталось {m}',
       bombHint: 'быстро нажми ▼ (тормоз) или S — бомба 💣',
-      skHint: '🛹 Скейт-парк! В воздухе: ↑ сальто, ↓ назад, ← → бочка · трюки ×2', skMalta: 'Скейт-парк «Бастион»', skCyprus: 'Скейт-парк «Солнечный»', skFiji: 'Скейт-парк «Лагуна»', skCosta: 'Скейт-парк «Вулкан»', skIceland: 'Скейт-парк «Ледяной»',
+      camHint: '🎥 Камера: тяни по экрану мышкой или пальцем · Z / X — крутить · C — назад · колёсико — ближе/дальше', skHint: '🛹 Скейт-парк! В воздухе: ↑ сальто, ↓ назад, ← → бочка · трюки ×2', skMalta: 'Скейт-парк «Бастион»', skCyprus: 'Скейт-парк «Солнечный»', skFiji: 'Скейт-парк «Лагуна»', skCosta: 'Скейт-парк «Вулкан»', skIceland: 'Скейт-парк «Ледяной»',
       m5: 'Война банд', m6: 'Захват склада', m7: 'Засада', mGoFight: 'Езжай на место — там банда!', mFightStart: '⚔️ Бой начался! Друзья с тобой!',
       mWave: 'Волна {w} из 3 — осталось бандитов: {n}', mWaveIn: '⚠️ Волна {w}! Бандиты идут!', mStorm: 'Захвати склад! Осталось бандитов: {n} (снайперы на крышах!)',
       mAmbush: 'Продержись! Побеждено: {k} · осталось {s} с', mLeft: '❌ Ты убежал с места засады. Миссия провалена.', mBossDown: '💥 Босс банды повержен!',
@@ -802,7 +802,7 @@
       profHint: 'All progress (money, vehicles, weapons, clothes, house) saves by itself. To play on another device, copy the code and load it there.',
       coinJackpot: '🎉 You collected {n} coins! You got 500,000 € 💶', coinProgress: 'Coins collected: {n}. {m} more to win 500,000 €',
       bombHint: 'tap ▼ (brake) or S quickly — bomb 💣',
-      skHint: '🛹 Skatepark! In the air: ↑ flip, ↓ back flip, ← → roll · tricks ×2', skMalta: 'Bastion Skatepark', skCyprus: 'Sunny Skatepark', skFiji: 'Lagoon Skatepark', skCosta: 'Volcano Skatepark', skIceland: 'Ice Skatepark',
+      camHint: '🎥 Camera: drag on the screen with mouse or finger · Z / X — rotate · C — look back · wheel — zoom', skHint: '🛹 Skatepark! In the air: ↑ flip, ↓ back flip, ← → roll · tricks ×2', skMalta: 'Bastion Skatepark', skCyprus: 'Sunny Skatepark', skFiji: 'Lagoon Skatepark', skCosta: 'Volcano Skatepark', skIceland: 'Ice Skatepark',
       m5: 'Gang War', m6: 'Warehouse Raid', m7: 'Ambush', mGoFight: 'Drive to the spot — the gang is there!', mFightStart: '⚔️ The fight is on! Your friends are with you!',
       mWave: 'Wave {w} of 3 — gangsters left: {n}', mWaveIn: '⚠️ Wave {w}! Gangsters are coming!', mStorm: 'Take the warehouse! Gangsters left: {n} (snipers on the roofs!)',
       mAmbush: 'Hold on! Defeated: {k} · {s} s left', mLeft: '❌ You ran away from the ambush. Mission failed.', mBossDown: '💥 The gang boss is down!',
@@ -5064,7 +5064,7 @@
   }
   window.__punch = punch;
   document.getElementById('punchBtn').addEventListener('pointerdown', e => { e.preventDefault(); punch(); });
-  canvas.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' && e.button === 0) punch(); });
+  canvas.addEventListener('pointerup', e => { if (e.pointerType === 'mouse' && e.button === 0 && !window.__camDragged?.()) punch(); });
   for (const ev of ['pointerup', 'pointercancel']) addEventListener(ev, () => window.__fireUp?.());
   function hurtPlayer(dmg, fx, fy) {
     if (!car.onFoot || foot.ko > 0) return;
@@ -7887,13 +7887,48 @@
 
   // ================== Камера (сзади и чуть сверху) ==================
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
+  // поворот камеры: тяни мышкой или пальцем по экрану, Z / X — крутить, C — посмотреть назад, колёсико — ближе/дальше
+  const camOff = { yaw: 0, pitch: 0, zoom: 1, idle: 99, drag: null, moved: 0, keyL: false, keyR: false, back: false };
+  canvas.addEventListener('pointerdown', e => {
+    if (camOff.drag) return;
+    camOff.drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; camOff.moved = 0;
+  });
+  addEventListener('pointermove', e => {
+    const d = camOff.drag; if (!d || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y; d.x = e.clientX; d.y = e.clientY;
+    camOff.moved += Math.abs(dx) + Math.abs(dy);
+    if (camOff.moved < 6) return;
+    const k = e.pointerType === 'touch' ? .011 : .008;
+    camOff.yaw -= dx * k; camOff.pitch = Math.max(-.55, Math.min(1.6, camOff.pitch + dy * k * .8)); camOff.idle = 0;
+  });
+  const camUp = e => { if (camOff.drag && camOff.drag.id === e.pointerId) { camOff.drag = null; camOff.idle = 0; } };
+  addEventListener('pointerup', camUp); addEventListener('pointercancel', camUp);
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('wheel', e => { e.preventDefault(); camOff.zoom = Math.max(.55, Math.min(2.2, camOff.zoom * (e.deltaY > 0 ? 1.1 : 1 / 1.1))); }, { passive: false });
+  window.__camDragged = () => camOff.moved >= 6;
+  const camKey = (e, on) => {
+    if (e.target && e.target.closest && e.target.closest('input, textarea')) return;
+    if (e.code === 'KeyZ') camOff.keyL = on; else if (e.code === 'KeyX') camOff.keyR = on; else if (e.code === 'KeyC') camOff.back = on; else return;
+    camOff.idle = 0;
+  };
+  addEventListener('keydown', e => camKey(e, true)); addEventListener('keyup', e => camKey(e, false));
+  addEventListener('blur', () => { camOff.keyL = camOff.keyR = camOff.back = false; camOff.drag = null; });
+  window.__camOff = camOff;
+  const camHintIv = setInterval(() => { if (!window.__started) return; clearInterval(camHintIv); if (!save.camHintSeen) { save.camHintSeen = 1; persist(); setTimeout(() => showMsg(t('camHint'), 6500), 5000); } }, 1000);   // один раз подсказываем про камеру
   function updateCamera(dt, snap = false) {
     let d = car.angle - camAng; d = Math.atan2(Math.sin(d), Math.cos(d));
     camAng += d * (snap ? 1 : Math.min(1, 3.2 * dt));
     const speed = Math.hypot(car.vx, car.vy);
     const footK = car.onFoot ? .55 : isFly() ? 1.55 : isBoatSpec(spec) ? Math.max(1, (spec.colL || 30) / 55) : 1;
     let dist = (96 + speed * .02) * CAM_K * footK, height = (45 + speed * .01) * CAM_K * footK;
-    const cx = Math.cos(camAng), cy = Math.sin(camAng);
+    // своя камера: держим поворот, пока трогаешь; потом (когда едешь) она плавно возвращается назад за машину
+    if (camOff.keyL) camOff.yaw += 2.2 * dt; if (camOff.keyR) camOff.yaw -= 2.2 * dt;
+    if (camOff.keyL || camOff.keyR || camOff.back || camOff.drag) camOff.idle = 0; else camOff.idle += dt;
+    camOff.yaw = Math.atan2(Math.sin(camOff.yaw), Math.cos(camOff.yaw));
+    if (camOff.idle > 1.6 && speed > 25) { const kk = Math.min(1, 1.8 * dt); camOff.yaw -= camOff.yaw * kk; camOff.pitch -= camOff.pitch * kk; }
+    const yaw = camOff.back ? Math.PI : camOff.yaw;
+    dist *= camOff.zoom * (1 + Math.max(0, camOff.pitch) * .15); height *= camOff.zoom * (1 + camOff.pitch);
+    const cx = Math.cos(camAng + yaw), cy = Math.sin(camAng + yaw);
     let want = dist;
     for (let t = .2; t <= 1.001; t += .1) {
       if (!(isFly() && !car.onFoot && car.z > 40) && solidTallAt(car.x - cx * dist * t, car.y - cy * dist * t)) { want = Math.max(car.onFoot ? 24 : 34, dist * (t - .12)); break; }
