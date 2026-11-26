@@ -48,6 +48,8 @@
   }
   #abusePill { background: rgba(62,39,35,.8); border: 1px solid #ffd54f; }
   #abusePill.hurry { background: rgba(198,40,40,.8); animation: abHurry 1s infinite; }
+  #abuseNextPill { background: rgba(62,39,35,.7); border: 1px solid rgba(255,213,79,.6); }
+  #abuseNextPill.soon { background: rgba(198,40,40,.8); border-color: #ffd54f; animation: abHurry 1s infinite; }
   @keyframes abHurry { 50% { transform: scale(1.08); } }
   .coin-ico { width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3b0, #ffc107 45%, #b8860b); box-shadow: 0 0 6px #ffd54f; }
   #help {
@@ -413,6 +415,7 @@
   <div class="pill" id="clockPill" title="День / ночь (N)"><span>🌙 </span><span id="clock">20:30</span></div>
   <div class="pill" id="hpPill">❤️ <span class="hpbar"><b id="hpFill"></b></span></div>
   <div class="pill" id="abusePill" style="display:none">🏴‍☠️ <span id="abuseTime">6:00</span> · <span class="coin-ico"></span><span id="abuseCnt">0/6</span></div>
+  <div class="pill" id="abuseNextPill" style="display:none">🏴‍☠️ <span id="abuseNextTime">0:00:00</span> <span id="abuseNextLbl" style="opacity:.8;font-size:.85em"></span></div>
   <div class="pill" id="wpnPill" title="7" style="display:none;pointer-events:auto;cursor:pointer"></div>
 </div>
 <div id="help"><span data-i18n="help"></span><br><span data-i18n="helpExtra"></span><br><span data-i18n="fightHelp"></span><br><span data-i18n="driftHelp"></span></div>
@@ -4594,7 +4597,7 @@
 
 
   // ================== Пешеходы ==================
-  const PCAP = 228;                                        // 220 прохожих + 8 мест для разозлённых водителей
+  const PCAP = 270;                                        // 220 прохожих + 8 мест для разозлённых водителей + люди в аэропорту
   const pGeo = {
     leg: new THREE.BoxGeometry(3.2, 10, 3.4).translate(0, -5, 0),
     body: new THREE.BoxGeometry(4.6, 9, 7.4).translate(0, 14.5, 0),
@@ -4617,6 +4620,7 @@
   // тротуар вокруг квартала — скруглённый прямоугольник по центру тротуара
   const P_IN = SW / 2, P_R = CR - P_IN, P_L = BS - 2 * P_IN, P_A = P_L - 2 * P_R, P_PER = 4 * P_A + 2 * Math.PI * P_R;
   function perim(b, sDist) {
+    if (b.route) return routeAt(b.route, sDist);           // свой маршрут (например, в аэропорту)
     let s2 = ((sDist % P_PER) + P_PER) % P_PER;
     const x0 = b.x + P_IN, y0 = b.y + P_IN, arc = Math.PI * P_R / 2;
     const corners = [[x0 + P_L - P_R, y0 + P_R], [x0 + P_L - P_R, y0 + P_L - P_R], [x0 + P_R, y0 + P_L - P_R], [x0 + P_R, y0 + P_R]];
@@ -4632,6 +4636,16 @@
       s2 -= arc;
     }
     return [x0 + P_R, y0, 0];
+  }
+  function makeRoute(pts) {                               // замкнутый маршрут по точкам
+    const segs = []; let len = 0;
+    pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length], l = Math.hypot(q[0] - p[0], q[1] - p[1]); segs.push({ p, q, l, h: Math.atan2(q[1] - p[1], q[0] - p[0]) }); len += l; });
+    return { segs, len };
+  }
+  function routeAt(R, sDist) {
+    let s2 = ((sDist % R.len) + R.len) % R.len;
+    for (const g of R.segs) { if (s2 <= g.l) { const f = s2 / g.l; return [g.p[0] + (g.q[0] - g.p[0]) * f, g.p[1] + (g.q[1] - g.p[1]) * f, g.h]; } s2 -= g.l; }
+    const g = R.segs[0]; return [g.p[0], g.p[1], g.h];
   }
   function spawnPeople(n) {
     while (people.length < n) {
@@ -4768,6 +4782,31 @@
     const i = people.length;
     spawnPeople(i + 1);
     Object.assign(people[i], { inactive: true, mode: 'idle', kos: 0 });
+  }
+  // люди в аэропорту: пассажиры с чемоданами ходят вокруг терминала и по парковке, на перроне — техники в оранжевых жилетах
+  {
+    const A = AP.x0;
+    const groups = [
+      { route: makeRoute([[A + 18, GC + 270], [A + 18, GC + 1430], [A + 322, GC + 1430], [A + 322, GC + 270]]), n: 16 },               // вокруг терминала
+      { route: makeRoute([[A + 20, GC + 1440], [A + 20, GC + 1800], [A + 320, GC + 1800], [A + 320, GC + 1440]]), n: 7 },             // парковка
+      { route: makeRoute([[A + 20, GC + 140], [A + 20, GC + 262], [A + 330, GC + 262], [A + 330, GC + 140]]), n: 5 },                // площадь у входа
+      { route: makeRoute([[A + 330, GC + 378], [A + 330, GC + 1322], [A + 565, GC + 1322], [A + 565, GC + 378]]), n: 8, crew: true }, // перрон у самолётов
+      { route: makeRoute([[A + 560, AP.y0 + 180], [A + 560, AP.y0 + 920], [A + 640, AP.y0 + 920], [A + 640, AP.y0 + 180]]), n: 4, crew: true },   // у ангаров
+    ];
+    const col = new THREE.Color();
+    for (const G of groups) for (let k = 0; k < G.n; k++) {
+      const i = people.length; if (i >= PCAP) break;
+      people.push({ b: { route: G.route }, s: Math.random() * G.route.len, dir: Math.random() < .5 ? 1 : -1, v: 14 + Math.random() * 14, ph: Math.random() * 6,
+        dodge: 0, side: 0, stop: 0, mode: 'walk', x: 0, y: 0, yaw: 0, downT: 0, fallA: 0, angryT: 0, hitCd: 0, punchT: 0 });
+      const shirt = G.crew ? pickR(['#ff6d00', '#ffab00', '#ff6d00']) : pickR(SHIRTS);
+      pInst.body.m.setColorAt(i, col.set(shirt));
+      const pc = new THREE.Color(G.crew ? '#263238' : pickR(PANTS));
+      pInst.leg.m.setColorAt(i * 2, pc); pInst.leg.m.setColorAt(i * 2 + 1, pc);
+      pInst.arm.m.setColorAt(i * 2, col); pInst.arm.m.setColorAt(i * 2 + 1, col);
+      pInst.head.m.setColorAt(i, col.set(pickR(SKIN)));
+      pInst.hair.m.setColorAt(i, col.set(G.crew ? '#fdd835' : pickR(HAIR)));                  // у техников — жёлтые каски
+    }
+    for (const k in pInst) if (pInst[k].m.instanceColor) pInst[k].m.instanceColor.needsUpdate = true;
   }
 
   // ================== Полиция ==================
@@ -5468,6 +5507,42 @@
       dish.add(new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 8, 8), new THREE.MeshStandardMaterial({ color: '#607d8b' })));
       window.__apRadar = dish;
     }
+  }
+  // --- забор вокруг аэропорта: сетка с колючей проволокой, на въезде — КПП со шлагбаумом ---
+  let apBar = null;
+  const AP_GATE = { y0: GC - 135, y1: GC + 135 };                                   // проём в заборе для дороги
+  {
+    const fMat = new THREE.MeshStandardMaterial({ map: outerTex(64, 64, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = 'rgba(200,206,212,.95)'; g.lineWidth = 2; for (let i = -h; i < w; i += 10) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + h, h); g.stroke(); g.beginPath(); g.moveTo(i + h, 0); g.lineTo(i, h); g.stroke(); } }, 1, 1), transparent: true, alphaTest: .3, side: THREE.DoubleSide, roughness: .5, metalness: .5 });
+    const postMat = new THREE.MeshStandardMaterial({ color: '#5f666d', roughness: .6, metalness: .4 }), wireMat = new THREE.MeshStandardMaterial({ color: '#2b2f33', roughness: .5 });
+    const baseMat = new THREE.MeshStandardMaterial({ color: '#a7a7a7', roughness: .9 }), postGeo = new THREE.BoxGeometry(3, 50, 3);
+    const lampMat = new THREE.MeshStandardMaterial({ color: '#ffcdd2', emissive: '#ff1744', emissiveIntensity: 1.6 }), lampGeo = new THREE.SphereGeometry(2.2, 8, 6);
+    const fence = (x0, y0, x1, y1) => {
+      const L = Math.hypot(x1 - x0, y1 - y0), a = -Math.atan2(y1 - y0, x1 - x0), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(L, 42), fMat.clone()); m.material.map = fMat.map.clone(); m.material.map.needsUpdate = true; m.material.map.repeat.set(L / 42, 1);
+      m.position.set(cx, 21, cy); m.rotation.y = a; scene.add(m);
+      for (const [hz, r] of [[46, 1.3], [50, 1.1]]) { const wire = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 6), wireMat); wire.rotation.z = Math.PI / 2; wire.rotation.y = a; wire.position.set(cx, hz, cy); scene.add(wire); }   // колючая проволока в два ряда
+      const base = new THREE.Mesh(new THREE.BoxGeometry(L, 5, 6), baseMat); base.rotation.y = a; base.position.set(cx, 2.5, cy); scene.add(base);
+      const n = Math.max(1, Math.round(L / 110));
+      for (let i = 0; i <= n; i++) {
+        const px = x0 + (x1 - x0) * i / n, py = y0 + (y1 - y0) * i / n;
+        const pm = new THREE.Mesh(postGeo, postMat); pm.position.set(px, 25, py); scene.add(pm);
+        if (i % 6 === 0) { const l = new THREE.Mesh(lampGeo, lampMat); l.position.set(px, 52, py); scene.add(l); }   // красные огоньки — видно ночью
+      }
+      outerObs.push({ x: Math.min(x0, x1) - 5, y: Math.min(y0, y1) - 5, w: Math.abs(x1 - x0) + 10, h: Math.abs(y1 - y0) + 10, top: 50, bot: 0, fence: true });
+    };
+    fence(AP.x0, AP.y0, AP.x1, AP.y0); fence(AP.x1, AP.y0, AP.x1, AP.y1); fence(AP.x0, AP.y1, AP.x1, AP.y1);
+    fence(AP.x0, AP.y0, AP.x0, AP_GATE.y0); fence(AP.x0, AP_GATE.y1, AP.x0, AP.y1);
+    // КПП: две будки охраны, шлагбаум, знак над въездом
+    const booth = new THREE.MeshStandardMaterial({ map: glassTex('#eceff1', '#4f7fa8'), roughness: .5 }), roofM = new THREE.MeshStandardMaterial({ color: '#1565c0' });
+    box(AP.x0 - 28, AP_GATE.y0 - 58, 56, 50, 32, booth); box(AP.x0 - 33, AP_GATE.y0 - 63, 66, 60, 4, roofM, 32, false);
+    box(AP.x0 - 28, AP_GATE.y1 + 8, 56, 50, 32, booth); box(AP.x0 - 33, AP_GATE.y1 + 3, 66, 60, 4, roofM, 32, false);
+    apBar = new THREE.Group(); apBar.position.set(AP.x0 + 8, 16, AP_GATE.y0 + 2); apBar.rotation.y = -Math.PI / 2; scene.add(apBar);
+    const barMesh = new THREE.Mesh(new THREE.BoxGeometry(266, 4, 4), new THREE.MeshStandardMaterial({ map: outerTex(64, 8, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#ffffff' : '#e53935'; g.fillRect(i * 8, 0, 8, h); } }, 1, 1) }));
+    barMesh.position.x = 133; apBar.add(barMesh);
+    for (const y of [AP_GATE.y0 - 12, AP_GATE.y1 + 12]) { const p = new THREE.Mesh(new THREE.BoxGeometry(6, 150, 6), postMat); p.position.set(AP.x0 - 40, 75, y); scene.add(p); }
+    const signTex = outerTex(512, 96, (g, w, h) => { g.fillStyle = '#0d47a1'; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 6; g.strokeRect(5, 5, w - 10, h - 10); g.fillStyle = '#fff'; g.font = 'bold 54px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('✈  AIRPORT  ✈', w / 2, h / 2 + 2); }, 1, 1);
+    for (const ry of [-Math.PI / 2, Math.PI / 2]) { const sg = new THREE.Mesh(new THREE.PlaneGeometry(300, 56), new THREE.MeshBasicMaterial({ map: signTex })); sg.position.set(AP.x0 - 40 + (ry < 0 ? -3.5 : 3.5), 124, GC); sg.rotation.y = ry; scene.add(sg); }   // высоко — камера проезжает под знаком
+    box(AP.x0 - 43, AP_GATE.y0 - 12, 6, AP_GATE.y1 - AP_GATE.y0 + 24, 6, postMat, 150, false);
   }
   // --- военная база (въезд через ворота, открытые ангары с истребителями, вышка с радаром, казармы) ---
   const MB_TOWERS = [], MB_TANKS = [], MB_LAMPS = [], MB_AA = [], MB_FLAGS = [];
@@ -6170,7 +6245,7 @@
   for (const gy of [GC + 450, GC + 850, GC + 1250]) placeParked('lainer', AP.x0 + 440, gy, 0, 'airport');   // большие лайнеры у терминала — их можно угнать
   placeParked('lainer', WORLD + 2100, GC - 1500, 0, 'airport');
   // ---------- самолёты аэропорта сами взлетают, делают большой круг над морем и садятся ----------
-  const AIR_RX = WORLD + 3500, AIR_R = 1600, AIR_YS = AP.y1 + 2600, AIR_YN = AP.y0 - 2600, AIR_YT = AP.y1 - 350, AIR_CRUISE = 650;
+  const AIR_RX = WORLD + 3500, AIR_R = 1600, AIR_YS = AP.y1 + 2600, AIR_YN = AP.y0 - 2600, AIR_YT = AP.y1 - 550, AIR_CRUISE = 650;   // касание — подальше от забора
   const AIR_LA = AIR_YS - AIR_YN, AIR_LC = Math.PI * AIR_R, AIR_TOT = 2 * AIR_LA + 2 * AIR_LC;
   function airPos(s) {                                       // овал: вдоль полосы на север, разворот над морем, обратно на юг, разворот
     s = ((s % AIR_TOT) + AIR_TOT) % AIR_TOT;
@@ -6179,12 +6254,22 @@
     s -= AIR_LC; if (s < AIR_LA) return [AIR_RX + 2 * AIR_R, AIR_YN + s, 2];
     s -= AIR_LA; const f = s / AIR_R; return [AIR_RX + AIR_R + Math.cos(f) * AIR_R, AIR_YS + Math.sin(f) * AIR_R, 3];
   }
-  const airLiners = [0, .5].map(ph => {
-    const m = buildVehicle(CARS.find(c => c.id === 'lainer')); if (m.driver) m.driver.visible = false;
+  const AIR_LIVERY = [['#f5f5f5', '#1565c0'], ['#f5f5f5', '#c62828'], ['#eceff1', '#2e7d32'], ['#fafafa', '#6a1b9a']];
+  const navGeo = new THREE.SphereGeometry(2.4, 8, 6);
+  const navMat = c => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 2.5 });
+  const airLiners = [0, .25, .5, .75].map((ph, i) => {
+    const [c1, c2] = AIR_LIVERY[i];
+    const m = buildVehicle({ ...CARS.find(c => c.id === 'lainer'), color: c1, color2: c2 }); if (m.driver) m.driver.visible = false;
     m.root.rotation.order = 'YZX'; scene.add(m.root);
-    return { m, s: AIR_TOT * ph, v: 330, alt: AIR_CRUISE, mode: ph ? 'cruise' : 'approach', wait: 0, liftY: 0, pitch: 0, bank: 0 };
+    const gear = []; m.root.traverse(o => { if (o.isMesh && o.position.y < 9.5) gear.push(o); });   // стойки и колёса шасси — самые низкие детали
+    const nav = (c, x, y, z) => { const l = new THREE.Mesh(navGeo, navMat(c)); l.position.set(x, y, z); m.body.add(l); return l; };
+    nav('#ff1744', -14, 16.5, -62); nav('#00e676', -14, 16.5, 62);                                // красный и зелёный огни на концах крыльев
+    const strobe = nav('#ffffff', -68, 30, 0), beacon = nav('#ff1744', 0, 30.5, 0);               // белый строб на хвосте и красный маячок сверху
+    return { m, gear, strobe, beacon, s: AIR_TOT * ph, v: 330, alt: AIR_CRUISE, mode: 'cruise', wait: 0, liftY: 0, pitch: 0, bank: 0 };
   });
+  let airClock = 0;
   function updateAirTraffic(dt) {
+    airClock += dt;
     if (window.__apRadar) window.__apRadar.rotation.y += dt * 1.6;
     for (const P of airLiners) {
       const [x, y, seg] = airPos(P.s);
@@ -6208,6 +6293,9 @@
       P.bank += ((seg === 1 || seg === 3 ? .32 : 0) - P.bank) * Math.min(1, dt * 1.5);
       P.m.root.position.set(x, .5 + P.alt, y); P.m.root.rotation.set(P.bank, -hd, P.pitch);
       P.x = x; P.y = y;
+      const gearDown = P.alt < 120 || P.mode === 'approach';                                     // шасси убираются после взлёта и выпускаются перед посадкой
+      if (P.gear.length && P.gear[0].visible !== gearDown) for (const g of P.gear) g.visible = gearDown;
+      P.strobe.visible = (airClock * 1.1 + P.s * .001) % 1 < .08; P.beacon.visible = (airClock * .9) % 1 < .5;
     }
   }
   const HANGAR_PLANES = ['istrebitel', 'istrebitel', 'shturmovik', 'istrebitel', 'stels', 'istrebitel', 'shturmovik', 'istrebitel', 'stels', 'istrebitel', 'istrebitel'];
@@ -6327,6 +6415,7 @@
       b.x = nx; b.y = ny; b.z = nz; b.m.position.set(nx, nz, ny);
     }
     if (mbRadar) mbRadar.rotation.y += dt * 1.6;
+    if (apBar) { const near = Math.hypot(car.x - AP.x0, car.y - GC) < 300; apBar.rotation.z += ((near ? 1.35 : 0) - apBar.rotation.z) * Math.min(1, dt * 3); }   // шлагбаум аэропорта
     if (mbBar) { const near = Math.hypot(car.x - GC, car.y - MB.y1) < 260; mbBar.rotation.z += ((near ? 1.35 : 0) - mbBar.rotation.z) * Math.min(1, dt * 3); }   // шлагбаум поднимается
     const alarm = base.alerted && wanted > 0;
     if (milZone() && wanted > 0) { base.spawnT -= dt; if (base.spawnT <= 0 && chase.cops.length < COPS_BY_STAR[wanted] + 1) { base.spawnT = 4.5; spawnCopFar(); } }   // подкрепление военных
@@ -7163,11 +7252,11 @@
     tr.rimMat = new THREE.MeshStandardMaterial({ ...metal, color: tr.base, emissiveIntensity: .08 });
   }
   const abTier = i => AB_TIERS[i] || AB_TIERS[0];
-  const ab = { id: null, end: 0, coins: [], got: 0, mine: 0, host: false, lastBeat: 0, seen: new Set() };
+  const ab = { id: null, end: 0, coins: [], got: 0, mine: 0, host: false, lastBeat: 0, seen: new Set(), auto: false, autoDone: null };
   const abPill = document.getElementById('abusePill'), abTime = document.getElementById('abuseTime'), abCnt = document.getElementById('abuseCnt');
   const abBtn = document.getElementById('mAbuse');
   // укромные места: внутри кварталов во дворах, вплотную к домам (не на дороге), и за городом — на холмах, у горы, в полях
-  function abusePlaces(n) {
+  function abusePlaces(n, R = Math.random, anyCar = false) {   // R — генератор случайных чисел (для автособытия одинаковый у всех)
     const out = [], BLK = STEP * T;
     const free = (x, y, z0) => ![[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].some(([dx, dy]) => solidAtZ(x + dx, y + dy, z0));
     const far = (x, y, d) => !out.some(o => Math.hypot(o[0] - x, o[1] - y) < d);
@@ -7180,15 +7269,15 @@
     // 🥇 золотые — только на Таинственном острове: в глухих дворах тайного города и в холмах вокруг него
     const gold = AB_MIX[0];
     for (let tries = 0; out.length < gold && tries < 20000; tries++) {
-      if (Math.random() < .6) {
-        const mx = SEC_SRC + Math.random() * SEC_S, my = SEC_SRC + Math.random() * SEC_S;   // точка в главном городе → такая же в тайном
+      if (R() < .6) {
+        const mx = SEC_SRC + R() * SEC_S, my = SEC_SRC + R() * SEC_S;   // точка в главном городе → такая же в тайном
         if (!backyard(mx, my, solidTallAt)) continue;
         if ([[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].some(([dx, dy]) => solidAt(mx + dx, my + dy))) continue;
         const x = mx + SEC_DX, y = my + SEC_DY;
         if (Math.hypot(x - TOKEN.x, y - TOKEN.y) < 500 || !far(x, y, 900)) continue;
         out.push([Math.round(x), Math.round(y), SEC_H + 14, 2]);
       } else {
-        const a2 = Math.random() * 6.283, r = SEC_S * .62 + Math.random() * 1600;
+        const a2 = R() * 6.283, r = SEC_S * .62 + R() * 1600;
         const x = SEC_CX + Math.cos(a2) * r, y = SEC_CY + Math.sin(a2) * r;
         if (inSecCity(x, y)) continue;
         const z0 = terrainH(x, y); if (z0 < 25) continue;                                  // в холмах, не на пляже
@@ -7198,9 +7287,9 @@
     }
     // 🥈 и 🥉 — на главном острове: глухие дворы города, склоны горы, лес и поля за городом
     for (let tries = 0; out.length < n && tries < 30000; tries++) {
-      const city = Math.random() < .6;
-      const x = city ? Math.random() * WORLD : MI0 + Math.random() * (MI1 - MI0);
-      const y = city ? Math.random() * WORLD : MI0 + Math.random() * (MI1 - MI0);
+      const city = R() < .6;
+      const x = city ? R() * WORLD : MI0 + R() * (MI1 - MI0);
+      const y = city ? R() * WORLD : MI0 + R() * (MI1 - MI0);
       if (city) { if (!backyard(x, y, solidTallAt)) continue; }
       else {
         if (inCity(x, y) || Math.hypot(x - WORLD / 2, y - WORLD / 2) > 9000) continue;
@@ -7210,14 +7299,14 @@
       if (x > MZ.x0 - 120 && x < MZ.x1 + 120 && y > MZ.y0 - 120 && y < MZ.y1 + 120) continue;   // особняк Степана закрыт для всех
       if (inReserved(x, y, 30)) continue;
       const z0 = groundHeight(x, y, 0);
-      if (!free(x, y, z0) || Math.hypot(x - car.x, y - car.y) < 500 || !far(x, y, 500)) continue;
+      if (!free(x, y, z0) || (!anyCar && Math.hypot(x - car.x, y - car.y) < 500) || !far(x, y, 500)) continue;
       out.push([Math.round(x), Math.round(y), Math.round(z0 + 14), out.length < gold + AB_MIX[1] ? 1 : 0]);
     }
     return out;
   }
   function abClear() {
     for (const c of ab.coins) scene.remove(c.mesh);
-    ab.coins = []; ab.id = null; ab.end = 0; ab.host = false;
+    ab.coins = []; ab.id = null; ab.end = 0; ab.host = false; ab.auto = false;
     abPill.style.display = 'none'; abRender();
   }
   function abStart(id, pts, left) {
@@ -7233,6 +7322,7 @@
     abPill.style.display = ''; abTick(true);
   }
   function abFinish() {                                     // время вышло
+    if (ab.auto) { ab.autoDone = ab.id; window.__abAutoSave?.(true); }   // автособытие сегодня больше не начнётся
     const total = ab.coins.length, mine = ab.mine, sum = ab.mineSum || 0;
     abClear();
     showMsg(t('abEnd', { n: mine, t: total, m: fmt(sum) }), 6000);
@@ -7268,6 +7358,7 @@
       mqPublish(JSON.stringify({ abuse: { t: 'stop', id: ab.id, rid: Math.random().toString(36).slice(2, 10) } }));
       abFinish(); return;
     }
+    if (ab.auto) { showMsg(t('abBusy'), 3500); return; }
     if (net.room || !net.mq.some(c => c.ok)) { showMsg(t('abOffline'), 3500); return; }
     const pts = abusePlaces(AB_N);
     if (!pts.length) return;
@@ -7282,15 +7373,25 @@
     ab.seen.add(a.rid); if (ab.seen.size > 500) ab.seen.clear();
     const peer = net.mqPeers.get(from);
     if (a.t === 'take') {                                   // кто-то нашёл монету — у всех она пропадает
-      const c = ab.id === a.id && Number.isInteger(a.i) && ab.coins[a.i];
+      let c = ab.id === a.id && Number.isInteger(a.i) && ab.coins[a.i];
+      if (ab.auto && ab.id === a.id && Number.isFinite(a.x) && Number.isFinite(a.y)) c = abAutoFind(a.x, a.y);   // в автособытии — по месту монеты
       if (!c || c.taken) return;
       c.taken = true; c.mesh.visible = false; ab.got++; abTick(true);
       showMsg(t('abTook', { n: cleanName(a.nm || (peer && peer.presence && peer.presence.nm)), l: ab.coins.length - ab.got }), 2200);
+      if (ab.auto) { window.__abAutoSave?.(); if (ab.got >= ab.coins.length) setTimeout(abFinish, 1200); }
+      return;
+    }
+    if (a.t === 'tk') {                                     // автособытие: какие монеты уже нашли (для тех, кто зашёл позже)
+      if (!(ab.auto && ab.id === a.id && Array.isArray(a.tk) && a.tk.length <= 60)) return;
+      let ch = false;
+      for (const q of a.tk) { const c = Array.isArray(q) && abAutoFind(+q[0], +q[1]); if (c && !c.taken) { c.taken = true; c.mesh.visible = false; ab.got++; ch = true; } }
+      if (ch) { abTick(true); window.__abAutoSave?.(); if (ab.got >= ab.coins.length) setTimeout(abFinish, 1200); }
       return;
     }
     if (!(peer && peer.presence && peer.presence.ab && STEPAN_NICKS.includes(nickKey(peer.presence.nm)))) return;   // запускать и останавливать может только настоящий Степан
     if (a.t === 'stop') { if (ab.id === a.id) abFinish(); return; }
     if (a.t !== 'go' || typeof a.id !== 'string' || !Array.isArray(a.c) || a.c.length > 60) return;
+    if (ab.auto) return;                                    // идёт автоматический админ-абьюз — его не перебиваем
     const left = Math.min(AB_DUR, Math.max(0, +a.left || 0)); if (left < 1000) return;
     if (ab.id === a.id) {                                   // напоминание о том же событии — подтягиваем время и найденные
       ab.end = performance.now() + left;
@@ -7317,12 +7418,79 @@
       popMoney(t(c.tr.key) + ' +' + c.tr.value.toLocaleString(t('locale')) + ' €', c.tr.fx);
       for (let k = 0; k < 26; k++) { const a = Math.random() * 6.28, v = 40 + Math.random() * 110; emit(c.x, c.z, c.y, c.tr.fx, 2.8, .7, Math.cos(a) * v, 40 + Math.random() * 70, Math.sin(a) * v, 0, 1); }
       if (c.ti === 2) shake = Math.max(shake, 2);
-      mqPublish(JSON.stringify({ abuse: { t: 'take', id: ab.id, i, nm: save.nick, rid: Math.random().toString(36).slice(2, 10) } }));
+      mqPublish(JSON.stringify({ abuse: { t: 'take', id: ab.id, i, x: c.x, y: c.y, nm: save.nick, rid: Math.random().toString(36).slice(2, 10) } }));
+      if (ab.auto) window.__abAutoSave?.();
       abTick(true);
       if (ab.got >= ab.coins.length) setTimeout(abFinish, 1200);   // все нашли раньше времени
     });
   };
   abRender(); langHooks.push(abRender);
+  // ================== Автоматический админ-абьюз: каждый день в 19:30 по кипрскому времени ==================
+  // У всех игроков монеты лежат в одних и тех же местах: случайность берётся из даты, Степан для запуска не нужен.
+  Object.entries({
+    ru: ['до админ-абьюза', '🏴‍☠️ 19:30 — АДМИН-АБЬЮЗ! Спрятано {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Единственная золотая — на Таинственном острове! У тебя 6 минут!', '⏳ Сейчас идёт автоматический админ-абьюз (19:30) — дождись, пока он закончится.'],
+    en: ['until admin abuse', '🏴‍☠️ 19:30 — ADMIN ABUSE! {n} pirate coins are hidden: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. The only gold one is on Mystery Island! You have 6 minutes!', '⏳ The automatic admin abuse (19:30) is running — wait until it ends.'],
+    uk: ['до адмін-абʼюзу', '🏴‍☠️ 19:30 — АДМІН-АБʼЮЗ! Сховано {n} піратських монет: 🥉 бронзова — {b}, 🥈 срібна — {s}, 🥇 золота — {g}. Єдина золота — на Таємничому острові! У тебе 6 хвилин!', '⏳ Зараз іде автоматичний адмін-абʼюз (19:30) — дочекайся, поки він закінчиться.'],
+    de: ['bis zum Admin-Abuse', '🏴‍☠️ 19:30 — ADMIN-ABUSE! {n} Piratenmünzen sind versteckt: 🥉 Bronze — {b}, 🥈 Silber — {s}, 🥇 Gold — {g}. Die einzige goldene liegt auf der Geheimnisvollen Insel! Du hast 6 Minuten!', '⏳ Der automatische Admin-Abuse (19:30) läuft — warte, bis er vorbei ist.'],
+    fr: ['avant l’admin abuse', '🏴‍☠️ 19:30 — ADMIN ABUSE ! {n} pièces de pirate sont cachées : 🥉 bronze — {b}, 🥈 argent — {s}, 🥇 or — {g}. La seule en or est sur l’Île mystérieuse ! Tu as 6 minutes !', '⏳ L’admin abuse automatique (19:30) est en cours — attends qu’il se termine.'],
+    es: ['para el admin abuse', '🏴‍☠️ 19:30 — ¡ADMIN ABUSE! Hay {n} monedas pirata escondidas: 🥉 bronce — {b}, 🥈 plata — {s}, 🥇 oro — {g}. ¡La única de oro está en la Isla Misteriosa! ¡Tienes 6 minutos!', '⏳ El admin abuse automático (19:30) está en marcha: espera a que termine.'],
+    zh: ['距离管理员狂欢', '🏴‍☠️ 19:30 — 管理员狂欢！藏了 {n} 枚海盗金币：🥉 铜币 — {b}，🥈 银币 — {s}，🥇 金币 — {g}。唯一的金币在神秘岛上！你有 6 分钟！', '⏳ 自动管理员狂欢（19:30）正在进行，请等它结束。'],
+  }).forEach(([k, v]) => { if (I18N[k]) [I18N[k].abNext, I18N[k].abAutoGo, I18N[k].abBusy] = v; });
+  const DAY_MS = 86400000, AB_AUTO_AT = (19 * 60 + 30) * 60000;   // 19:30 по часам Кипра
+  // Кипр: зимой UTC+2, летом UTC+3 (летнее время — с последнего воскресенья марта до последнего воскресенья октября, 01:00 UTC)
+  const cyOff = ms => {
+    const y = new Date(ms).getUTCFullYear();
+    const lastSun = m => { const d = new Date(Date.UTC(y, m + 1, 0)); return Date.UTC(y, m, d.getUTCDate() - d.getUTCDay(), 1); };
+    return ms >= lastSun(2) && ms < lastSun(9) ? 3 * 3600000 : 2 * 3600000;
+  };
+  const abAutoDay = now => Math.floor((now + cyOff(now) - AB_AUTO_AT) / DAY_MS);   // номер последнего начавшегося события
+  const abAutoStartOf = day => { const u = day * DAY_MS + AB_AUTO_AT; return u - cyOff(u - 2 * 3600000); };   // момент 19:30 на Кипре (в мс UTC)
+  const abAutoRnd = day => {                                // одинаковые «случайные» числа у всех игроков
+    let sd = (day * 2654435761) % 2147483646 + 1;
+    const r = () => (sd = sd * 16807 % 2147483647) / 2147483647;
+    for (let k = 0; k < 20; k++) r();
+    return r;
+  };
+  function abAutoFind(x, y) { return ab.coins.find(k => Math.abs(k.x - x) < 3 && Math.abs(k.y - y) < 3); }
+  const AB_AUTO_KEY = 'mashinki_ab_auto';
+  let abAutoMem = null; try { const v = JSON.parse(localStorage.getItem(AB_AUTO_KEY)); if (v && typeof v.id === 'string' && Array.isArray(v.tk)) abAutoMem = v; } catch (e) {}
+  window.__abAutoSave = done => {                           // помним, что уже нашли (и что событие закончилось) — даже после перезагрузки
+    if (!ab.auto || !ab.id) return;
+    abAutoMem = { id: ab.id, tk: ab.coins.map((c, i) => c.taken ? i : -1).filter(i => i >= 0), done: !!done };
+    try { localStorage.setItem(AB_AUTO_KEY, JSON.stringify(abAutoMem)); } catch (e) {}
+  };
+  const abNextPill = document.getElementById('abuseNextPill'), abNextTime = document.getElementById('abuseNextTime'), abNextLbl = document.getElementById('abuseNextLbl');
+  let abAutoBeat = 0;
+  function abAutoTick() {
+    const now = Date.now(), day = abAutoDay(now), st = abAutoStartOf(day), id = 'auto-' + day, left = st + AB_DUR - now;
+    const done = ab.autoDone === id || (abAutoMem && abAutoMem.id === id && abAutoMem.done);
+    if (left > 1000 && !ab.id && !done) {                   // 19:30 наступило (или игрок зашёл во время события) — начинаем
+      const pts = abusePlaces(AB_N, abAutoRnd(day), true);
+      if (pts.length) {
+        abStart(id, pts, left); ab.auto = true;
+        if (abAutoMem && abAutoMem.id === id) for (const i of abAutoMem.tk) { const c = ab.coins[i]; if (c && !c.taken) { c.taken = true; c.mesh.visible = false; ab.got++; } }
+        abTick(true);
+        showMsg(t('abAutoGo', { n: pts.length, b: fmt(AB_TIERS[0].value), s: fmt(AB_TIERS[1].value), g: fmt(AB_TIERS[2].value) }), 7000); shake = Math.max(shake, 1.5);
+      } else ab.autoDone = id;
+    }
+    if (ab.auto && ab.id === id) {
+      ab.end = performance.now() + left;                    // время — по настоящим часам
+      if (ab.got > 0 && now - abAutoBeat > 5000 + Math.random() * 3000) {   // рассказываем остальным, что уже нашли
+        abAutoBeat = now;
+        mqPublish(JSON.stringify({ abuse: { t: 'tk', id, tk: ab.coins.filter(c => c.taken).map(c => [c.x, c.y]), rid: Math.random().toString(36).slice(2, 10) } }));
+      }
+    }
+    // таймер до следующего админ-абьюза — виден всем, пока событие не идёт
+    if (!abNextPill) return;
+    abNextPill.style.display = ab.id ? 'none' : '';
+    if (ab.id) return;
+    const s = Math.max(0, Math.ceil((abAutoStartOf(day + 1) - now) / 1000));
+    const txt = Math.floor(s / 3600) + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    if (abNextTime.textContent !== txt) abNextTime.textContent = txt;
+    const lbl = t('abNext'); if (abNextLbl.textContent !== lbl) abNextLbl.textContent = lbl;
+    abNextPill.classList.toggle('soon', s <= 300);
+  }
+  setInterval(abAutoTick, 500); abAutoTick();
   // ================== Золотой пиратский жетон: один на всю игру, спрятан на Таинственном острове ==================
   // Место одно и то же у всех: глубоко во дворе квартала, вплотную к дому — с дороги не видно.
   const TOKEN_VALUE = 1000000;
