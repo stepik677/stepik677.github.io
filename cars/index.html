@@ -48,6 +48,8 @@
   }
   #abusePill { background: rgba(62,39,35,.8); border: 1px solid #ffd54f; }
   #abusePill.hurry { background: rgba(198,40,40,.8); animation: abHurry 1s infinite; }
+  #abuseNextPill { background: rgba(62,39,35,.7); border: 1px solid rgba(255,213,79,.6); }
+  #abuseNextPill.soon { background: rgba(198,40,40,.8); border-color: #ffd54f; animation: abHurry 1s infinite; }
   @keyframes abHurry { 50% { transform: scale(1.08); } }
   .coin-ico { width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3b0, #ffc107 45%, #b8860b); box-shadow: 0 0 6px #ffd54f; }
   #help {
@@ -413,6 +415,7 @@
   <div class="pill" id="clockPill" title="День / ночь (N)"><span>🌙 </span><span id="clock">20:30</span></div>
   <div class="pill" id="hpPill">❤️ <span class="hpbar"><b id="hpFill"></b></span></div>
   <div class="pill" id="abusePill" style="display:none">🏴‍☠️ <span id="abuseTime">6:00</span> · <span class="coin-ico"></span><span id="abuseCnt">0/6</span></div>
+  <div class="pill" id="abuseNextPill" style="display:none">🏴‍☠️ <span id="abuseNextTime">0:00:00</span> <span id="abuseNextLbl" style="opacity:.8;font-size:.85em"></span></div>
   <div class="pill" id="wpnPill" title="7" style="display:none;pointer-events:auto;cursor:pointer"></div>
 </div>
 <div id="help"><span data-i18n="help"></span><br><span data-i18n="helpExtra"></span><br><span data-i18n="fightHelp"></span><br><span data-i18n="driftHelp"></span></div>
@@ -7163,11 +7166,11 @@
     tr.rimMat = new THREE.MeshStandardMaterial({ ...metal, color: tr.base, emissiveIntensity: .08 });
   }
   const abTier = i => AB_TIERS[i] || AB_TIERS[0];
-  const ab = { id: null, end: 0, coins: [], got: 0, mine: 0, host: false, lastBeat: 0, seen: new Set() };
+  const ab = { id: null, end: 0, coins: [], got: 0, mine: 0, host: false, lastBeat: 0, seen: new Set(), auto: false, autoDone: null };
   const abPill = document.getElementById('abusePill'), abTime = document.getElementById('abuseTime'), abCnt = document.getElementById('abuseCnt');
   const abBtn = document.getElementById('mAbuse');
   // укромные места: внутри кварталов во дворах, вплотную к домам (не на дороге), и за городом — на холмах, у горы, в полях
-  function abusePlaces(n) {
+  function abusePlaces(n, R = Math.random, anyCar = false) {   // R — генератор случайных чисел (для автособытия одинаковый у всех)
     const out = [], BLK = STEP * T;
     const free = (x, y, z0) => ![[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].some(([dx, dy]) => solidAtZ(x + dx, y + dy, z0));
     const far = (x, y, d) => !out.some(o => Math.hypot(o[0] - x, o[1] - y) < d);
@@ -7180,15 +7183,15 @@
     // 🥇 золотые — только на Таинственном острове: в глухих дворах тайного города и в холмах вокруг него
     const gold = AB_MIX[0];
     for (let tries = 0; out.length < gold && tries < 20000; tries++) {
-      if (Math.random() < .6) {
-        const mx = SEC_SRC + Math.random() * SEC_S, my = SEC_SRC + Math.random() * SEC_S;   // точка в главном городе → такая же в тайном
+      if (R() < .6) {
+        const mx = SEC_SRC + R() * SEC_S, my = SEC_SRC + R() * SEC_S;   // точка в главном городе → такая же в тайном
         if (!backyard(mx, my, solidTallAt)) continue;
         if ([[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].some(([dx, dy]) => solidAt(mx + dx, my + dy))) continue;
         const x = mx + SEC_DX, y = my + SEC_DY;
         if (Math.hypot(x - TOKEN.x, y - TOKEN.y) < 500 || !far(x, y, 900)) continue;
         out.push([Math.round(x), Math.round(y), SEC_H + 14, 2]);
       } else {
-        const a2 = Math.random() * 6.283, r = SEC_S * .62 + Math.random() * 1600;
+        const a2 = R() * 6.283, r = SEC_S * .62 + R() * 1600;
         const x = SEC_CX + Math.cos(a2) * r, y = SEC_CY + Math.sin(a2) * r;
         if (inSecCity(x, y)) continue;
         const z0 = terrainH(x, y); if (z0 < 25) continue;                                  // в холмах, не на пляже
@@ -7198,9 +7201,9 @@
     }
     // 🥈 и 🥉 — на главном острове: глухие дворы города, склоны горы, лес и поля за городом
     for (let tries = 0; out.length < n && tries < 30000; tries++) {
-      const city = Math.random() < .6;
-      const x = city ? Math.random() * WORLD : MI0 + Math.random() * (MI1 - MI0);
-      const y = city ? Math.random() * WORLD : MI0 + Math.random() * (MI1 - MI0);
+      const city = R() < .6;
+      const x = city ? R() * WORLD : MI0 + R() * (MI1 - MI0);
+      const y = city ? R() * WORLD : MI0 + R() * (MI1 - MI0);
       if (city) { if (!backyard(x, y, solidTallAt)) continue; }
       else {
         if (inCity(x, y) || Math.hypot(x - WORLD / 2, y - WORLD / 2) > 9000) continue;
@@ -7210,14 +7213,14 @@
       if (x > MZ.x0 - 120 && x < MZ.x1 + 120 && y > MZ.y0 - 120 && y < MZ.y1 + 120) continue;   // особняк Степана закрыт для всех
       if (inReserved(x, y, 30)) continue;
       const z0 = groundHeight(x, y, 0);
-      if (!free(x, y, z0) || Math.hypot(x - car.x, y - car.y) < 500 || !far(x, y, 500)) continue;
+      if (!free(x, y, z0) || (!anyCar && Math.hypot(x - car.x, y - car.y) < 500) || !far(x, y, 500)) continue;
       out.push([Math.round(x), Math.round(y), Math.round(z0 + 14), out.length < gold + AB_MIX[1] ? 1 : 0]);
     }
     return out;
   }
   function abClear() {
     for (const c of ab.coins) scene.remove(c.mesh);
-    ab.coins = []; ab.id = null; ab.end = 0; ab.host = false;
+    ab.coins = []; ab.id = null; ab.end = 0; ab.host = false; ab.auto = false;
     abPill.style.display = 'none'; abRender();
   }
   function abStart(id, pts, left) {
@@ -7233,6 +7236,7 @@
     abPill.style.display = ''; abTick(true);
   }
   function abFinish() {                                     // время вышло
+    if (ab.auto) { ab.autoDone = ab.id; window.__abAutoSave?.(true); }   // автособытие сегодня больше не начнётся
     const total = ab.coins.length, mine = ab.mine, sum = ab.mineSum || 0;
     abClear();
     showMsg(t('abEnd', { n: mine, t: total, m: fmt(sum) }), 6000);
@@ -7268,6 +7272,7 @@
       mqPublish(JSON.stringify({ abuse: { t: 'stop', id: ab.id, rid: Math.random().toString(36).slice(2, 10) } }));
       abFinish(); return;
     }
+    if (ab.auto) { showMsg(t('abBusy'), 3500); return; }
     if (net.room || !net.mq.some(c => c.ok)) { showMsg(t('abOffline'), 3500); return; }
     const pts = abusePlaces(AB_N);
     if (!pts.length) return;
@@ -7282,15 +7287,25 @@
     ab.seen.add(a.rid); if (ab.seen.size > 500) ab.seen.clear();
     const peer = net.mqPeers.get(from);
     if (a.t === 'take') {                                   // кто-то нашёл монету — у всех она пропадает
-      const c = ab.id === a.id && Number.isInteger(a.i) && ab.coins[a.i];
+      let c = ab.id === a.id && Number.isInteger(a.i) && ab.coins[a.i];
+      if (ab.auto && ab.id === a.id && Number.isFinite(a.x) && Number.isFinite(a.y)) c = abAutoFind(a.x, a.y);   // в автособытии — по месту монеты
       if (!c || c.taken) return;
       c.taken = true; c.mesh.visible = false; ab.got++; abTick(true);
       showMsg(t('abTook', { n: cleanName(a.nm || (peer && peer.presence && peer.presence.nm)), l: ab.coins.length - ab.got }), 2200);
+      if (ab.auto) { window.__abAutoSave?.(); if (ab.got >= ab.coins.length) setTimeout(abFinish, 1200); }
+      return;
+    }
+    if (a.t === 'tk') {                                     // автособытие: какие монеты уже нашли (для тех, кто зашёл позже)
+      if (!(ab.auto && ab.id === a.id && Array.isArray(a.tk) && a.tk.length <= 60)) return;
+      let ch = false;
+      for (const q of a.tk) { const c = Array.isArray(q) && abAutoFind(+q[0], +q[1]); if (c && !c.taken) { c.taken = true; c.mesh.visible = false; ab.got++; ch = true; } }
+      if (ch) { abTick(true); window.__abAutoSave?.(); if (ab.got >= ab.coins.length) setTimeout(abFinish, 1200); }
       return;
     }
     if (!(peer && peer.presence && peer.presence.ab && STEPAN_NICKS.includes(nickKey(peer.presence.nm)))) return;   // запускать и останавливать может только настоящий Степан
     if (a.t === 'stop') { if (ab.id === a.id) abFinish(); return; }
     if (a.t !== 'go' || typeof a.id !== 'string' || !Array.isArray(a.c) || a.c.length > 60) return;
+    if (ab.auto) return;                                    // идёт автоматический админ-абьюз — его не перебиваем
     const left = Math.min(AB_DUR, Math.max(0, +a.left || 0)); if (left < 1000) return;
     if (ab.id === a.id) {                                   // напоминание о том же событии — подтягиваем время и найденные
       ab.end = performance.now() + left;
@@ -7317,12 +7332,79 @@
       popMoney(t(c.tr.key) + ' +' + c.tr.value.toLocaleString(t('locale')) + ' €', c.tr.fx);
       for (let k = 0; k < 26; k++) { const a = Math.random() * 6.28, v = 40 + Math.random() * 110; emit(c.x, c.z, c.y, c.tr.fx, 2.8, .7, Math.cos(a) * v, 40 + Math.random() * 70, Math.sin(a) * v, 0, 1); }
       if (c.ti === 2) shake = Math.max(shake, 2);
-      mqPublish(JSON.stringify({ abuse: { t: 'take', id: ab.id, i, nm: save.nick, rid: Math.random().toString(36).slice(2, 10) } }));
+      mqPublish(JSON.stringify({ abuse: { t: 'take', id: ab.id, i, x: c.x, y: c.y, nm: save.nick, rid: Math.random().toString(36).slice(2, 10) } }));
+      if (ab.auto) window.__abAutoSave?.();
       abTick(true);
       if (ab.got >= ab.coins.length) setTimeout(abFinish, 1200);   // все нашли раньше времени
     });
   };
   abRender(); langHooks.push(abRender);
+  // ================== Автоматический админ-абьюз: каждый день в 19:30 по кипрскому времени ==================
+  // У всех игроков монеты лежат в одних и тех же местах: случайность берётся из даты, Степан для запуска не нужен.
+  Object.entries({
+    ru: ['до админ-абьюза', '🏴‍☠️ 19:30 — АДМИН-АБЬЮЗ! Спрятано {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Единственная золотая — на Таинственном острове! У тебя 6 минут!', '⏳ Сейчас идёт автоматический админ-абьюз (19:30) — дождись, пока он закончится.'],
+    en: ['until admin abuse', '🏴‍☠️ 19:30 — ADMIN ABUSE! {n} pirate coins are hidden: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. The only gold one is on Mystery Island! You have 6 minutes!', '⏳ The automatic admin abuse (19:30) is running — wait until it ends.'],
+    uk: ['до адмін-абʼюзу', '🏴‍☠️ 19:30 — АДМІН-АБʼЮЗ! Сховано {n} піратських монет: 🥉 бронзова — {b}, 🥈 срібна — {s}, 🥇 золота — {g}. Єдина золота — на Таємничому острові! У тебе 6 хвилин!', '⏳ Зараз іде автоматичний адмін-абʼюз (19:30) — дочекайся, поки він закінчиться.'],
+    de: ['bis zum Admin-Abuse', '🏴‍☠️ 19:30 — ADMIN-ABUSE! {n} Piratenmünzen sind versteckt: 🥉 Bronze — {b}, 🥈 Silber — {s}, 🥇 Gold — {g}. Die einzige goldene liegt auf der Geheimnisvollen Insel! Du hast 6 Minuten!', '⏳ Der automatische Admin-Abuse (19:30) läuft — warte, bis er vorbei ist.'],
+    fr: ['avant l’admin abuse', '🏴‍☠️ 19:30 — ADMIN ABUSE ! {n} pièces de pirate sont cachées : 🥉 bronze — {b}, 🥈 argent — {s}, 🥇 or — {g}. La seule en or est sur l’Île mystérieuse ! Tu as 6 minutes !', '⏳ L’admin abuse automatique (19:30) est en cours — attends qu’il se termine.'],
+    es: ['para el admin abuse', '🏴‍☠️ 19:30 — ¡ADMIN ABUSE! Hay {n} monedas pirata escondidas: 🥉 bronce — {b}, 🥈 plata — {s}, 🥇 oro — {g}. ¡La única de oro está en la Isla Misteriosa! ¡Tienes 6 minutos!', '⏳ El admin abuse automático (19:30) está en marcha: espera a que termine.'],
+    zh: ['距离管理员狂欢', '🏴‍☠️ 19:30 — 管理员狂欢！藏了 {n} 枚海盗金币：🥉 铜币 — {b}，🥈 银币 — {s}，🥇 金币 — {g}。唯一的金币在神秘岛上！你有 6 分钟！', '⏳ 自动管理员狂欢（19:30）正在进行，请等它结束。'],
+  }).forEach(([k, v]) => { if (I18N[k]) [I18N[k].abNext, I18N[k].abAutoGo, I18N[k].abBusy] = v; });
+  const DAY_MS = 86400000, AB_AUTO_AT = (19 * 60 + 30) * 60000;   // 19:30 по часам Кипра
+  // Кипр: зимой UTC+2, летом UTC+3 (летнее время — с последнего воскресенья марта до последнего воскресенья октября, 01:00 UTC)
+  const cyOff = ms => {
+    const y = new Date(ms).getUTCFullYear();
+    const lastSun = m => { const d = new Date(Date.UTC(y, m + 1, 0)); return Date.UTC(y, m, d.getUTCDate() - d.getUTCDay(), 1); };
+    return ms >= lastSun(2) && ms < lastSun(9) ? 3 * 3600000 : 2 * 3600000;
+  };
+  const abAutoDay = now => Math.floor((now + cyOff(now) - AB_AUTO_AT) / DAY_MS);   // номер последнего начавшегося события
+  const abAutoStartOf = day => { const u = day * DAY_MS + AB_AUTO_AT; return u - cyOff(u - 2 * 3600000); };   // момент 19:30 на Кипре (в мс UTC)
+  const abAutoRnd = day => {                                // одинаковые «случайные» числа у всех игроков
+    let sd = (day * 2654435761) % 2147483646 + 1;
+    const r = () => (sd = sd * 16807 % 2147483647) / 2147483647;
+    for (let k = 0; k < 20; k++) r();
+    return r;
+  };
+  function abAutoFind(x, y) { return ab.coins.find(k => Math.abs(k.x - x) < 3 && Math.abs(k.y - y) < 3); }
+  const AB_AUTO_KEY = 'mashinki_ab_auto';
+  let abAutoMem = null; try { const v = JSON.parse(localStorage.getItem(AB_AUTO_KEY)); if (v && typeof v.id === 'string' && Array.isArray(v.tk)) abAutoMem = v; } catch (e) {}
+  window.__abAutoSave = done => {                           // помним, что уже нашли (и что событие закончилось) — даже после перезагрузки
+    if (!ab.auto || !ab.id) return;
+    abAutoMem = { id: ab.id, tk: ab.coins.map((c, i) => c.taken ? i : -1).filter(i => i >= 0), done: !!done };
+    try { localStorage.setItem(AB_AUTO_KEY, JSON.stringify(abAutoMem)); } catch (e) {}
+  };
+  const abNextPill = document.getElementById('abuseNextPill'), abNextTime = document.getElementById('abuseNextTime'), abNextLbl = document.getElementById('abuseNextLbl');
+  let abAutoBeat = 0;
+  function abAutoTick() {
+    const now = Date.now(), day = abAutoDay(now), st = abAutoStartOf(day), id = 'auto-' + day, left = st + AB_DUR - now;
+    const done = ab.autoDone === id || (abAutoMem && abAutoMem.id === id && abAutoMem.done);
+    if (left > 1000 && !ab.id && !done) {                   // 19:30 наступило (или игрок зашёл во время события) — начинаем
+      const pts = abusePlaces(AB_N, abAutoRnd(day), true);
+      if (pts.length) {
+        abStart(id, pts, left); ab.auto = true;
+        if (abAutoMem && abAutoMem.id === id) for (const i of abAutoMem.tk) { const c = ab.coins[i]; if (c && !c.taken) { c.taken = true; c.mesh.visible = false; ab.got++; } }
+        abTick(true);
+        showMsg(t('abAutoGo', { n: pts.length, b: fmt(AB_TIERS[0].value), s: fmt(AB_TIERS[1].value), g: fmt(AB_TIERS[2].value) }), 7000); shake = Math.max(shake, 1.5);
+      } else ab.autoDone = id;
+    }
+    if (ab.auto && ab.id === id) {
+      ab.end = performance.now() + left;                    // время — по настоящим часам
+      if (ab.got > 0 && now - abAutoBeat > 5000 + Math.random() * 3000) {   // рассказываем остальным, что уже нашли
+        abAutoBeat = now;
+        mqPublish(JSON.stringify({ abuse: { t: 'tk', id, tk: ab.coins.filter(c => c.taken).map(c => [c.x, c.y]), rid: Math.random().toString(36).slice(2, 10) } }));
+      }
+    }
+    // таймер до следующего админ-абьюза — виден всем, пока событие не идёт
+    if (!abNextPill) return;
+    abNextPill.style.display = ab.id ? 'none' : '';
+    if (ab.id) return;
+    const s = Math.max(0, Math.ceil((abAutoStartOf(day + 1) - now) / 1000));
+    const txt = Math.floor(s / 3600) + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    if (abNextTime.textContent !== txt) abNextTime.textContent = txt;
+    const lbl = t('abNext'); if (abNextLbl.textContent !== lbl) abNextLbl.textContent = lbl;
+    abNextPill.classList.toggle('soon', s <= 300);
+  }
+  setInterval(abAutoTick, 500); abAutoTick();
   // ================== Золотой пиратский жетон: один на всю игру, спрятан на Таинственном острове ==================
   // Место одно и то же у всех: глубоко во дворе квартала, вплотную к дому — с дороги не видно.
   const TOKEN_VALUE = 1000000;
