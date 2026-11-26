@@ -1,0 +1,24 @@
+{
+  "name": "stepik677-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Мобильное приложение Stepik677 (Capacitor) с обновлением игр по воздуху",
+  "scripts": {
+    "build": "node scripts/build-web.mjs",
+    "sync": "npm run build && cap sync",
+    "android": "npm run sync && cap open android",
+    "ios": "npm run sync && cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.3",
+    "@capacitor/ios": "^8.6.3",
+    "@capacitor/status-bar": "^8.0.4",
+    "@capgo/capacitor-updater": "^8.54.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.3",
+    "three": "^0.160.0"
+  }
+}
