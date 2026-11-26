@@ -53,3 +53,18 @@ Android Studio / Xcode. Дальше — сборка и публикация и
 Перед каждой сборкой для магазина увеличивайте номер версии:
 - Android: `versionCode` и `versionName` в `android/app/build.gradle`;
 - iOS: Version и Build в Xcode (вкладка General у цели App).
+
+## Иконка и заставка
+
+Исходники лежат в `assets/` (сделаны из `icon-512.png`): `icon-only.png` — иконка 1024×1024
+для App Store и Google Play, `icon-foreground.png` + `icon-background.png` — адаптивная иконка
+Android, `splash.png` — заставка. После их замены пересоздайте все размеры:
+
+```bash
+npx capacitor-assets generate --android --ios --iconBackgroundColor '#0f1522' --splashBackgroundColor '#0f1522'
+```
+
+## Кнопка «Домой»
+
+В играх внутри приложения в левом верхнем углу есть кнопка возврата в меню (с подтверждением),
+на Android то же делает системная кнопка «Назад». Код — в `app/app-shell.js`, на сайте её нет.
