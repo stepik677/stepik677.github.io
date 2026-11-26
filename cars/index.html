@@ -335,6 +335,8 @@
   .whCenter { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 180px; text-align: center; color: #fff; pointer-events: none; }
   .whCenter b { display: block; font: 800 19px "Segoe UI", sans-serif; text-shadow: 0 2px 6px #000; }
   .whCenter small { display: block; margin-top: 4px; font: 600 13px "Segoe UI", sans-serif; opacity: .85; }
+  #whBuy { pointer-events: auto; margin-top: 8px; padding: 7px 10px; border-radius: 12px; border: 1px solid #ffd54f; background: rgba(255,213,79,.22); color: #fff; font: 700 13px "Segoe UI", sans-serif; cursor: pointer; }
+  #whBuy:hover { background: rgba(255,213,79,.4); } #whBuy:active { transform: scale(.96); }
   #whHint { position: absolute; bottom: calc(18px + var(--sb)); left: 0; right: 0; text-align: center; color: #fff; font: 600 13px "Segoe UI", sans-serif; opacity: .75; }
   @media (max-height: 560px), (max-width: 560px) { #whRing { transform: scale(.68); animation: none; } }
   #fsBtn .shrink { display: none; } .fs #fsBtn .grow { display: none; } .fs #fsBtn .shrink { display: block; }
@@ -445,7 +447,7 @@
   <button id="garageBtn"></button>
   <button id="menuBtn" aria-label="menu">☰</button>
 </div>
-<div id="wheel"><div id="whRing"><div class="whCenter"><b id="whName"></b><small id="whInfo"></small></div></div><div id="whHint"></div></div>
+<div id="wheel"><div id="whRing"><div class="whCenter"><b id="whName"></b><small id="whInfo"></small><button id="whBuy" style="display:none"></button></div></div><div id="whHint"></div></div>
 <div id="bank"><div class="gbox">
   <div class="ghead"><h2 id="bankTitle"></h2><div class="pill money">💶 <span id="bankMoney">0 €</span></div><button id="bankClose">✕</button></div>
   <div class="ghint" id="bankHint"></div>
@@ -927,7 +929,7 @@
         lgShops: 'Магазины', runOver: '💥 Ты сбил человека! Полиция уже едет 🚓', shSignFood: '24/7', shSignClothes: 'ОДЕЖДА', shSignPaint: 'ПОКРАСКА',
         shGuns: '🔫 Оружейный магазин', shGunsHint: 'Купи оружие и патроны. 7 — меню оружия, 4 / Q / клик — стрелять (когда ты пешком)', shSignGuns: 'ОРУЖИЕ',
         wpPistol: 'Пистолет ПМ', wpSmg: 'Узи', wpShotgun: 'Помповый дробовик', wpRocket: 'Базука', wpAk: 'АК-47', wpSniper: 'Снайперская винтовка СВД', wpFist: 'Кулаки', wpAmmo: 'Патроны +{n}',
-        wpNoAmmo: 'Нет патронов! Купи их в оружейном магазине 🔫', wpGot: '{w} теперь твой! Нажми 7 и выбери его', wpOwned: 'Есть ✓',
+        wpNoAmmo: 'Нет патронов! Нажми 7 и купи патроны прямо в меню оружия 🔫', wpBuyAmmo: '🛒 Патроны +{n} · {m}', wpGot: '{w} теперь твой! Нажми 7 и выбери его', wpOwned: 'Есть ✓',
         wpLocked: '🔒 Купи в оружейном магазине', wpAmmoLeft: 'Патроны: {n}', wpWheelHint: '1 / 2 — выбрать · 3 или клик — взять · 7 — закрыть', wpFistInfo: 'Бей кулаками' },
       en: { shFood: '🏪 24/7 Store', shClothes: '👕 Clothes Shop', shPaint: '🎨 Paint Shop', shFoodHint: 'Have a snack — it restores your health ❤️', shClothesHint: 'Pick a T-shirt and a cap for your character',
         shPaintHint: 'Repaint your car: {car}', shBuy: 'Buy', shOn: 'Wearing ✓', shNoMoney: 'Not enough money 💶 — collect coins!', shYum: 'Yum! ❤️ +{n}', shDone: 'Done! ✨',
@@ -936,7 +938,7 @@
         lgShops: 'Shops', runOver: '💥 You hit a person! The police are coming 🚓', shSignFood: '24/7', shSignClothes: 'CLOTHES', shSignPaint: 'PAINT',
         shGuns: '🔫 Gun Shop', shGunsHint: 'Buy weapons and ammo. 7 — weapon menu, 4 / Q / click — shoot (on foot)', shSignGuns: 'GUNS',
         wpPistol: 'PM pistol', wpSmg: 'Uzi', wpShotgun: 'Pump shotgun', wpRocket: 'Bazooka', wpAk: 'AK-47', wpSniper: 'SVD sniper rifle', wpFist: 'Fists', wpAmmo: 'Ammo +{n}',
-        wpNoAmmo: 'Out of ammo! Buy some at the gun shop 🔫', wpGot: 'The {w} is yours! Press 7 and pick it', wpOwned: 'Owned ✓',
+        wpNoAmmo: 'Out of ammo! Press 7 and buy ammo right in the weapon menu 🔫', wpBuyAmmo: '🛒 Ammo +{n} · {m}', wpGot: 'The {w} is yours! Press 7 and pick it', wpOwned: 'Owned ✓',
         wpLocked: '🔒 Buy it at the gun shop', wpAmmoLeft: 'Ammo: {n}', wpWheelHint: '1 / 2 — pick · 3 or click — take · 7 — close', wpFistInfo: 'Fight with your fists' },
     };
     for (const k in I18N) Object.assign(I18N[k], SH[k] || SH.en);
@@ -7576,7 +7578,8 @@
     const b = e.target.closest('button[data-act]'); if (!b || b.disabled) return;
     const [kind, si] = b.dataset.act.split(':'), i = +si;
     if (kind === 'gun' || kind === 'ammo') {                   // оружейный магазин
-      const W = WEAPONS[si], price = kind === 'gun' ? W.price : W.ammoPrice;
+      if (kind === 'ammo') { buyAmmo(si); renderShop(); return; }
+      const W = WEAPONS[si], price = W.price;
       if (save.money < price) { showMsg(t('shNoMoney'), 2200); return; }
       save.money -= price;
       save.weapons.ammo[si] = (save.weapons.ammo[si] || 0) + W.pack;
@@ -7684,6 +7687,14 @@
     save.weapons.cur = list[(list.indexOf(save.weapons.cur) + 1) % list.length];
     persist(); updateWpnPill();
   }
+  function buyAmmo(id) {                                      // патроны: в оружейном магазине и прямо в меню оружия
+    const W = WEAPONS[id]; if (!W || !save.weapons.owned.includes(id)) return false;
+    if (save.money < W.ammoPrice) { showMsg(t('shNoMoney'), 2200); return false; }
+    save.money -= W.ammoPrice;
+    save.weapons.ammo[id] = (save.weapons.ammo[id] || 0) + W.pack;
+    persist(); updateWpnPill(); showMsg('🎯 ' + t('wpAmmo', { n: W.pack }), 1500);
+    return true;
+  }
   // ---------- меню оружия (колесо, как в GTA) ----------
   const wheelEl = document.getElementById('wheel'), whRing = document.getElementById('whRing');
   const WH_LIST = [null, ...WPN_ORDER];
@@ -7709,6 +7720,9 @@
     const id = WH_LIST[whSel], W = id && WEAPONS[id];
     document.getElementById('whName').textContent = id ? t(W.key) : '👊 ' + t('wpFist');
     document.getElementById('whInfo').textContent = !id ? t('wpFistInfo') : whOwn(id) ? t('wpAmmoLeft', { n: save.weapons.ammo[id] || 0 }) : t('wpLocked');
+    const buy = document.getElementById('whBuy'), canBuy = !!id && whOwn(id);
+    buy.style.display = canBuy ? '' : 'none';
+    if (canBuy) { buy.textContent = t('wpBuyAmmo', { n: W.pack, m: fmt(W.ammoPrice) }); buy.dataset.id = id; }
   }
   function pickWheel(i) {
     const id = WH_LIST[i];
@@ -7720,6 +7734,10 @@
     if (on) { held.clear(); touchHeld.clear(); refreshKeys(); gun.fire = false; whSel = Math.max(0, WH_LIST.indexOf(save.weapons.cur)); renderWheel(); }
     else if (!menuOpen) canvas.focus();
   }
+  document.getElementById('whBuy').addEventListener('click', e => {
+    e.stopPropagation();
+    if (buyAmmo(e.currentTarget.dataset.id)) { const keep = whSel; renderWheel(); selWheel(keep); }
+  });
   whRing.addEventListener('pointerover', e => { const it = e.target.closest('.whItem'); if (it) selWheel(+it.dataset.i); });
   whRing.addEventListener('click', e => { const it = e.target.closest('.whItem'); if (it) pickWheel(+it.dataset.i); });
   wheelEl.addEventListener('click', e => { if (e.target === wheelEl) toggleWheel(false); });
