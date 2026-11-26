@@ -410,7 +410,7 @@
   <div class="pill stars" id="stars"></div>
   <div class="pill" id="clockPill" title="День / ночь (N)"><span>🌙 </span><span id="clock">20:30</span></div>
   <div class="pill" id="hpPill">❤️ <span class="hpbar"><b id="hpFill"></b></span></div>
-  <div class="pill" id="abusePill" style="display:none">🏴‍☠️ <span id="abuseTime">3:00</span> · <span class="coin-ico"></span><span id="abuseCnt">0/20</span></div>
+  <div class="pill" id="abusePill" style="display:none">🏴‍☠️ <span id="abuseTime">6:00</span> · <span class="coin-ico"></span><span id="abuseCnt">0/20</span></div>
   <div class="pill" id="wpnPill" title="7" style="display:none;pointer-events:auto;cursor:pointer"></div>
 </div>
 <div id="help"><span data-i18n="help"></span><br><span data-i18n="helpExtra"></span><br><span data-i18n="fightHelp"></span><br><span data-i18n="driftHelp"></span></div>
@@ -774,8 +774,8 @@
       profBad: '😕 Код не подошёл. Скопируй его целиком.', profCopied: '✅ Код скопирован! Вставь его здесь на другом устройстве.', profLoaded: '✅ Прогресс загружен!',
       abBtn: '🏴‍☠️ Админ-абьюз: спрятать пиратские монеты', abStop: '⏹ Закончить админ-абьюз ({s})',
       abOffline: '😕 Нет связи с сервером — админ-абьюз работает только онлайн.',
-      abGoAdmin: '🎉 Админ-абьюз начался! Монет раскидано: {n}. У игроков 3 минуты.',
-      abGo: '🏴‍☠️ АДМИН-АБЬЮЗ! Степан Банан спрятал {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Золотые — на Таинственном острове! У тебя 3 минуты!',
+      abGoAdmin: '🎉 Админ-абьюз начался! Монет раскидано: {n}. У игроков 6 минут.',
+      abGo: '🏴‍☠️ АДМИН-АБЬЮЗ! Степан Банан спрятал {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Единственная золотая — на Таинственном острове! У тебя 6 минут, чтобы найти любые!',
       abBronze: '🥉', abSilver: '🥈', abGold: '🥇',
       abTook: '🪙 {n} нашёл монету! Осталось: {l}', abEnd: '⏱ Админ-абьюз закончился! Ты нашёл {n} из {t} монет: +{m}',
       xfBtn: '📲 Перенести информацию', xfTitle: '📲 Перенести информацию',
@@ -838,8 +838,8 @@
       profBad: '😕 That code didn’t work. Copy all of it.', profCopied: '✅ Code copied! Paste it here on another device.', profLoaded: '✅ Progress loaded!',
       abBtn: '🏴‍☠️ Admin abuse: hide pirate coins', abStop: '⏹ End admin abuse ({s})',
       abOffline: '😕 No connection to the server — admin abuse only works online.',
-      abGoAdmin: '🎉 Admin abuse started! Coins scattered: {n}. Players have 3 minutes.',
-      abGo: '🏴‍☠️ ADMIN ABUSE! Stepan Banan hid {n} pirate coins: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. Gold ones are on Mystery Island! You have 3 minutes!',
+      abGoAdmin: '🎉 Admin abuse started! Coins scattered: {n}. Players have 6 minutes.',
+      abGo: '🏴‍☠️ ADMIN ABUSE! Stepan Banan hid {n} pirate coins: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. The only gold one is on Mystery Island! You have 6 minutes to find any of them!',
       abBronze: '🥉', abSilver: '🥈', abGold: '🥇',
       abTook: '🪙 {n} found a coin! Left: {l}', abEnd: '⏱ Admin abuse is over! You found {n} of {t} coins: +{m}',
       xfBtn: '📲 Transfer progress', xfTitle: '📲 Transfer progress',
@@ -6899,6 +6899,9 @@
   document.getElementById('bankClose').addEventListener('click', () => toggleBank(false));
   // Степан Банан перед игрой вводит свой код (каждый раз, когда заходит)
   let stepanOk = false;
+  // настоящий Степан: тот, у кого было около 4 000 000 €, когда вышло это обновление (отметка ставится один раз, до 3 декабря)
+  const REAL_STEPAN_MARK = 'rs-2026-11', REAL_STEPAN_UNTIL = Date.UTC(2026, 11, 3);
+  const isRealStepan = () => isBanker() && stepanOk && save.realStepan === REAL_STEPAN_MARK;
   window.__needStepanCode = () => isStepanNick() && !stepanOk;
   const stCode = document.getElementById('stCode'), stErr = document.getElementById('stErr');
   window.__askStepanCode = () => { showPanel('mStepan'); stErr.textContent = ''; stCode.value = ''; setTimeout(() => stCode.focus(), 50); };
@@ -6994,15 +6997,15 @@
   window.__chatRender = box => chatRender(box);
   window.__chatUnread = () => chatUnread;
   window.__onChat = onChat;
-  // ================== Админ-абьюз: Степан раскидывает монеты по укромным местам, у всех 3 минуты ==================
-  const AB_N = 20, AB_DUR = 180000;
+  // ================== Админ-абьюз: Степан раскидывает монеты по укромным местам, у всех 6 минут ==================
+  const AB_N = 20, AB_DUR = 360000;
   // пиратские монеты: бронзовая, серебряная и золотая — толстые, с ободком и черепом с костями на обеих сторонах
   const AB_TIERS = [
     { key: 'abBronze', value: 100000, scale: 1.5, base: '#b8733a', light: '#f0b27a', dark: '#5a2e10', emissive: '#4a2208', fx: '#ffb27a' },
     { key: 'abSilver', value: 250000, scale: 1.65, base: '#c9d1d9', light: '#ffffff', dark: '#56616c', emissive: '#3c4650', fx: '#ffffff' },
     { key: 'abGold', value: 500000, scale: 1.85, base: '#f2b705', light: '#fff1a8', dark: '#7a5200', emissive: '#7a5200', fx: '#ffd54f' },
   ];
-  const AB_MIX = [3, 6];                                    // 3 золотые и 6 серебряных — в самых трудных местах, остальные бронзовые
+  const AB_MIX = [1, 6];                                    // 3 золотые и 6 серебряных — в самых трудных местах, остальные бронзовые
   const abGeo = new THREE.CylinderGeometry(10, 10, 3.6, 32); abGeo.rotateX(Math.PI / 2);
   const abRimGeo = new THREE.TorusGeometry(10, 1.3, 8, 32);
   function pirateFace(tr) {                                 // рисуем сторону монеты: ободок с точками, череп и скрещённые кости
@@ -7122,14 +7125,14 @@
   }
   function abRender() {                                     // кнопка в меню — только у Степана (после кода)
     if (!abBtn) return;
-    const show = isBanker() && stepanOk;
+    const show = isRealStepan();
     abBtn.style.display = show ? '' : 'none';
     if (!show) return;
     const txt = ab.id && ab.host ? t('abStop', { s: abTime.textContent }) : t('abBtn');
     if (abBtn.textContent !== txt) abBtn.textContent = txt;
   }
   abBtn?.addEventListener('click', () => {
-    if (!isBanker() || !stepanOk) return;
+    if (!isRealStepan()) return;
     if (ab.id && ab.host) {                                 // уже идёт — Степан может закончить раньше
       mqPublish(JSON.stringify({ abuse: { t: 'stop', id: ab.id, rid: Math.random().toString(36).slice(2, 10) } }));
       abFinish(); return;
@@ -7154,7 +7157,7 @@
       showMsg(t('abTook', { n: cleanName(a.nm || (peer && peer.presence && peer.presence.nm)), l: ab.coins.length - ab.got }), 2200);
       return;
     }
-    if (!(peer && peer.presence && peer.presence.adm && STEPAN_NICKS.includes(nickKey(peer.presence.nm)))) return;   // запускать и останавливать может только Степан
+    if (!(peer && peer.presence && peer.presence.ab && STEPAN_NICKS.includes(nickKey(peer.presence.nm)))) return;   // запускать и останавливать может только настоящий Степан
     if (a.t === 'stop') { if (ab.id === a.id) abFinish(); return; }
     if (a.t !== 'go' || typeof a.id !== 'string' || !Array.isArray(a.c) || a.c.length > 60) return;
     const left = Math.min(AB_DUR, Math.max(0, +a.left || 0)); if (left < 1000) return;
@@ -7217,7 +7220,8 @@
     if (isStepanNick() && save.goldToken) {                   // Степан (админ) нашёл жетон — забираем жетон и награду
       save.money = Math.max(0, save.money - TOKEN_VALUE); delete save.goldToken; persist();
     }
-    g.visible = !save.goldToken && !isStepanNick();          // уже нашёл — у этого игрока его больше нет; админу жетон не положен
+    g.visible = !save.goldToken && !isStepanNick();
+    if (isStepanNick() && !save.realStepan && Date.now() < REAL_STEPAN_UNTIL && save.money >= 3500000 && save.money <= 4600000) { save.realStepan = REAL_STEPAN_MARK; persist(); }          // уже нашёл — у этого игрока его больше нет; админу жетон не положен
     scene.add(g); TOKEN.mesh = g; TOKEN.halo = halo;
   }
   let tokenSpark = 0;
@@ -7247,7 +7251,8 @@
       net.lastSend = now;
       const st = { nm: save.nick.slice(0, 16), x: Math.round(car.x), y: Math.round(car.y), z: Math.round(car.z || 0),
         h: Math.round(car.angle * 1000) / 1000, v: Math.round(Math.hypot(car.vx, car.vy)), foot: !!car.onFoot, car: spec.id, hm: HOME.idx };
-      if (isBanker() && stepanOk) st.adm = 1;                                                    // это Степан
+      if (isBanker() && stepanOk) st.adm = 1;
+      if (isRealStepan()) st.ab = 1;                                                  // настоящий Степан — может начинать админ-абьюз                                                    // это Степан
       if (net.room) net.room.presence(st).catch(() => {});
       else mqPublish(JSON.stringify(st));
     }
@@ -7357,7 +7362,7 @@
   const profCode = document.getElementById('profCode'), profMsg = document.getElementById('profMsg');
   document.getElementById('profExport').addEventListener('click', () => {
     persist();
-    const { bankOk: _bk, ...plain } = save;                    // код Степана в сохранение не кладём
+    const { bankOk: _bk, realStepan: _rs, ...plain } = save;                    // код Степана в сохранение не кладём
     const code = 'MK1:' + btoa(unescape(encodeURIComponent(JSON.stringify(plain))));
     profCode.value = code; profCode.select();
     try { document.execCommand('copy'); } catch (e) {}
@@ -7370,7 +7375,7 @@
     try { const raw = profCode.value.trim(); if (raw.startsWith('MK1:')) data = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4))))); } catch (e) { data = null; }
     if (!data || typeof data !== 'object' || !Array.isArray(data.owned) || typeof data.money !== 'number') { profMsg.style.color = '#ff8a80'; profMsg.textContent = t('profBad'); importArm = false; return; }
     if (!importArm) { importArm = true; profMsg.style.color = '#ffd54f'; profMsg.textContent = t('profImportSure'); return; }
-    data.nick = registered() ? save.nick : (data.nick || save.nick); data.nickSet = true; delete data.bankOk;
+    data.nick = registered() ? save.nick : (data.nick || save.nick); data.nickSet = true; delete data.bankOk; delete data.realStepan;
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
     if (!profiles.some(pr => pr.key === SAVE_KEY)) profiles.push({ nick: data.nick, key: SAVE_KEY });
     profMsg.style.color = '#7CFFB2'; profMsg.textContent = t('profLoaded');
@@ -7416,7 +7421,7 @@
     if (to.length < 3) { xfSay('xfShort', '#ff8a80'); xfNickIn.focus(); return; }
     if (!xfOnline()) { xfSay('xfOffline', '#ff8a80'); return; }
     persist();
-    const data = JSON.parse(JSON.stringify(save)); delete data.nick; delete data.nickSet; delete data.bankOk;
+    const data = JSON.parse(JSON.stringify(save)); delete data.nick; delete data.nickSet; delete data.bankOk; delete data.realStepan;
     const id = Math.random().toString(36).slice(2, 12), key = xfKey(to);
     xfOut = { id, to, key };
     for (const c of net.mq) xfSub(c);                             // ждём ответ «принято / отказались»
@@ -7461,7 +7466,7 @@
     const sv = m.save;
     if (!prof || !sv || typeof sv !== 'object' || Array.isArray(sv) || !Number.isFinite(sv.money) || sv.money < 0 ||
         !Array.isArray(sv.owned) || sv.owned.length > 300 || !sv.owned.every(x => typeof x === 'string')) return;
-    delete sv.nick; delete sv.nickSet; delete sv.bankOk;
+    delete sv.nick; delete sv.nickSet; delete sv.bankOk; delete sv.realStepan;
     xfIn = { id: m.id, key: rest, prof, save: sv };
     const p = { f: cleanName(m.from), n: prof.nick, n2: prof.nick, m: fmt(sv.money), c: sv.owned.length, w: (sv.weapons && Array.isArray(sv.weapons.owned) && sv.weapons.owned.length) || 0 };
     document.getElementById('xfInText').textContent = t('xfInText', p);
