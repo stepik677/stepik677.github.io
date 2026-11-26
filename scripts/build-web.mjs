@@ -23,7 +23,7 @@ const out = path.join(root, 'www');
 const EXCLUDE = new Set([
   '.git', '.github', '.gitignore', 'node_modules', 'www', 'android', 'ios', 'scripts', 'app',
   'package.json', 'package-lock.json', 'capacitor.config.ts', 'capacitor.config.json',
-  'README.md', 'CLAUDE.md', '.claude', 'robots.txt', '.nojekyll', '_site',
+  'README.md', 'CLAUDE.md', '.claude', 'robots.txt', '.nojekyll', '_site', 'assets',
 ]);
 
 function version() {
