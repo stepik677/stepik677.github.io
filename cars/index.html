@@ -775,7 +775,7 @@
       abBtn: '🏴‍☠️ Админ-абьюз: спрятать пиратские монеты', abStop: '⏹ Закончить админ-абьюз ({s})',
       abOffline: '😕 Нет связи с сервером — админ-абьюз работает только онлайн.',
       abGoAdmin: '🎉 Админ-абьюз начался! Монет раскидано: {n}. У игроков 3 минуты.',
-      abGo: '🏴‍☠️ АДМИН-АБЬЮЗ! Степан Банан спрятал {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Золотые — в самых трудных местах. У тебя 3 минуты!',
+      abGo: '🏴‍☠️ АДМИН-АБЬЮЗ! Степан Банан спрятал {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Золотые — на Таинственном острове! У тебя 3 минуты!',
       abBronze: '🥉', abSilver: '🥈', abGold: '🥇',
       abTook: '🪙 {n} нашёл монету! Осталось: {l}', abEnd: '⏱ Админ-абьюз закончился! Ты нашёл {n} из {t} монет: +{m}',
       xfBtn: '📲 Перенести информацию', xfTitle: '📲 Перенести информацию',
@@ -839,7 +839,7 @@
       abBtn: '🏴‍☠️ Admin abuse: hide pirate coins', abStop: '⏹ End admin abuse ({s})',
       abOffline: '😕 No connection to the server — admin abuse only works online.',
       abGoAdmin: '🎉 Admin abuse started! Coins scattered: {n}. Players have 3 minutes.',
-      abGo: '🏴‍☠️ ADMIN ABUSE! Stepan Banan hid {n} pirate coins: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. Gold ones are in the hardest places. You have 3 minutes!',
+      abGo: '🏴‍☠️ ADMIN ABUSE! Stepan Banan hid {n} pirate coins: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. Gold ones are on Mystery Island! You have 3 minutes!',
       abBronze: '🥉', abSilver: '🥈', abGold: '🥇',
       abTook: '🪙 {n} found a coin! Left: {l}', abEnd: '⏱ Admin abuse is over! You found {n} of {t} coins: +{m}',
       xfBtn: '📲 Transfer progress', xfTitle: '📲 Transfer progress',
@@ -7038,29 +7038,50 @@
   // укромные места: внутри кварталов во дворах, вплотную к домам (не на дороге), и за городом — на холмах, у горы, в полях
   function abusePlaces(n) {
     const out = [], BLK = STEP * T;
-    for (let tries = 0; out.length < n && tries < 20000; tries++) {
-      const city = Math.random() < .65;
+    const free = (x, y, z0) => ![[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].some(([dx, dy]) => solidAtZ(x + dx, y + dy, z0));
+    const far = (x, y, d) => !out.some(o => Math.hypot(o[0] - x, o[1] - y) < d);
+    // во дворе квартала: глубоко (подальше от дороги) и вплотную к домам с двух сторон — с улицы не видно
+    const backyard = (mx, my, tallAt) => {
+      const bx = mx % BLK, by = my % BLK;
+      if (bx < ROAD_W + 100 || by < ROAD_W + 100 || bx > BLK - 100 || by > BLK - 100) return false;
+      return [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => tallAt(mx + dx * 60, my + dy * 60)).length >= 2;
+    };
+    // 🥇 золотые — только на Таинственном острове: в глухих дворах тайного города и в холмах вокруг него
+    const gold = AB_MIX[0];
+    for (let tries = 0; out.length < gold && tries < 20000; tries++) {
+      if (Math.random() < .6) {
+        const mx = SEC_SRC + Math.random() * SEC_S, my = SEC_SRC + Math.random() * SEC_S;   // точка в главном городе → такая же в тайном
+        if (!backyard(mx, my, solidTallAt)) continue;
+        if ([[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].some(([dx, dy]) => solidAt(mx + dx, my + dy))) continue;
+        const x = mx + SEC_DX, y = my + SEC_DY;
+        if (Math.hypot(x - TOKEN.x, y - TOKEN.y) < 500 || !far(x, y, 900)) continue;
+        out.push([Math.round(x), Math.round(y), SEC_H + 14, 2]);
+      } else {
+        const a2 = Math.random() * 6.283, r = SEC_S * .62 + Math.random() * 1600;
+        const x = SEC_CX + Math.cos(a2) * r, y = SEC_CY + Math.sin(a2) * r;
+        if (inSecCity(x, y)) continue;
+        const z0 = terrainH(x, y); if (z0 < 25) continue;                                  // в холмах, не на пляже
+        if (!free(x, y, z0) || !far(x, y, 900)) continue;
+        out.push([Math.round(x), Math.round(y), Math.round(z0 + 14), 2]);
+      }
+    }
+    // 🥈 и 🥉 — на главном острове: глухие дворы города, склоны горы, лес и поля за городом
+    for (let tries = 0; out.length < n && tries < 30000; tries++) {
+      const city = Math.random() < .6;
       const x = city ? Math.random() * WORLD : MI0 + Math.random() * (MI1 - MI0);
       const y = city ? Math.random() * WORLD : MI0 + Math.random() * (MI1 - MI0);
-      if (city) {
-        const bx = x % BLK, by = y % BLK;
-        if (bx < ROAD_W + 40 || by < ROAD_W + 40 || bx > BLK - 40 || by > BLK - 40) continue;   // только во дворе квартала
-      } else {
+      if (city) { if (!backyard(x, y, solidTallAt)) continue; }
+      else {
         if (inCity(x, y) || Math.hypot(x - WORLD / 2, y - WORLD / 2) > 9000) continue;
-        if (terrainH(x, y) < SEA + 4) continue;                                             // не в воде и не у самой кромки
+        if (terrainH(x, y) < 40) continue;                                                // повыше: холмы и гора, не у дороги и не у воды
+        if (x > -700 && mrNear(x, y)[0] < 260) continue;
       }
       if (x > MZ.x0 - 120 && x < MZ.x1 + 120 && y > MZ.y0 - 120 && y < MZ.y1 + 120) continue;   // особняк Степана закрыт для всех
       if (inReserved(x, y, 30)) continue;
       const z0 = groundHeight(x, y, 0);
-      if ([[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]].some(([dx, dy]) => solidAtZ(x + dx, y + dy, z0))) continue;
-      if (city && ![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => solidTallAt(x + dx * 70, y + dy * 70))) continue;   // прижата к дому — с дороги не видно
-      if (Math.hypot(x - car.x, y - car.y) < 500) continue;
-      if (out.some(o => Math.hypot(o[0] - x, o[1] - y) < 500)) continue;
-      out.push([Math.round(x), Math.round(y), Math.round(z0 + 14)]);
+      if (!free(x, y, z0) || Math.hypot(x - car.x, y - car.y) < 500 || !far(x, y, 500)) continue;
+      out.push([Math.round(x), Math.round(y), Math.round(z0 + 14), out.length < gold + AB_MIX[1] ? 1 : 0]);
     }
-    // чем выше и дальше от центра города, тем труднее найти: туда — золото, потом серебро, остальное бронза
-    const hard = q => q[2] + (inCity(q[0], q[1]) ? 0 : 300) + Math.hypot(q[0] - WORLD / 2, q[1] - WORLD / 2) / 20;
-    [...out].sort((a, b) => hard(b) - hard(a)).forEach((q, k) => q.push(k < AB_MIX[0] ? 2 : k < AB_MIX[0] + AB_MIX[1] ? 1 : 0));
     return out;
   }
   function abClear() {
@@ -7101,14 +7122,14 @@
   }
   function abRender() {                                     // кнопка в меню — только у Степана (после кода)
     if (!abBtn) return;
-    const show = isBanker();
+    const show = isBanker() && stepanOk;
     abBtn.style.display = show ? '' : 'none';
     if (!show) return;
     const txt = ab.id && ab.host ? t('abStop', { s: abTime.textContent }) : t('abBtn');
     if (abBtn.textContent !== txt) abBtn.textContent = txt;
   }
   abBtn?.addEventListener('click', () => {
-    if (!isBanker()) return;
+    if (!isBanker() || !stepanOk) return;
     if (ab.id && ab.host) {                                 // уже идёт — Степан может закончить раньше
       mqPublish(JSON.stringify({ abuse: { t: 'stop', id: ab.id, rid: Math.random().toString(36).slice(2, 10) } }));
       abFinish(); return;
@@ -7133,7 +7154,7 @@
       showMsg(t('abTook', { n: cleanName(a.nm || (peer && peer.presence && peer.presence.nm)), l: ab.coins.length - ab.got }), 2200);
       return;
     }
-    if (!(peer && peer.presence && peer.presence.adm)) return;   // запускать и останавливать может только Степан
+    if (!(peer && peer.presence && peer.presence.adm && STEPAN_NICKS.includes(nickKey(peer.presence.nm)))) return;   // запускать и останавливать может только Степан
     if (a.t === 'stop') { if (ab.id === a.id) abFinish(); return; }
     if (a.t !== 'go' || typeof a.id !== 'string' || !Array.isArray(a.c) || a.c.length > 60) return;
     const left = Math.min(AB_DUR, Math.max(0, +a.left || 0)); if (left < 1000) return;
@@ -7193,7 +7214,10 @@
     const halo = new THREE.Mesh(new THREE.TorusGeometry(15, .8, 6, 40), new THREE.MeshBasicMaterial({ color: '#c9a227', transparent: true, opacity: .35 }));
     g.add(halo);
     g.scale.setScalar(2.3); g.position.set(TOKEN.x, TOKEN.z, TOKEN.y);
-    g.visible = !save.goldToken;                             // уже нашёл — у этого игрока его больше нет
+    if (isStepanNick() && save.goldToken) {                   // Степан (админ) нашёл жетон — забираем жетон и награду
+      save.money = Math.max(0, save.money - TOKEN_VALUE); delete save.goldToken; persist();
+    }
+    g.visible = !save.goldToken && !isStepanNick();          // уже нашёл — у этого игрока его больше нет; админу жетон не положен
     scene.add(g); TOKEN.mesh = g; TOKEN.halo = halo;
   }
   let tokenSpark = 0;
@@ -7207,7 +7231,7 @@
     }
   };
   window.__tokenCollect = () => {
-    const g = TOKEN.mesh; if (!g.visible || save.goldToken) return;
+    const g = TOKEN.mesh; if (!g.visible || save.goldToken || isStepanNick()) return;
     if (Math.hypot(TOKEN.x - car.x, TOKEN.y - car.y) >= 50 || Math.abs(car.z + 10 - TOKEN.z) >= 50) return;
     g.visible = false; save.goldToken = Date.now(); save.money += TOKEN_VALUE; persist();
     popMoney('🏴‍☠️ +' + TOKEN_VALUE.toLocaleString(t('locale')) + ' €', '#ffd54f');
@@ -7223,7 +7247,7 @@
       net.lastSend = now;
       const st = { nm: save.nick.slice(0, 16), x: Math.round(car.x), y: Math.round(car.y), z: Math.round(car.z || 0),
         h: Math.round(car.angle * 1000) / 1000, v: Math.round(Math.hypot(car.vx, car.vy)), foot: !!car.onFoot, car: spec.id, hm: HOME.idx };
-      if (isBanker()) st.adm = 1;                                                    // это Степан
+      if (isBanker() && stepanOk) st.adm = 1;                                                    // это Степан
       if (net.room) net.room.presence(st).catch(() => {});
       else mqPublish(JSON.stringify(st));
     }
@@ -7333,7 +7357,8 @@
   const profCode = document.getElementById('profCode'), profMsg = document.getElementById('profMsg');
   document.getElementById('profExport').addEventListener('click', () => {
     persist();
-    const code = 'MK1:' + btoa(unescape(encodeURIComponent(JSON.stringify(save))));
+    const { bankOk: _bk, ...plain } = save;                    // код Степана в сохранение не кладём
+    const code = 'MK1:' + btoa(unescape(encodeURIComponent(JSON.stringify(plain))));
     profCode.value = code; profCode.select();
     try { document.execCommand('copy'); } catch (e) {}
     try { navigator.clipboard?.writeText(code).catch(() => {}); } catch (e) {}
@@ -7345,7 +7370,7 @@
     try { const raw = profCode.value.trim(); if (raw.startsWith('MK1:')) data = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4))))); } catch (e) { data = null; }
     if (!data || typeof data !== 'object' || !Array.isArray(data.owned) || typeof data.money !== 'number') { profMsg.style.color = '#ff8a80'; profMsg.textContent = t('profBad'); importArm = false; return; }
     if (!importArm) { importArm = true; profMsg.style.color = '#ffd54f'; profMsg.textContent = t('profImportSure'); return; }
-    data.nick = registered() ? save.nick : (data.nick || save.nick); data.nickSet = true;
+    data.nick = registered() ? save.nick : (data.nick || save.nick); data.nickSet = true; delete data.bankOk;
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
     if (!profiles.some(pr => pr.key === SAVE_KEY)) profiles.push({ nick: data.nick, key: SAVE_KEY });
     profMsg.style.color = '#7CFFB2'; profMsg.textContent = t('profLoaded');
@@ -7391,7 +7416,7 @@
     if (to.length < 3) { xfSay('xfShort', '#ff8a80'); xfNickIn.focus(); return; }
     if (!xfOnline()) { xfSay('xfOffline', '#ff8a80'); return; }
     persist();
-    const data = JSON.parse(JSON.stringify(save)); delete data.nick; delete data.nickSet;
+    const data = JSON.parse(JSON.stringify(save)); delete data.nick; delete data.nickSet; delete data.bankOk;
     const id = Math.random().toString(36).slice(2, 12), key = xfKey(to);
     xfOut = { id, to, key };
     for (const c of net.mq) xfSub(c);                             // ждём ответ «принято / отказались»
@@ -7436,7 +7461,7 @@
     const sv = m.save;
     if (!prof || !sv || typeof sv !== 'object' || Array.isArray(sv) || !Number.isFinite(sv.money) || sv.money < 0 ||
         !Array.isArray(sv.owned) || sv.owned.length > 300 || !sv.owned.every(x => typeof x === 'string')) return;
-    delete sv.nick; delete sv.nickSet;
+    delete sv.nick; delete sv.nickSet; delete sv.bankOk;
     xfIn = { id: m.id, key: rest, prof, save: sv };
     const p = { f: cleanName(m.from), n: prof.nick, n2: prof.nick, m: fmt(sv.money), c: sv.owned.length, w: (sv.weapons && Array.isArray(sv.weapons.owned) && sv.weapons.owned.length) || 0 };
     document.getElementById('xfInText').textContent = t('xfInText', p);
