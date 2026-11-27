@@ -4597,7 +4597,7 @@
 
 
   // ================== Пешеходы ==================
-  const PCAP = 270;                                        // 220 прохожих + 8 мест для разозлённых водителей + люди в аэропорту
+  const PCAP = 300;                                        // 220 прохожих + 8 мест для разозлённых водителей + люди в аэропорту
   const pGeo = {
     leg: new THREE.BoxGeometry(3.2, 10, 3.4).translate(0, -5, 0),
     body: new THREE.BoxGeometry(4.6, 9, 7.4).translate(0, 14.5, 0),
@@ -4792,6 +4792,11 @@
       { route: makeRoute([[A + 20, GC + 140], [A + 20, GC + 262], [A + 330, GC + 262], [A + 330, GC + 140]]), n: 5 },                // площадь у входа
       { route: makeRoute([[A + 330, GC + 378], [A + 330, GC + 1322], [A + 565, GC + 1322], [A + 565, GC + 378]]), n: 8, crew: true }, // перрон у самолётов
       { route: makeRoute([[A + 560, AP.y0 + 180], [A + 560, AP.y0 + 920], [A + 640, AP.y0 + 920], [A + 640, AP.y0 + 180]]), n: 4, crew: true },   // у ангаров
+      // внутри терминала: очередь на регистрацию, проход за стойками, выдача багажа, зал ожидания за досмотром
+      { route: makeRoute([[A + 62, GC + 330], [A + 62, GC + 940], [A + 100, GC + 940], [A + 100, GC + 330]]), n: 10 },
+      { route: makeRoute([[A + 150, GC + 440], [A + 150, GC + 940], [A + 166, GC + 940], [A + 166, GC + 440]]), n: 4 },
+      { route: makeRoute([[A + 180, GC + 320], [A + 180, GC + 446], [A + 282, GC + 446], [A + 282, GC + 320]]), n: 6 },
+      { route: makeRoute([[A + 150, GC + 990], [A + 150, GC + 1372], [A + 190, GC + 1372], [A + 190, GC + 990]]), n: 8 },
     ];
     const col = new THREE.Color();
     for (const G of groups) for (let k = 0; k < G.n; k++) {
@@ -5452,8 +5457,8 @@
     strip(TX, (AP.y0 + AP.y1) / 2, 110, L, taxiTex(L), true, .45);                 // рулёжка
     for (const ty of [AP.y0 + 500, (AP.y0 + AP.y1) / 2, AP.y1 - 500]) strip((TX + RX) / 2, ty, 110, RX - TX, taxiTex(RX - TX), false, .47);
     const term = new THREE.MeshStandardMaterial({ map: glassTex('#cfd8dc', '#4f7fa8'), roughness: .3, metalness: .2 });
-    box(AP.x0 + 40, GC + 300, 260, 1100, 90, term);                                  // терминал
-    box(AP.x0 + 30, GC + 290, 280, 1120, 6, new THREE.MeshStandardMaterial({ color: '#eceff1' }), 90, false);
+    // терминал — пустой внутри: стены, зал и всё, что в нём, строятся ниже («Аэропорт как настоящий»)
+    box(AP.x0 + 30, GC + 290, 280, 1120, 6, new THREE.MeshStandardMaterial({ color: '#eceff1' }), 90, false).castShadow = false;
     hangar(AP.x0 + 60, AP.y0 + 200, 360, 300, '#b0bec5', 'x');
     hangar(AP.x0 + 60, AP.y0 + 620, 360, 300, '#90a4ae', 'x');
     hangar(AP.x0 + 60, AP.y1 - 520, 360, 300, '#b0bec5', 'x');
@@ -5543,6 +5548,280 @@
     const signTex = outerTex(512, 96, (g, w, h) => { g.fillStyle = '#0d47a1'; g.fillRect(0, 0, w, h); g.strokeStyle = '#fff'; g.lineWidth = 6; g.strokeRect(5, 5, w - 10, h - 10); g.fillStyle = '#fff'; g.font = 'bold 54px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('✈  AIRPORT  ✈', w / 2, h / 2 + 2); }, 1, 1);
     for (const ry of [-Math.PI / 2, Math.PI / 2]) { const sg = new THREE.Mesh(new THREE.PlaneGeometry(300, 56), new THREE.MeshBasicMaterial({ map: signTex })); sg.position.set(AP.x0 - 40 + (ry < 0 ? -3.5 : 3.5), 124, GC); sg.rotation.y = ry; scene.add(sg); }   // высоко — камера проезжает под знаком
     box(AP.x0 - 43, AP_GATE.y0 - 12, 6, AP_GATE.y1 - AP_GATE.y0 + 24, 6, postMat, 150, false);
+  }
+  // ================== Аэропорт как настоящий: терминал с залом внутри, грузовой терминал, топливный склад, пожарные, техника ==================
+  const AP_MOVERS = [], AP_SPIN = [], AP_BAGS = [], AP_SEC = [];   // едущая техника, радары, чемоданы на ленте, рамки досмотра
+  const AP_HALL = { x0: AP.x0 + 48, x1: AP.x0 + 292, y0: GC + 308, y1: GC + 1392 };   // зал терминала (внутри стен)
+  const AP_REMOTE = [[AP.x0 + 520, 7250], [AP.x0 + 520, 7550], [AP.x0 + 520, 7850], [AP.x0 + 520, 8150], [AP.x0 + 520, 8450], [AP.x0 + 520, 8750], [AP.x0 + 960, 7400], [AP.x0 + 960, 7800], [AP.x0 + 960, 8200]];   // дальние стоянки
+  Object.entries({
+    ru: ['✈ Добро пожаловать в аэропорт! Регистрация — слева, досмотр — дальше, выходы к самолётам — за досмотром.', '✅ Досмотр пройден — счастливого полёта!'],
+    en: ['✈ Welcome to the airport! Check-in is on the left, security further on, gates are past security.', '✅ Security check passed — have a nice flight!'],
+    uk: ['✈ Ласкаво просимо до аеропорту! Реєстрація — ліворуч, огляд — далі, виходи до літаків — за оглядом.', '✅ Огляд пройдено — щасливого польоту!'],
+    de: ['✈ Willkommen am Flughafen! Check-in links, dahinter die Sicherheitskontrolle, die Gates danach.', '✅ Sicherheitskontrolle bestanden — guten Flug!'],
+    fr: ['✈ Bienvenue à l’aéroport ! Enregistrement à gauche, contrôle de sécurité ensuite, portes après le contrôle.', '✅ Contrôle passé — bon vol !'],
+    es: ['✈ ¡Bienvenido al aeropuerto! Facturación a la izquierda, control de seguridad después y las puertas tras el control.', '✅ Control superado: ¡buen vuelo!'],
+    zh: ['✈ 欢迎来到机场！值机在左边，往前是安检，登机口在安检后面。', '✅ 安检通过——祝你旅途愉快！'],
+  }).forEach(([k, v]) => { if (I18N[k]) [I18N[k].apWelcome, I18N[k].apSec] = v; });
+  {
+    const A = AP.x0, TY0 = GC + 300, TY1 = GC + 1400;
+    const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .6, ...o });
+    const glow = (c, i = 1.6) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: i });
+    const txtTex = (text, bg, fg, W = 512, H = 128) => outerTex(W, H, (g, w, h) => {
+      g.fillStyle = bg; g.fillRect(0, 0, w, h); g.fillStyle = fg; g.textAlign = 'center'; g.textBaseline = 'middle';
+      let px = Math.round(h * .6); g.font = `bold ${px}px "Segoe UI", sans-serif`;
+      while (px > 10 && g.measureText(text).width > w * .92) { px -= 2; g.font = `bold ${px}px "Segoe UI", sans-serif`; }
+      g.fillText(text, w / 2, h / 2 + 2);
+    }, 1, 1);
+    // табличка с надписью с двух сторон: x, y — центр, z — высота, rot — куда смотрит лицевая сторона
+    const sign = (text, x, y, z, w, h, rot, bg = '#0d47a1', fg = '#ffffff') => {
+      const mat = new THREE.MeshBasicMaterial({ map: txtTex(text, bg, fg, 512, Math.max(32, Math.round(512 * h / w))) });
+      for (const r of [rot, rot + Math.PI]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); m.position.set(x, z, y); m.rotation.y = r; scene.add(m); }
+    };
+    const part = (w, h, d, mat, x, z, y, parent = scene) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, z, y); m.castShadow = true; parent.add(m); return m; };
+    const cyl = (r, h, mat, x, z, y, parent = scene, seg = 14) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), mat); m.position.set(x, z, y); m.castShadow = true; parent.add(m); return m; };
+
+    // ---------- 1. Терминал: стеклянные стены, внутри — настоящий зал ----------
+    const facade = outerTex(128, 128, (g, w, h) => {
+      g.fillStyle = '#9ec9e6'; g.fillRect(0, 0, w, h);
+      const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#eceff1'; g.fillRect(0, 0, 6, h); g.fillRect(0, h / 2 - 3, w, 6); g.fillRect(0, 0, w, 6);
+    });
+    const wallMat = L => { const tx = facade.clone(); tx.needsUpdate = true; tx.repeat.set(Math.max(1, L / 50), 2); return new THREE.MeshStandardMaterial({ map: tx, roughness: .1, metalness: .4, transparent: true, opacity: .55, depthWrite: false }); };
+    const wall = (x0, y0, w, h) => { const m = box(x0, y0, w, h, 90, wallMat(Math.max(w, h))); m.castShadow = false; return m; };   // стекло не даёт тени — в зале светло
+    // западная стена (к дороге) — три входа; восточная (к самолётам) — выход на перрон
+    const W_DOORS = [[GC + 500, GC + 580], [GC + 820, GC + 900], [GC + 1140, GC + 1220]], E_DOOR = [GC + 1100, GC + 1180];
+    let yy = TY0; for (const [d0, d1] of W_DOORS) { wall(A + 40, yy, 8, d0 - yy); yy = d1; } wall(A + 40, yy, 8, TY1 - yy);
+    wall(A + 292, TY0, 8, E_DOOR[0] - TY0); wall(A + 292, E_DOOR[1], 8, TY1 - E_DOOR[1]);
+    wall(A + 48, TY0, 244, 8); wall(A + 48, TY1 - 8, 244, 8);
+    for (const [d0, d1] of [...W_DOORS, E_DOOR]) {                                 // над дверями — перемычка и табличка
+      const wx = d0 === E_DOOR[0] ? A + 296 : A + 44;
+      part(10, 30, d1 - d0, wallMat(d1 - d0), wx, 75, (d0 + d1) / 2).castShadow = false;
+      sign(d0 === E_DOOR[0] ? 'ВЫХОД НА ПЕРРОН · APRON' : 'ВХОД · ENTRANCE', wx + (d0 === E_DOOR[0] ? 7 : -7), (d0 + d1) / 2, 52, 76, 14, d0 === E_DOOR[0] ? Math.PI / 2 : -Math.PI / 2, '#ffd54f', '#212121');
+      for (const s of [d0 - 4, d1 + 4]) part(8, 60, 8, M('#cfd8dc', { metalness: .5 }), wx, 30, s);   // рамы дверей
+    }
+    // пол — светлая плитка, по потолку — светильники
+    const floorTex = outerTex(128, 128, (g, w, h) => { g.fillStyle = '#e9e4da'; g.fillRect(0, 0, w, h); g.fillStyle = '#d8d1c4'; g.fillRect(0, 0, w / 2, h / 2); g.fillRect(w / 2, h / 2, w / 2, h / 2); g.strokeStyle = 'rgba(0,0,0,.12)'; g.lineWidth = 2; g.strokeRect(0, 0, w, h); }, 244 / 40, 1084 / 40);
+    flat(AP_HALL.x0, AP_HALL.y0, AP_HALL.x1 - AP_HALL.x0, AP_HALL.y1 - AP_HALL.y0, new THREE.MeshStandardMaterial({ map: floorTex, roughness: .25, metalness: .1, emissive: '#3a372f', emissiveIntensity: .35, polygonOffset: true, polygonOffsetFactor: -4 }), .7);
+    {
+      const lamp = new THREE.InstancedMesh(new THREE.BoxGeometry(40, 2, 12), glow('#fffde7', 1.3), 40), mm = new THREE.Matrix4(); let k = 0;
+      for (let x = A + 90; x < A + 290; x += 90) for (let y = TY0 + 60; y < TY1 - 30; y += 110) { mm.makeTranslation(x, 87, y); lamp.setMatrixAt(k++, mm); }
+      lamp.count = k; scene.add(lamp);
+    }
+    PLATS.push({ cx: A + 170, cy: (TY0 + TY1) / 2, ux: 1, uy: 0, L: 260, Wd: 1100, h0: 96, h1: 96, bot: 88, roof: true });   // потолок: камера не вылезает на крышу, вертолёт может сесть на крышу
+    // регистрация: 10 стоек, ленты для багажа, экраны над стойками, стенд авиакомпании
+    const desk = M('#eceff1', { roughness: .4 }), belt = M('#37474f'), scr = glow('#1e88e5', 1.2);
+    for (let i = 0; i < 10; i++) {
+      const y = GC + 430 + i * 40;
+      box(A + 110, y, 18, 28, 13, desk);
+      box(A + 128, y, 10, 28, 6, belt, 0, false);
+      const s = new THREE.Mesh(new THREE.PlaneGeometry(22, 10), new THREE.MeshBasicMaterial({ map: txtTex('РЕГИСТРАЦИЯ ' + (i + 1), '#0d47a1', '#ffffff', 256, 116) }));
+      s.position.set(A + 108, 32, y + 14); s.rotation.y = -Math.PI / 2; scene.add(s);
+      part(1.5, 14, 1.5, M('#90a4ae'), A + 119, 21, y + 14);
+    }
+    box(A + 140, GC + 425, 6, 410, 50, M('#1565c0'));
+    sign('✈ РЕГИСТРАЦИЯ НА РЕЙСЫ · CHECK-IN', A + 136, GC + 630, 58, 220, 22, -Math.PI / 2, '#0d47a1', '#ffffff');
+    for (let y = GC + 420; y <= GC + 840; y += 40) for (const x of [A + 70, A + 92]) part(2, 16, 2, M('#b0bec5', { metalness: .7 }), x, 8, y);   // стойки очереди
+    for (const x of [A + 70, A + 92]) part(1, 2, 420, M('#d32f2f'), x, 14, GC + 630);
+    // большое табло вылетов посреди зала
+    const board = outerTex(1024, 512, (g, w, h) => {
+      g.fillStyle = '#0b1220'; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#ffd54f'; g.font = 'bold 46px "Segoe UI", sans-serif'; g.textBaseline = 'middle'; g.fillText('✈ ВЫЛЕТ · DEPARTURES', 30, 42);
+      const rows = [['19:30', 'SU 1404', 'МАЛЬТА', '1', 'ПОСАДКА', '#69f0ae'], ['19:45', 'CY 3127', 'КИПР', '2', 'ПО РАСПИСАНИЮ', '#ffffff'], ['20:05', 'FJ 0910', 'ФИДЖИ', '3', 'РЕГИСТРАЦИЯ', '#ffffff'],
+        ['20:20', 'CR 5516', 'КОСТА-РИКА', '1', 'ЗАДЕРЖАН', '#ff5252'], ['20:40', 'IS 2024', 'ИСЛАНДИЯ', '2', 'ПО РАСПИСАНИЮ', '#ffffff'], ['21:10', 'ST 0677', 'ОСТРОВ ЧАЕК', '3', 'ПО РАСПИСАНИЮ', '#ffffff'], ['21:35', 'MI 0001', 'ТАИНСТВ. ОСТРОВ', '?', 'ОТМЕНЁН', '#ff5252']];
+      g.font = 'bold 30px "Segoe UI", sans-serif'; g.fillStyle = '#90a4ae'; [['ВРЕМЯ', 30], ['РЕЙС', 150], ['КУДА', 330], ['ВЫХОД', 650], ['СТАТУС', 770]].forEach(([s, x]) => g.fillText(s, x, 100));
+      rows.forEach((r, i) => { const y = 150 + i * 52; g.fillStyle = i % 2 ? '#111a2c' : '#0e1626'; g.fillRect(16, y - 24, w - 32, 48); g.font = 'bold 34px "Segoe UI", sans-serif'; g.fillStyle = '#ffeb3b'; g.fillText(r[0], 30, y); g.fillText(r[1], 150, y); g.fillStyle = '#ffffff'; g.fillText(r[2], 330, y); g.fillText(r[3], 680, y); g.fillStyle = r[5]; g.fillText(r[4], 770, y); });
+    });
+    for (const [x, r] of [[A + 175, -Math.PI / 2], [A + 183, Math.PI / 2]]) { const b = new THREE.Mesh(new THREE.PlaneGeometry(140, 70), new THREE.MeshBasicMaterial({ map: board })); b.position.set(x, 52, GC + 640); b.rotation.y = r; scene.add(b); }
+    part(6, 72, 144, M('#263238'), A + 179, 52, GC + 640);
+    for (const y of [GC + 580, GC + 700]) part(1.5, 2, 1.5, M('#90a4ae'), A + 179, 88, y);
+    // справочная
+    box(A + 190, GC + 860, 50, 24, 12, M('#ff8f00', { roughness: .4 })); sign('i  СПРАВОЧНАЯ · INFO', A + 215, GC + 872, 34, 60, 12, 0, '#2e7d32', '#ffffff');
+    // досмотр: рамки металлоискателей, интроскопы и стеклянные перегородки
+    const secY = GC + 960;
+    sign('🛂 ДОСМОТР · SECURITY', A + 170, secY - 2, 62, 150, 18, 0, '#c62828', '#ffffff');
+    for (const fx of [A + 100, A + 170, A + 240]) {
+      box(fx - 16, secY - 4, 4, 10, 32, M('#cfd8dc', { metalness: .6 })); box(fx + 12, secY - 4, 4, 10, 32, M('#cfd8dc', { metalness: .6 }));
+      part(32, 4, 10, M('#cfd8dc', { metalness: .6 }), fx, 34, secY + 1);
+      part(28, 2, 3, glow('#00e676', 1.2), fx, 31, secY - 3);
+      box(fx + 18, secY - 30, 14, 70, 10, M('#455a64'));                          // лента интроскопа
+      box(fx + 19, secY - 2, 12, 16, 18, M('#78909c'));                           // сам интроскоп
+      AP_SEC.push({ x: fx, y: secY });
+    }
+    for (const [x0, x1] of [[A + 48, A + 84], [A + 134, A + 154], [A + 204, A + 224], [A + 274, A + 292]]) box(x0, secY, x1 - x0, 4, 26, wallMat(30));
+    // за досмотром: магазин Duty Free, кафе, ряды кресел у выходов к самолётам
+    box(A + 60, GC + 1010, 70, 90, 30, M('#6a1b9a', { roughness: .4 })); sign('DUTY FREE', A + 95, GC + 1104, 40, 70, 14, 0, '#4a148c', '#ffd54f');
+    for (let i = 0; i < 4; i++) part(12, 18, 6, M(['#ef5350', '#42a5f5', '#ffca28', '#66bb6a'][i]), A + 70 + i * 16, 9, GC + 1102);
+    box(A + 60, GC + 1190, 70, 40, 14, M('#795548')); sign('☕ КАФЕ · CAFE', A + 95, GC + 1186, 34, 60, 12, 0, '#4e342e', '#ffe0b2');
+    for (const [x, y] of [[A + 70, GC + 1260], [A + 110, GC + 1260], [A + 70, GC + 1320], [A + 110, GC + 1320]]) {
+      box(x - 6, y - 6, 12, 12, 9, M('#ffffff'));
+      for (const [dx, dy] of [[-12, 0], [12, 0]]) part(7, 8, 7, M('#8d6e63'), x + dx, 4, y + dy);
+    }
+    const seat = M('#1565c0', { roughness: .5 });
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) {
+      const x = A + 205 + r * 20, y = GC + 1020 + c * 55;
+      box(x, y, 8, 40, 7, seat); part(3, 8, 40, seat, x + 6.5, 11, y + 20);
+    }
+    for (const [i, gy] of [[1, GC + 1040], [2, GC + 1240], [3, GC + 1350]]) sign('ВЫХОД ' + i + ' · GATE ' + i, A + 284, gy, 46, 50, 14, -Math.PI / 2, '#ffd54f', '#212121');
+    // выдача багажа: лента по кругу, на ней едут чемоданы
+    box(A + 195, GC + 330, 70, 100, 8, M('#37474f')); sign('🧳 ВЫДАЧА БАГАЖА · BAGGAGE', A + 230, GC + 326, 46, 110, 14, 0, '#0d47a1', '#ffffff');
+    {
+      const R = makeRoute([[A + 201, GC + 336], [A + 259, GC + 336], [A + 259, GC + 424], [A + 201, GC + 424]]);
+      const cols = ['#d32f2f', '#1976d2', '#388e3c', '#fbc02d', '#212121', '#7b1fa2', '#f57c00'];
+      for (let i = 0; i < 12; i++) { const m = part(9, 6, 5, M(cols[i % cols.length], { roughness: .4 }), 0, 11, 0); AP_BAGS.push({ m, R, s: i * R.len / 12 }); }
+    }
+    // колонны, растения в кадках, указатель туалетов
+    for (const [x, y] of [[A + 160, GC + 340], [A + 160, GC + 1360], [A + 270, GC + 600], [A + 270, GC + 860]]) { cyl(6, 88, M('#eceff1'), x, 44, y); outerObs.push({ x: x - 6, y: y - 6, w: 12, h: 12, top: 88, bot: 0 }); }
+    for (const [x, y] of [[A + 56, GC + 470], [A + 56, GC + 610], [A + 56, GC + 790], [A + 56, GC + 930], [A + 56, GC + 1240], [A + 284, GC + 780]]) {
+      cyl(5, 8, M('#8d6e63'), x, 4, y); const b = new THREE.Mesh(new THREE.IcosahedronGeometry(8, 0), M('#2e7d32')); b.position.set(x, 15, y); scene.add(b);
+    }
+    sign('🚻 ТУАЛЕТ · WC', A + 290, GC + 560, 40, 40, 12, -Math.PI / 2, '#37474f', '#ffffff');
+
+    // ---------- 2. Отель у въезда (за забором) ----------
+    {
+      const hotel = new THREE.MeshStandardMaterial({ map: glassTex('#b0bec5', '#3f6f9a'), roughness: .3, metalness: .3 });
+      box(A - 380, GC + 320, 280, 220, 160, hotel); box(A - 390, GC + 310, 300, 240, 6, M('#eceff1'), 160, false);
+      sign('HOTEL ★★★★ АЭРОПОРТ', A - 240, GC + 318, 135, 200, 30, Math.PI, '#212121', '#ffd54f');
+      for (let i = 0; i < 5; i++) { const c = ['#fdd835', '#fdd835', '#fafafa', '#1e88e5', '#fdd835'][i]; box(A - 360 + i * 40, GC + 270, 22, 44, 10, M(c, { metalness: .3, roughness: .4 }), 2, false); }   // такси у входа
+      sign('🚕 ТАКСИ · TAXI', A - 260, GC + 262, 30, 60, 12, Math.PI, '#fdd835', '#212121');
+    }
+
+    // ---------- 3. Грузовой терминал, контейнеры, погрузчики ----------
+    {
+      const CX = A + 60, CY = 1600;
+      box(CX, CY, 300, 600, 60, new THREE.MeshStandardMaterial({ map: metalTex('#78909c'), roughness: .6, metalness: .3 }));
+      sign('📦 CARGO · ГРУЗОВОЙ ТЕРМИНАЛ', CX + 302, CY + 300, 50, 260, 26, Math.PI / 2, '#e65100', '#ffffff');
+      for (let i = 0; i < 4; i++) part(2, 40, 80, M('#37474f'), CX + 301, 20, CY + 80 + i * 140);    // ворота
+      const uld = [M('#b0bec5', { metalness: .6, roughness: .3 }), M('#90a4ae', { metalness: .6, roughness: .3 })];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) if ((r + c) % 4) box(CX + 330 + r * 28, CY + 40 + c * 55, 22, 22, 17, uld[(r + c) % 2], 0, true);
+      for (const [x, y] of [[CX + 440, CY + 120], [CX + 440, CY + 420]]) {
+        box(x, y, 22, 14, 10, M('#fdd835'), 2, true); part(3, 26, 12, M('#424242'), x + 24, 13, y + 7); part(10, 1.5, 3, M('#424242'), x + 29, 3, y + 3); part(10, 1.5, 3, M('#424242'), x + 29, 3, y + 11);
+      }
+    }
+
+    // ---------- 4. Топливный склад: большие баки, обвалование, трубы ----------
+    {
+      const tank = M('#eceff1', { metalness: .5, roughness: .35 }), stripe = M('#e53935');
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) {
+        const x = A + 2300 + c * 150, y = 1600 + r * 170;
+        cyl(55, 60, tank, x, 30, y, scene, 24); cyl(56, 6, stripe, x, 50, y, scene, 24);
+        const top = new THREE.Mesh(new THREE.ConeGeometry(56, 10, 24), tank); top.position.set(x, 65, y); scene.add(top);
+        outerObs.push({ x: x - 50, y: y - 50, w: 100, h: 100, top: 70, bot: 0 });
+      }
+      const bund = M('#9e9e9e', { roughness: .95 });
+      box(A + 2220, 1510, 460, 8, 12, bund); box(A + 2220, 1872, 460, 8, 12, bund); box(A + 2220, 1510, 8, 370, 12, bund); box(A + 2672, 1510, 8, 160, 12, bund); box(A + 2672, 1740, 8, 140, 12, bund);
+      for (const y of [1600, 1770]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 460, 8), M('#ffb300', { metalness: .5 })); p.rotation.z = Math.PI / 2; p.position.set(A + 2450, 8, y + 62); scene.add(p); }
+      sign('⛽ ТОПЛИВО · FUEL FARM', A + 2450, 1500, 36, 140, 20, 0, '#ffb300', '#212121');
+    }
+
+    // ---------- 5. Пожарная часть с машинами ----------
+    {
+      const FX = A + 1350, FY = 3000;
+      box(FX, FY, 300, 160, 50, M('#b71c1c', { roughness: .8 })); box(FX - 10, FY - 10, 320, 180, 5, M('#eceff1'), 50, false);
+      for (let i = 0; i < 3; i++) part(70, 36, 2, M('#eceff1'), FX + 50 + i * 100, 18, FY + 161);   // ворота гаражей
+      sign('🚒 ПОЖАРНАЯ ЧАСТЬ · FIRE', FX + 150, FY - 2, 42, 200, 22, Math.PI, '#ffffff', '#b71c1c');
+      cyl(4, 90, M('#eceff1'), FX - 20, 45, FY + 80); outerObs.push({ x: FX - 24, y: FY + 76, w: 8, h: 8, top: 90, bot: 0 });   // вышка с сиреной
+      part(8, 6, 8, glow('#ff1744', 1.1), FX - 20, 93, FY + 80);
+    }
+
+    // ---------- 6. Ремонтный ангар — открытый, внутри стоит лайнер ----------
+    {
+      const HX = A + 2200, HY = 3200, HW = 520, HD = 440, mat = new THREE.MeshStandardMaterial({ map: metalTex('#cfd8dc'), roughness: .55, metalness: .35, side: THREE.DoubleSide });
+      box(HX + HW - 14, HY, 14, HD, 90, mat); box(HX, HY, HW - 14, 12, 90, mat); box(HX, HY + HD - 12, HW - 14, 12, 90, mat);
+      const roof = new THREE.Mesh(new THREE.CylinderGeometry(HD / 2, HD / 2, HW, 28, 1, true, 0, Math.PI).rotateZ(Math.PI / 2), mat);   // полукруглая крыша вдоль ангара
+      roof.scale.set(1, .35, 1); roof.position.set(HX + HW / 2, 90, HY + HD / 2); roof.castShadow = true; scene.add(roof);
+      sign('🔧 ТЕХОБСЛУЖИВАНИЕ · MRO', HX + 2, HY + HD / 2, 120, 220, 28, -Math.PI / 2, '#263238', '#ffd54f');
+      for (const y of [HY + 70, HY + HD - 70]) { box(HX + 200, y - 10, 60, 20, 30, M('#fdd835'), 0, false); part(60, 4, 20, M('#fdd835'), HX + 230, 40, y); }   // рабочие площадки
+      const lamp = glow('#fffde7', 1.4); for (let x = HX + 60; x < HX + HW; x += 110) part(40, 2, 10, lamp, x, 105, HY + HD / 2);
+    }
+
+    // ---------- 7. Бизнес-авиация: VIP-терминал и вертолётная площадка ----------
+    {
+      box(A + 2560, 7600, 200, 150, 40, new THREE.MeshStandardMaterial({ map: glassTex('#263238', '#4fc3f7'), roughness: .3, metalness: .4 }));
+      box(A + 2550, 7590, 220, 170, 4, M('#eceff1'), 40, false);
+      sign('✦ VIP · BUSINESS AVIATION', A + 2558, 7675, 32, 140, 16, -Math.PI / 2, '#212121', '#ffd54f');
+      const pad = outerTex(256, 256, (g, w, h) => { g.fillStyle = '#455a64'; g.fillRect(0, 0, w, h); g.strokeStyle = '#ffd54f'; g.lineWidth = 10; g.beginPath(); g.arc(w / 2, h / 2, w * .42, 0, 6.283); g.stroke(); g.fillStyle = '#fff'; g.font = 'bold 150px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('H', w / 2, h / 2 + 8); });
+      flat(A + 2470, 8130, 160, 160, new THREE.MeshStandardMaterial({ map: pad, polygonOffset: true, polygonOffsetFactor: -4 }), .8);
+    }
+
+    // ---------- 8. Второй радар на мачте ----------
+    {
+      const RX2 = A + 2400, RY2 = GC;
+      for (const [dx, dy] of [[-8, -8], [8, -8], [-8, 8], [8, 8]]) { const l = part(2, 130, 2, M('#e53935'), RX2 + dx, 65, RY2 + dy); l.castShadow = true; }
+      for (let h = 20; h < 130; h += 22) part(18, 2, 18, M('#eceff1'), RX2, h, RY2);
+      outerObs.push({ x: RX2 - 10, y: RY2 - 10, w: 20, h: 20, top: 135, bot: 0 });
+      const dish = new THREE.Group(); dish.position.set(RX2, 138, RY2); scene.add(dish);
+      const ant = new THREE.Mesh(new THREE.BoxGeometry(70, 16, 4), M('#eceff1', { metalness: .4 })); ant.position.y = 6; ant.rotation.x = -.25; dish.add(ant);
+      dish.add(new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 10, 10), M('#607d8b'))); AP_SPIN.push(dish);
+      part(6, 6, 6, glow('#ff1744', 2.5), RX2, 152, RY2);
+    }
+
+    // ---------- 9. Огни приближения, PAPI, номера полосы, знаки рулёжек, курсовой маяк ----------
+    {
+      const RX = WORLD + 3500, wl = glow('#fffde7', 2.4), red = glow('#ff1744', 2.4), lg = new THREE.BoxGeometry(5, 4, 5);
+      const lights = [];
+      for (const [yEnd, dir] of [[AP.y0 + 200, -1], [AP.y1 - 200, 1]]) {
+        for (let d = 30; d <= 180; d += 25) lights.push([RX, yEnd + dir * d]);
+        for (let i = -4; i <= 4; i++) if (i) lights.push([RX + i * 14, yEnd + dir * 105]);
+      }
+      const im = new THREE.InstancedMesh(lg, wl, lights.length), mm = new THREE.Matrix4();
+      lights.forEach(([x, y], i) => { mm.makeTranslation(x, 3, y); im.setMatrixAt(i, mm); }); scene.add(im);
+      for (const yT of [AP.y0 + 550, AP.y1 - 550]) for (let i = 0; i < 4; i++) { part(10, 6, 8, M('#424242'), RX - 160 - i * 16, 3, yT); part(7, 4, 2, i < 2 ? red : wl, RX - 160 - i * 16, 4, yT + (yT < GC ? 5 : -5)); }   // PAPI: 2 красных + 2 белых
+      for (const [num, y, rot] of [['18', AP.y0 + 380, Math.PI], ['36', AP.y1 - 380, 0]]) {
+        const tx = txtTex(num, '#36383b', '#f4f4f4', 256, 256); tx.center.set(.5, .5); tx.rotation = rot;
+        flat(RX - 60, y - 60, 120, 120, new THREE.MeshBasicMaterial({ map: tx, polygonOffset: true, polygonOffsetFactor: -6 }), .62);
+      }
+      const TX = WORLD + 2700;
+      for (const [k, y] of [[1, AP.y0 + 500], [2, (AP.y0 + AP.y1) / 2], [3, AP.y1 - 500]]) {
+        box(TX + 64, y + 62, 30, 6, 12, M('#212121'), 0, false); sign('A' + k + ' →', TX + 79, y + 65, 8, 28, 9, 0, '#ffd54f', '#212121');
+        box(RX - 170, y + 62, 30, 6, 12, M('#212121'), 0, false); sign('18-36', RX - 155, y + 65, 8, 28, 9, 0, '#c62828', '#ffffff');
+      }
+      for (let i = -5; i <= 5; i++) if (i) { part(2, 16, 2, M('#eceff1'), RX + i * 16, 8, AP.y0 + 70); part(10, 3, 3, M('#e65100'), RX + i * 16, 16, AP.y0 + 70); }   // антенна курсового маяка (ILS)
+    }
+
+    // ---------- 10. Прожекторные мачты на перроне ----------
+    {
+      const pole = M('#90a4ae', { metalness: .6 }), head = glow('#fff8e1', 2);
+      const spots = [[A + 650, GC + 250], [A + 650, GC + 700], [A + 650, GC + 1150], [A + 650, GC + 1600]];
+      for (let y = 7150; y <= 8950; y += 600) spots.push([A + 650, y], [A + 1060, y + 300]);
+      spots.push([A + 760, 1650], [A + 760, 2200], [A + 2150, 3150], [A + 2150, 3700], [A + 2450, 7500]);
+      for (const [x, y] of spots) { cyl(2.5, 130, pole, x, 65, y, scene, 8); part(22, 6, 22, head, x, 132, y); outerObs.push({ x: x - 4, y: y - 4, w: 8, h: 8, top: 130, bot: 0 }); }
+    }
+
+    // ---------- 11. Служебная дорога к дальним стоянкам и разметка стоянок ----------
+    {
+      const road = new THREE.MeshStandardMaterial({ roughness: .9, polygonOffset: true, polygonOffsetFactor: -3 });
+      road.map = outerTex(64, 128, (g, w, h) => { noiseFill(g, w, h, '#3b3d40', ['#34363a', '#45474b'], 300); g.fillStyle = '#f4f4f4'; g.fillRect(w / 2 - 2, 0, 4, h / 2); }, 1, (9700 - GC - 200) / 80);
+      flat(A + 780, GC + 200, 60, 9700 - GC - 200, road, .48);
+      const yel = new THREE.MeshBasicMaterial({ color: '#ffcc00', polygonOffset: true, polygonOffsetFactor: -5 });
+      for (const gy of [GC + 450, GC + 850, GC + 1250]) flat(A + 380, gy - 2, 240, 4, yel, .6);
+      for (const [x, y] of AP_REMOTE) flat(x - 120, y - 2, 240, 4, yel, .6);
+      AP_REMOTE.forEach(([x, y], i) => sign('S' + (i + 1), x + 95, y + 70, 14, 22, 14, Math.PI / 2, '#ffd54f', '#212121'));
+    }
+
+    // ---------- 12. Наземная техника: тягачи, трапы, автобусы, багажные тележки, бортпитание, «Follow me» ----------
+    const wheelGeo = new THREE.CylinderGeometry(3, 3, 2, 10), tyre = M('#1c1f22');
+    const wheels = (g, L, W) => { for (const sx of [-L * .32, L * .32]) for (const sz of [-W / 2, W / 2]) { const w = new THREE.Mesh(wheelGeo, tyre); w.rotation.x = Math.PI / 2; w.position.set(sx, 3, sz); g.add(w); } };
+    const veh = (x, y, rot, build) => { const g = new THREE.Group(); build(g); g.position.set(x, 0, y); g.rotation.y = -rot; scene.add(g); return g; };
+    const GSE = {
+      tug: g => { part(30, 7, 16, M('#fdd835'), 0, 7, 0, g); part(8, 6, 12, M('#263238'), -9, 13, 0, g); wheels(g, 30, 16); },
+      stairs: g => { part(34, 7, 14, M('#eceff1'), 0, 7, 0, g); part(8, 8, 12, M('#1565c0'), 14, 14, 0, g); const s = part(40, 3, 10, M('#b0bec5', { metalness: .5 }), -4, 20, 0, g); s.rotation.z = .5; for (const z of [-5, 5]) { const r = part(40, 1, 1, M('#eceff1'), -4, 27, z, g); r.rotation.z = .5; } wheels(g, 34, 14); },
+      bus: g => { part(70, 16, 22, M('#1565c0'), 0, 13, 0, g); part(66, 6, 22.4, M('#0d1b2a'), 0, 16, 0, g); part(70, 1, 22, M('#eceff1'), 0, 21.5, 0, g); wheels(g, 70, 22); },
+      cater: g => { part(14, 12, 16, M('#eceff1'), 16, 9, 0, g); part(34, 16, 16, M('#eceff1'), -6, 30, 0, g); part(34, 3, 16.2, M('#e53935'), -6, 26, 0, g); for (const x of [-16, 4]) { const a = part(2, 22, 2, M('#607d8b'), x, 14, 0, g); a.rotation.z = .6; } wheels(g, 34, 16); },
+      train: g => { part(14, 8, 10, M('#2e7d32'), 0, 7, 0, g); for (let i = 1; i <= 3; i++) { part(18, 3, 11, M('#90a4ae'), -i * 22, 5, 0, g); for (let k = 0; k < 3; k++) part(5, 5, 7, M(['#d32f2f', '#1976d2', '#fbc02d', '#212121'][(i + k) % 4]), -i * 22 - 6 + k * 6, 9, 0, g); } wheels(g, 14, 10); },
+      follow: g => { part(26, 8, 13, M('#fdd835'), 0, 7, 0, g); part(12, 6, 12, M('#263238'), -2, 13, 0, g); const s = new THREE.Mesh(new THREE.BoxGeometry(14, 6, 2), new THREE.MeshBasicMaterial({ map: txtTex('FOLLOW ME', '#fdd835', '#212121', 256, 96) })); s.position.set(-2, 19, 0); s.rotation.y = Math.PI / 2; g.add(s); part(4, 2, 4, glow('#ff9100', 2.5), -2, 22.5, 0, g); wheels(g, 26, 13); },
+      fire: g => { part(50, 18, 20, M('#c62828'), 0, 13, 0, g); part(46, 3, 6, M('#b0bec5', { metalness: .6 }), -2, 24, 0, g); part(4, 3, 16, glow('#2979ff', 1.3), 22, 24, 0, g); wheels(g, 50, 20); },
+    };
+    for (const gy of [GC + 450, GC + 850, GC + 1250]) { veh(A + 540, gy, Math.PI, GSE.tug); veh(A + 470, gy + 38, Math.PI / 2, GSE.cater); }   // у выходов: тягачи и машины бортпитания
+    AP_REMOTE.forEach(([x, y], i) => { veh(x - 20, y - 30, Math.PI / 2, GSE.stairs); if (i % 2) veh(x - 60, y + 80, 0, GSE.train); else veh(x + 100, y - 40, Math.PI / 2, GSE.tug); });
+    for (let i = 0; i < 3; i++) veh(A + 1400 + i * 100, 3215, Math.PI / 2, GSE.fire);
+    for (let i = 0; i < 4; i++) veh(A + 360 + i * 30, 9200, Math.PI / 2, GSE.bus);   // стоянка автобусов
+    for (let i = 0; i < 3; i++) veh(A + 520 + i * 60, 9350, 0, GSE.train);
+    // кто ездит сам: автобусы к дальним стоянкам, багажный поезд, «Follow me» по рулёжке, тягач у грузового терминала
+    const mover = (kind, pts, v, s0 = 0) => AP_MOVERS.push({ g: veh(0, 0, 0, GSE[kind]), R: makeRoute(pts), v, s: s0 });
+    const busLoop = [[A + 320, GC + 1120], [A + 800, GC + 1120], [A + 800, 8950], [A + 820, 8950], [A + 820, GC + 1160], [A + 320, GC + 1160]];
+    mover('bus', busLoop, 70, 0); mover('bus', busLoop, 70, 3000);
+    mover('train', [[A + 600, GC + 380], [A + 600, GC + 1340], [A + 612, GC + 1340], [A + 612, GC + 380]], 45, 0);
+    mover('follow', [[WORLD + 2690, AP.y0 + 300], [WORLD + 2690, AP.y1 - 300], [WORLD + 2710, AP.y1 - 300], [WORLD + 2710, AP.y0 + 300]], 110, 0);
   }
   // --- военная база (въезд через ворота, открытые ангары с истребителями, вышка с радаром, казармы) ---
   const MB_TOWERS = [], MB_TANKS = [], MB_LAMPS = [], MB_AA = [], MB_FLAGS = [];
@@ -6232,8 +6511,9 @@
 
   // ================== Угон: самолёты, вертолёты и брошенные машины ==================
   const parkedVeh = [];                                       // [{spec, x, y, z, angle, model, zone}]
-  function placeParked(id, x, y, angle, zone) {
-    const sp = CARS.find(c => c.id === id); if (!sp) return;
+  function placeParked(id, x, y, angle, zone, over) {
+    const sp0 = CARS.find(c => c.id === id); if (!sp0) return;
+    const sp = over ? { ...sp0, ...over } : sp0;                                   // over — своя раскраска (цвет авиакомпании)
     const m = buildVehicle(sp), z = inCity(x, y) ? 0 : Math.max(0, terrainH(x, y));
     m.root.position.set(x, z, y); m.root.rotation.y = -angle; if (m.driver) m.driver.visible = false; scene.add(m.root);
     parkedVeh.push({ spec: sp, x, y, z, angle, model: m, zone });
@@ -6244,6 +6524,14 @@
   placeParked('strekoza', AP.x0 + 650, GC + 1000, 0, 'airport');
   for (const gy of [GC + 450, GC + 850, GC + 1250]) placeParked('lainer', AP.x0 + 440, gy, 0, 'airport');   // большие лайнеры у терминала — их можно угнать
   placeParked('lainer', WORLD + 2100, GC - 1500, 0, 'airport');
+  {   // много самолётов: дальние стоянки, грузовые, в ангаре техобслуживания, бизнес-авиация
+    const LIV = [['#f5f5f5', '#c62828'], ['#f5f5f5', '#2e7d32'], ['#fafafa', '#6a1b9a'], ['#eceff1', '#00838f'], ['#f5f5f5', '#ef6c00'], ['#fafafa', '#283593'], ['#f5f5f5', '#ad1457'], ['#eceff1', '#558b2f'], ['#fafafa', '#1565c0']];
+    (IS_TOUCH ? AP_REMOTE.slice(0, 5) : AP_REMOTE).forEach(([x, y], i) => placeParked('lainer', x, y, 0, 'airport', { color: LIV[i][0], color2: LIV[i][1] }));
+    for (const y of [1750, 2150]) placeParked('lainer', AP.x0 + 620, y, 0, 'airport', { color: '#fafafa', color2: '#ef6c00' });   // грузовые у карго-терминала
+    placeParked('lainer', AP.x0 + 2460, 3420, Math.PI, 'airport', { color: '#eceff1', color2: '#455a64' });                      // в ремонтном ангаре
+    placeParked('strela', AP.x0 + 2350, 7400, Math.PI, 'airport'); placeParked('strela', AP.x0 + 2350, 7750, Math.PI, 'airport');   // бизнес-джеты у VIP-терминала
+    placeParked('kukuruznik', AP.x0 + 2350, 8050, Math.PI, 'airport'); placeParked('strekoza', AP.x0 + 2550, 8210, 0, 'airport');
+  }
   // ---------- самолёты аэропорта сами взлетают, делают большой круг над морем и садятся ----------
   const AIR_RX = WORLD + 3500, AIR_R = 1600, AIR_YS = AP.y1 + 2600, AIR_YN = AP.y0 - 2600, AIR_YT = AP.y1 - 550, AIR_CRUISE = 650;   // касание — подальше от забора
   const AIR_LA = AIR_YS - AIR_YN, AIR_LC = Math.PI * AIR_R, AIR_TOT = 2 * AIR_LA + 2 * AIR_LC;
@@ -6257,19 +6545,41 @@
   const AIR_LIVERY = [['#f5f5f5', '#1565c0'], ['#f5f5f5', '#c62828'], ['#eceff1', '#2e7d32'], ['#fafafa', '#6a1b9a']];
   const navGeo = new THREE.SphereGeometry(2.4, 8, 6);
   const navMat = c => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 2.5 });
-  const airLiners = [0, .25, .5, .75].map((ph, i) => {
-    const [c1, c2] = AIR_LIVERY[i];
+  function makeLiner(c1, c2) {
     const m = buildVehicle({ ...CARS.find(c => c.id === 'lainer'), color: c1, color2: c2 }); if (m.driver) m.driver.visible = false;
     m.root.rotation.order = 'YZX'; scene.add(m.root);
     const gear = []; m.root.traverse(o => { if (o.isMesh && o.position.y < 9.5) gear.push(o); });   // стойки и колёса шасси — самые низкие детали
     const nav = (c, x, y, z) => { const l = new THREE.Mesh(navGeo, navMat(c)); l.position.set(x, y, z); m.body.add(l); return l; };
     nav('#ff1744', -14, 16.5, -62); nav('#00e676', -14, 16.5, 62);                                // красный и зелёный огни на концах крыльев
     const strobe = nav('#ffffff', -68, 30, 0), beacon = nav('#ff1744', 0, 30.5, 0);               // белый строб на хвосте и красный маячок сверху
-    return { m, gear, strobe, beacon, s: AIR_TOT * ph, v: 330, alt: AIR_CRUISE, mode: 'cruise', wait: 0, liftY: 0, pitch: 0, bank: 0 };
+    return { m, gear, strobe, beacon };
+  }
+  const airLiners = [0, .25, .5, .75].map((ph, i) => ({ ...makeLiner(...AIR_LIVERY[i]), s: AIR_TOT * ph, v: 330, alt: AIR_CRUISE, mode: 'cruise', wait: 0, liftY: 0, pitch: 0, bank: 0 }));
+  // высоко над островом пролетают ещё лайнеры — как трасса над городом
+  const overFly = (IS_TOUCH ? [0] : [0, 1, 2]).map(i => {
+    const L = makeLiner(...[['#fafafa', '#00838f'], ['#f5f5f5', '#ef6c00'], ['#eceff1', '#283593']][i]);
+    for (const g of L.gear) g.visible = false;
+    return { ...L, R: 7000 + i * 2600, a: i * 2.1, w: (i % 2 ? -1 : 1) * 330 / (7000 + i * 2600), alt: 1150 + i * 170 };
   });
   let airClock = 0;
+  let apInHall = false, apSecCd = 0;
   function updateAirTraffic(dt) {
     airClock += dt;
+    for (const P of overFly) {
+      P.a += P.w * dt;
+      const x = WORLD / 2 + Math.cos(P.a) * P.R, y = WORLD / 2 + Math.sin(P.a) * P.R, hd = Math.atan2(Math.cos(P.a) * P.w, -Math.sin(P.a) * P.w);
+      P.m.root.position.set(x, P.alt, y); P.m.root.rotation.set(Math.sign(P.w) * .12, -hd, 0);
+      P.strobe.visible = (airClock * 1.1 + P.R * .001) % 1 < .08; P.beacon.visible = (airClock * .9 + P.R * .0003) % 1 < .5;
+    }
+    // аэропорт: техника ездит по кругу, крутятся радары, чемоданы едут по ленте
+    for (const V of AP_MOVERS) { V.s += V.v * dt; const [x, y, h] = routeAt(V.R, V.s); V.g.position.set(x, 0, y); V.g.rotation.y = -h; }
+    for (const d of AP_SPIN) d.rotation.y += dt * 1.3;
+    for (const b of AP_BAGS) { b.s += 14 * dt; const [x, y, h] = routeAt(b.R, b.s); b.m.position.set(x, 11, y); b.m.rotation.y = -h; }
+    // в зале терминала: приветствие и рамка досмотра
+    const inHall = car.onFoot && car.x > AP_HALL.x0 && car.x < AP_HALL.x1 && car.y > AP_HALL.y0 && car.y < AP_HALL.y1;
+    if (inHall && !apInHall) showMsg(t('apWelcome'), 4000);
+    apInHall = inHall; apSecCd -= dt;
+    if (inHall && apSecCd <= 0) for (const f of AP_SEC) if (Math.abs(car.x - f.x) < 11 && Math.abs(car.y - f.y) < 7) { apSecCd = 5; showMsg(t('apSec'), 2200); }
     if (window.__apRadar) window.__apRadar.rotation.y += dt * 1.6;
     for (const P of airLiners) {
       const [x, y, seg] = airPos(P.s);
