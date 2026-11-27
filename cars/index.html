@@ -2117,6 +2117,7 @@
     document.documentElement.classList.remove('menuOpen');
     if (!window.__started) { window.__started = true; startTime = performance.now(); document.documentElement.classList.add('started'); showMsg(t('startMsg'), 4500); }
     held.clear(); touchHeld.clear(); refreshKeys();
+    window.__goHash?.();                                    // ссылка вида .../cars/#go=cave1 — сразу туда
     updateCamera(0, true);
     window.focus(); canvas.focus();
   }
@@ -6660,6 +6661,26 @@
   });
   let airClock = 0;
   let apInHall = false, apSecCd = 0;
+  // ссылки на места: .../cars/#go=airport, #go=terminal, #go=cave1 … — машина сразу оказывается там
+  function goPlaces() {
+    const A = AP.x0, P = {
+      airport: [A - 330, GC + 40, 0], terminal: [A + 75, GC + 350, Math.PI / 2], apron: [A + 720, GC + 300, Math.PI * .75], stands: [A + 700, 6950, Math.PI / 2],
+      cargo: [A + 950, 1900, Math.PI], fuel: [A + 2140, 1690, 0], fire: [A + 1130, 3100, 0], hangar: [A + 1780, 3420, 0], vip: [A + 2150, 7900, -.3],
+    };
+    TUNNELS.forEach((T, i) => {                             // секретные проходы: ставим перед входом, лицом внутрь
+      const u = -70, x = T.alongX ? T.ex + T.dir * u : T.ex, y = T.alongX ? T.ey : T.ey + T.dir * u;
+      P[i < 2 ? 'cave' + (i + 1) : 'hatch' + (i - 1)] = [x, y, T.alongX ? (T.dir > 0 ? 0 : Math.PI) : (T.dir > 0 ? Math.PI / 2 : -Math.PI / 2)];
+    });
+    return P;
+  }
+  window.__goHash = () => {
+    const m = /go=([a-z0-9]+)/.exec(location.hash || ''); if (!m || car.onFoot || isBoatSpec(spec)) return;
+    const p = goPlaces()[m[1]]; if (!p) return;
+    const [x, y, a] = p;
+    Object.assign(car, { x, y, angle: a, vx: 0, vy: 0, vz: 0, air: false, ramp: null, stun: 0, loop: null, z: inCity(x, y) ? 0 : terrainH(x, y) });
+    camAng = a; updateCamera(0, true);
+  };
+  window.addEventListener('hashchange', () => { if (window.__started && !menuOpen) window.__goHash(); });
   function updateAirTraffic(dt) {
     airClock += dt;
     for (const P of overFly) {
