@@ -416,6 +416,7 @@
   <div class="pill" id="hpPill">❤️ <span class="hpbar"><b id="hpFill"></b></span></div>
   <div class="pill" id="abusePill" style="display:none">🏴‍☠️ <span id="abuseTime">6:00</span> · <span class="coin-ico"></span><span id="abuseCnt">0/6</span></div>
   <div class="pill" id="abuseNextPill" style="display:none">🏴‍☠️ <span id="abuseNextTime">0:00:00</span> <span id="abuseNextLbl" style="opacity:.8;font-size:.85em"></span></div>
+  <div class="pill" id="musicPill" style="pointer-events:auto;cursor:pointer;gap:6px"><span id="musicName">🎵</span><b id="musicMute" style="margin-left:4px;opacity:.9">🔊</b></div>
   <div class="pill" id="wpnPill" title="7" style="display:none;pointer-events:auto;cursor:pointer"></div>
 </div>
 <div id="help"><span data-i18n="help"></span><br><span data-i18n="helpExtra"></span><br><span data-i18n="fightHelp"></span><br><span data-i18n="driftHelp"></span></div>
@@ -2117,6 +2118,7 @@
     document.documentElement.classList.remove('menuOpen');
     if (!window.__started) { window.__started = true; startTime = performance.now(); document.documentElement.classList.add('started'); showMsg(t('startMsg'), 4500); }
     held.clear(); touchHeld.clear(); refreshKeys();
+    window.__musicStart?.();                                // фонк-радио: звук можно включить только после нажатия
     if (window.__goHash) { window.__goHash(); setTimeout(() => window.__goHash(true), 400); }   // ссылка вида .../cars/?go=cave1 — сразу туда
     updateCamera(0, true);
     window.focus(); canvas.focus();
@@ -9695,6 +9697,67 @@
   });
   newGame();
   const goBtn = document.getElementById('goBtn');
+
+  // ================== Фонк-радио: свои треки в стиле дрифт-фонка, играются прямо в браузере (без файлов) ==================
+  // Ковбелл-мелодия, перегруженный бас 808, бочка, хлопок и хэты — всё синтезируется через Web Audio.
+  {
+    const TRACKS = [
+      { name: 'Ночной дрифт', bpm: 128, root: 41, prog: [0, 0, -4, -2], bell: [[0,,0,,3,,0,,7,,5,,3,,0,], [0,,0,,3,,0,,8,,7,,5,,3,]], kick: [1,,,,,,1,,,,1,,,,,,], bass: [1,,,,,,1,,,,1,,,,,,] },
+      { name: 'Ковбелл 677', bpm: 136, root: 43, prog: [0, -2, -4, -5], bell: [[0,0,3,,0,0,5,,0,0,3,,7,,5,], [0,0,3,,0,0,5,,10,,8,,7,,5,]], kick: [1,,,,,,,,1,,1,,,,,,], bass: [1,,,,,,,,1,,1,,,,,,] },
+      { name: 'Банан Фонк', bpm: 124, root: 40, prog: [0, -5, -4, -2], bell: [[7,,7,,5,,3,,7,,7,,5,,3,5], [7,,7,,10,,8,,7,,5,,3,,0,]], kick: [1,,,1,,,1,,,,1,,,,1,,], bass: [1,,,1,,,1,,,,1,,,,1,,] },
+    ];
+    let ctx = null, master = null, drive = null, on = true, ti = 0, step = 0, bar = 0, nextT = 0, timer = null, noise = null;
+    try { const v = localStorage.getItem('mashinki_music'); if (v === 'off') on = false; const k = +localStorage.getItem('mashinki_track'); if (k >= 0 && k < TRACKS.length) ti = k; } catch (e) {}
+    const pill = document.getElementById('musicPill'), nameEl = document.getElementById('musicName'), muteEl = document.getElementById('musicMute');
+    const render = () => { nameEl.textContent = '🎵 ' + TRACKS[ti].name; muteEl.textContent = on ? '🔊' : '🔇'; pill.style.opacity = on ? 1 : .7; };
+    const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+    function init() {
+      if (ctx) return true;
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
+      ctx = new AC(); master = ctx.createGain(); master.gain.value = .32; master.connect(ctx.destination);
+      drive = ctx.createWaveShaper(); const c = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; c[i] = Math.tanh(x * 4); } drive.curve = c; drive.connect(master);   // перегруз для баса
+      noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      return true;
+    }
+    const env = (g, t, a, peak, dec) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dec); };
+    function cowbell(t, n) {                                 // ковбелл: два квадрата через полосовой фильтр
+      const g = ctx.createGain(), bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = hz(n) * 1.6; bp.Q.value = 2.5;
+      for (const k of [1, 1.48]) { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = hz(n) * k; o.connect(bp); o.start(t); o.stop(t + .4); }
+      bp.connect(g); g.connect(master); env(g, t, .002, .35, .28);
+    }
+    function bass808(t, n, len) {                            // 808: синус с падением высоты, через перегруз
+      const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine';
+      o.frequency.setValueAtTime(hz(n) * 2, t); o.frequency.exponentialRampToValueAtTime(hz(n), t + .06);
+      o.connect(g); g.connect(drive); env(g, t, .005, .9, len); o.start(t); o.stop(t + len + .1);
+    }
+    function kick(t) { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + .12); o.connect(g); g.connect(master); env(g, t, .002, 1, .22); o.start(t); o.stop(t + .3); }
+    function noiseHit(t, type, f, peak, dec) { const sNode = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = ctx.createGain(); sNode.buffer = noise; fl.type = type; fl.frequency.value = f; sNode.connect(fl); fl.connect(g); g.connect(master); env(g, t, .002, peak, dec); sNode.start(t); sNode.stop(t + dec + .05); }
+    function schedule() {
+      const T = TRACKS[ti], spb = 60 / T.bpm / 4;            // длина шестнадцатой
+      while (nextT < ctx.currentTime + .15) {
+        const t = nextT, st = step % 16, root = T.root + T.prog[bar % 4], mel = T.bell[bar % 2];
+        if (mel[st] !== undefined) cowbell(t, root + 24 + mel[st]);
+        if (T.kick[st]) kick(t);
+        if (T.bass[st]) bass808(t, root, spb * 5);
+        if (st === 4 || st === 12) noiseHit(t, 'bandpass', 1600, .5, .16);               // хлопок
+        if (st % 2 === 0 || (bar % 2 && st > 12)) noiseHit(t, 'highpass', 8000, st % 4 === 2 ? .22 : .12, .04);   // хэты, на конце такта — дробью
+        nextT += spb; step++; if (step % 16 === 0) bar++;
+      }
+    }
+    function start() {
+      if (!on || !init()) return;
+      ctx.resume?.();
+      if (!timer) { nextT = ctx.currentTime + .1; step = 0; bar = 0; timer = setInterval(schedule, 25); }
+    }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    const save = () => { try { localStorage.setItem('mashinki_music', on ? 'on' : 'off'); localStorage.setItem('mashinki_track', ti); } catch (e) {} };
+    nameEl.addEventListener('click', e => { e.stopPropagation(); ti = (ti + 1) % TRACKS.length; on = true; save(); render(); stop(); start(); });   // следующий трек
+    muteEl.addEventListener('click', e => { e.stopPropagation(); on = !on; save(); render(); if (on) start(); else stop(); });
+    pill.addEventListener('pointerdown', e => e.stopPropagation());
+    document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend?.(); else if (on) ctx.resume?.(); });
+    window.__musicStart = start;
+    render();
+  }
   window.__gameReady = true; goBtn.classList.remove('wait'); applyLang();
   setTimeout(() => document.getElementById('help').style.opacity = .35, 12000);
 
