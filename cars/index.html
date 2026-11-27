@@ -6769,7 +6769,7 @@
       cargo: [A + 950, 1900, Math.PI], fuel: [A + 2140, 1690, 0], fire: [A + 1130, 3100, 0], hangar: [A + 1780, 3420, 0], vip: [A + 2150, 7900, -.3],
     };
     SECRET_TN.forEach((T, i) => {                           // секретные проходы: ставим перед входом, лицом внутрь (кроме тайного лаза с золотом)
-      if (i >= 7) return;
+      if (i >= 7) { const u = -70; P.zl677 = [T.alongX ? T.ex + T.dir * u : T.ex, T.alongX ? T.ey : T.ey + T.dir * u, T.alongX ? (T.dir > 0 ? 0 : Math.PI) : (T.dir > 0 ? Math.PI / 2 : -Math.PI / 2)]; return; }   // тайный лаз с золотом — ссылка только для своих
       const u = -70, x = T.alongX ? T.ex + T.dir * u : T.ex, y = T.alongX ? T.ey : T.ey + T.dir * u;
       P[i < 2 ? 'cave' + (i + 1) : 'hatch' + (i - 1)] = [x, y, T.alongX ? (T.dir > 0 ? 0 : Math.PI) : (T.dir > 0 ? Math.PI / 2 : -Math.PI / 2)];
     });
