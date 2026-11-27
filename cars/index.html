@@ -5846,6 +5846,7 @@
     fr: '🕳 Tu as trouvé un passage secret ! Pendant l’admin abuse, des pièces s’y cachent.', es: '🕳 ¡Has encontrado un pasadizo secreto! En el admin abuse aquí hay monedas.',
     zh: '🕳 你发现了秘密通道！管理员狂欢时这里会藏金币。',
   }).forEach(([k, v]) => { if (I18N[k]) I18N[k].secFound = v; });
+  const secSc0 = scene.children.length, secOb0 = outerObs.length, secPl0 = PLATS.length;   // всё, что построят проходы, запомним — они видны только во время админ-абьюза
   {
     const stone = new THREE.MeshStandardMaterial({ map: outerTex(64, 64, (g, w, h) => { noiseFill(g, w, h, '#5d5348', ['#4e463c', '#6b6155', '#3f382f'], 900); g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 2; for (let y = 0; y < h; y += 16) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); for (let x = (y / 16) % 2 * 16; x < w; x += 32) { g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 16); g.stroke(); } } }, 4, 1), roughness: .95 });
     const floorM = new THREE.MeshStandardMaterial({ color: '#3b342c', roughness: 1, side: THREE.DoubleSide });
@@ -5921,6 +5922,20 @@
     hatch(WORLD + 150, 8000, false);                      // у восточного края города
     hatch(2500, WORLD + 150, true);                       // у южного края города
   }
+  const SECRET_OBJS = scene.children.slice(secSc0), SECRET_OBS = outerObs.splice(secOb0), SECRET_PL = PLATS.splice(secPl0), SECRET_TN = TUNNELS.splice(0);
+  let secretsOn = true;
+  function setSecrets(on) {                                   // проходы открыты только во время админ-абьюза
+    if (on === secretsOn) return; secretsOn = on;
+    for (const o of SECRET_OBJS) o.visible = on;
+    const drop = (arr, items) => { for (const it of items) { const i = arr.indexOf(it); if (i >= 0) arr.splice(i, 1); } };
+    if (on) { outerObs.push(...SECRET_OBS); PLATS.push(...SECRET_PL); TUNNELS.push(...SECRET_TN); }
+    else { drop(outerObs, SECRET_OBS); drop(PLATS, SECRET_PL); drop(TUNNELS, SECRET_TN); for (const S of SECRETS) S.inside = false; }
+  }
+  setSecrets(false);
+  Object.entries({ ru: '🕳 Во время админ-абьюза открылись секретные проходы: пещеры в горе и люки в земле! В них спрятаны монеты.', en: '🕳 Secret passages opened for admin abuse: caves in the mountain and hatches in the ground! Coins are hidden inside.',
+    uk: '🕳 Під час адмін-абʼюзу відкрилися таємні проходи: печери в горі та люки в землі! У них сховані монети.', de: '🕳 Zum Admin-Abuse haben sich Geheimgänge geöffnet: Höhlen im Berg und Luken im Boden! Darin sind Münzen versteckt.',
+    fr: '🕳 Des passages secrets se sont ouverts pour l’admin abuse : grottes dans la montagne et trappes dans le sol ! Des pièces y sont cachées.', es: '🕳 ¡Con el admin abuse se abrieron pasadizos secretos: cuevas en la montaña y trampillas en el suelo! Dentro hay monedas.',
+    zh: '🕳 管理员狂欢开启了秘密通道：山里的洞穴和地上的井盖！里面藏着金币。' }).forEach(([k, v]) => { if (I18N[k]) I18N[k].secOpen = v; });
   // --- военная база (въезд через ворота, открытые ангары с истребителями, вышка с радаром, казармы) ---
   const MB_TOWERS = [], MB_TANKS = [], MB_LAMPS = [], MB_AA = [], MB_FLAGS = [];
   let mbRadar = null, mbBar = null;
@@ -6667,7 +6682,7 @@
       airport: [A - 330, GC + 40, 0], terminal: [A + 75, GC + 350, Math.PI / 2], apron: [A + 720, GC + 300, Math.PI * .75], stands: [A + 700, 6950, Math.PI / 2],
       cargo: [A + 950, 1900, Math.PI], fuel: [A + 2140, 1690, 0], fire: [A + 1130, 3100, 0], hangar: [A + 1780, 3420, 0], vip: [A + 2150, 7900, -.3],
     };
-    TUNNELS.forEach((T, i) => {                             // секретные проходы: ставим перед входом, лицом внутрь
+    SECRET_TN.forEach((T, i) => {                           // секретные проходы: ставим перед входом, лицом внутрь
       const u = -70, x = T.alongX ? T.ex + T.dir * u : T.ex, y = T.alongX ? T.ey : T.ey + T.dir * u;
       P[i < 2 ? 'cave' + (i + 1) : 'hatch' + (i - 1)] = [x, y, T.alongX ? (T.dir > 0 ? 0 : Math.PI) : (T.dir > 0 ? Math.PI / 2 : -Math.PI / 2)];
     });
@@ -6704,7 +6719,8 @@
     for (const V of AP_MOVERS) { V.s += V.v * dt; const [x, y, h] = routeAt(V.R, V.s); V.g.position.set(x, 0, y); V.g.rotation.y = -h; }
     for (const d of AP_SPIN) d.rotation.y += dt * 1.3;
     for (const b of AP_BAGS) { b.s += 14 * dt; const [x, y, h] = routeAt(b.R, b.s); b.m.position.set(x, 11, y); b.m.rotation.y = -h; }
-    for (const S of SECRETS) {                                                                  // нашёл секретный проход
+    if (!!ab.id !== secretsOn) { setSecrets(!!ab.id); if (secretsOn) setTimeout(() => showMsg(t('secOpen'), 6000), 7500); }   // проходы — только пока идёт админ-абьюз
+    if (secretsOn) for (const S of SECRETS) {                                                   // нашёл секретный проход
       const ins = car.x > S.x0 && car.x < S.x1 && car.y > S.y0 && car.y < S.y1 && (car.z || 0) < S.z + 30;
       if (ins && !S.inside) showMsg(t('secFound'), 4000);
       S.inside = ins;
