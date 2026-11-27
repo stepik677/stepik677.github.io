@@ -2117,7 +2117,7 @@
     document.documentElement.classList.remove('menuOpen');
     if (!window.__started) { window.__started = true; startTime = performance.now(); document.documentElement.classList.add('started'); showMsg(t('startMsg'), 4500); }
     held.clear(); touchHeld.clear(); refreshKeys();
-    window.__goHash?.();                                    // ссылка вида .../cars/#go=cave1 — сразу туда
+    if (window.__goHash) { window.__goHash(); setTimeout(() => window.__goHash(true), 400); }   // ссылка вида .../cars/?go=cave1 — сразу туда
     updateCamera(0, true);
     window.focus(); canvas.focus();
   }
@@ -6673,14 +6673,25 @@
     });
     return P;
   }
-  window.__goHash = () => {
-    const m = /go=([a-z0-9]+)/.exec(location.hash || ''); if (!m || car.onFoot || isBoatSpec(spec)) return;
-    const p = goPlaces()[m[1]]; if (!p) return;
-    const [x, y, a] = p;
-    Object.assign(car, { x, y, angle: a, vx: 0, vy: 0, vz: 0, air: false, ramp: null, stun: 0, loop: null, z: inCity(x, y) ? 0 : terrainH(x, y) });
+  let goDone = '';
+  window.__goHash = (force) => {
+    const m = /[?#&]go=([a-z0-9]+)/i.exec(location.hash || '') || /[?&]go=([a-z0-9]+)/i.exec(location.search || ''); if (!m) return;   // #go= главнее ?go=
+    const key = m[1].toLowerCase(); if (goDone === key && !force) return;
+    const p = goPlaces()[key]; if (!p) return;
+    if (isBoatSpec(spec) && !car.onFoot) { showMsg(t('goBoat'), 3500); return; }
+    goDone = key;
+    const [x, y, a] = p, z = inCity(x, y) ? 0 : terrainH(x, y);
+    Object.assign(car, { x, y, angle: a, vx: 0, vy: 0, vz: 0, air: false, ramp: null, stun: 0, loop: null, z });
     camAng = a; updateCamera(0, true);
+    showMsg(t('goHere'), 3000);
   };
-  window.addEventListener('hashchange', () => { if (window.__started && !menuOpen) window.__goHash(); });
+  // по ссылке: сразу после «Играть», ещё раз чуть позже (если что-то успело сдвинуть машину) и при смене ссылки в открытой игре
+  const goApply = () => { if (window.__started && !menuOpen) { window.__goHash(true); setTimeout(() => window.__goHash(true), 400); } };
+  window.addEventListener('hashchange', () => { goDone = ''; if (window.__started && !menuOpen) goApply(); });
+  Object.entries({ ru: ['📍 Ты на месте! Жми газ — вход прямо перед тобой.', '🚤 Сначала выйди из лодки на берег.'], en: ['📍 You are there! Press gas — the entrance is right ahead.', '🚤 Get out of the boat onto land first.'],
+    uk: ['📍 Ти на місці! Тисни газ — вхід просто перед тобою.', '🚤 Спершу вийди з човна на берег.'], de: ['📍 Du bist da! Gib Gas — der Eingang ist direkt vor dir.', '🚤 Steig zuerst aus dem Boot an Land.'],
+    fr: ['📍 Tu y es ! Accélère — l’entrée est juste devant.', '🚤 Descends d’abord du bateau sur la terre.'], es: ['📍 ¡Ya estás! Acelera: la entrada está justo delante.', '🚤 Primero baja del barco a tierra.'],
+    zh: ['📍 到了！踩油门——入口就在前面。', '🚤 先下船上岸。'] }).forEach(([k, v]) => { if (I18N[k]) [I18N[k].goHere, I18N[k].goBoat] = v; });
   function updateAirTraffic(dt) {
     airClock += dt;
     for (const P of overFly) {
