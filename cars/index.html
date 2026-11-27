@@ -5889,32 +5889,68 @@
       const n = new THREE.Mesh(new THREE.PlaneGeometry(84, 34), net); n.position.set(gx + sx * 16, 17, cy); n.rotation.y = Math.PI / 2; scene.add(n);
     }
     // трибуны: 6 ярусов со всех сторон, на юге — проход к воротам
-    const seatCols = [M('#eceff1'), M('#283593'), M('#eceff1'), M('#5c6bc0'), M('#eceff1'), M('#283593')], GATE = 110, ST = 26;
+    const seatCols = [M('#f5f5f5'), M('#e0e0e0'), M('#f5f5f5'), M('#cfd8dc'), M('#f5f5f5'), M('#b0bec5')], GATE = 110, ST = 26;
     for (let k = 0; k < 6; k++) {
       const inX = PW / 2 + 20 + k * ST, inY = PH / 2 + 20 + k * ST, hgt = 14 + k * 24, mat = seatCols[k];
       part(2 * inX + 2 * ST, hgt, ST, mat, cx, hgt / 2, cy - inY - ST / 2); solid(cx - inX - ST, cy - inY - ST, 2 * inX + 2 * ST, ST, hgt);   // север
       for (const sx of [-1, 1]) { part(ST, hgt, 2 * inY, mat, cx + sx * (inX + ST / 2), hgt / 2, cy); solid(cx + sx * (inX + ST / 2) - ST / 2, cy - inY, ST, 2 * inY, hgt); }   // запад, восток
       for (const sx of [-1, 1]) { const w = inX + ST - GATE / 2; part(w, hgt, ST, mat, cx + sx * (GATE / 2 + w / 2), hgt / 2, cy + inY + ST / 2); solid(sx < 0 ? cx - inX - ST : cx + GATE / 2, cy + inY, w, ST, hgt); }   // юг с проходом
     }
-    // фасад: серебристая «обшивка» по кругу, ворота на юге
-    const skinTex = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#b0bec5'; g.fillRect(0, 0, 256, 128); for (let x = 0; x < 256; x += 16) { g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x, 0, 6, 128); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x + 8, 0, 3, 128); } const tx = new THREE.CanvasTexture(c); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.colorSpace = THREE.SRGBColorSpace; tx.repeat.set(20, 2); return tx; })();
-    const skin = new THREE.MeshStandardMaterial({ map: skinTex, metalness: .7, roughness: .3, emissive: '#3949ab', emissiveIntensity: .25 }), FH = 220, FT = 12;   // высокий, слегка светится ночью
-    part(2 * H2, FH, FT, skin, cx, FH / 2, cy - H2 + FT / 2); solid(cx - H2, cy - H2, 2 * H2, FT, FH);
-    for (const sx of [-1, 1]) { part(FT, FH, 2 * H2, skin, cx + sx * (H2 - FT / 2), FH / 2, cy); solid(sx < 0 ? cx - H2 : cx + H2 - FT, cy - H2, FT, 2 * H2, FH); }
-    for (const sx of [-1, 1]) { const w = H2 - GATE / 2; part(w, FH, FT, skin, cx + sx * (GATE / 2 + w / 2), FH / 2, cy + H2 - FT / 2); solid(sx < 0 ? cx - H2 : cx + GATE / 2, cy + H2 - FT, w, FT, FH); }
-    part(GATE + 8, FH - 90, FT, skin, cx, 90 + (FH - 90) / 2, cy + H2 - FT / 2);                       // над воротами
-    // крыша по кругу над трибунами (поле открыто)
-    const roofM = M('#eceff1', { metalness: .4, roughness: .4 }), RI = PW / 2 + 20, RJ = PH / 2 + 20;
-    part(2 * H2, 6, H2 - RJ, roofM, cx, FH + 3, cy - (H2 + RJ) / 2); part(2 * H2, 6, H2 - RJ, roofM, cx, FH + 3, cy + (H2 + RJ) / 2);
-    for (const sx of [-1, 1]) part(H2 - RI, 6, 2 * RJ, roofM, cx + sx * (H2 + RI) / 2, FH + 3, cy);
-    // прожекторы по углам
+    // фасад как у настоящего «Бернабеу»: скруглённый прямоугольник, обшитый горизонтальными стальными полосами; ворота на юге
+    const RR = 150, HY = H2 * .82;                            // радиус скругления углов; по Y стадион короче — вытянутый, как настоящий
+    STAD.HY = HY;
+    const ringPts = (hw, hh, r, n = 10) => {                  // точки скруглённого прямоугольника по кругу от середины южной стороны
+      const out = [[0, hh]];
+      for (let k = n; k >= 0; k--) { const a = k / n * Math.PI / 2; out.push([hw - r + Math.cos(a) * r, hh - r + Math.sin(a) * r]); }
+      for (let k = 0; k <= n; k++) { const a = -k / n * Math.PI / 2; out.push([hw - r + Math.cos(a) * r, -hh + r + Math.sin(a) * r]); }
+      for (let k = 0; k <= n; k++) { const a = -Math.PI / 2 - k / n * Math.PI / 2; out.push([-hw + r + Math.cos(a) * r, -hh + r + Math.sin(a) * r]); }
+      for (let k = 0; k <= n; k++) { const a = Math.PI - k / n * Math.PI / 2; out.push([-hw + r + Math.cos(a) * r, hh - r + Math.sin(a) * r]); }
+      out.push([0, hh]); return out;
+    };
+    const finishRing = (shape, h, mat, y0) => { const g = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false, curveSegments: 4 }); g.rotateX(-Math.PI / 2); const m = new THREE.Mesh(g, mat); m.position.set(cx, y0, cy); m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+    // кольцо толщиной th, высотой h; gap — проём посередине южной стороны (ворота)
+    const ringMesh = (hwO, hhO, rO, th, h, gap, mat, y0) => {
+      const O = ringPts(hwO, hhO, rO), I = ringPts(hwO - th, hhO - th, Math.max(10, rO - th));
+      if (gap <= 0) {
+        const sh = new THREE.Shape(); O.forEach(([x, y], k) => k ? sh.lineTo(x, -y) : sh.moveTo(x, -y));
+        const hole = new THREE.Path(); I.forEach(([x, y], k) => k ? hole.lineTo(x, -y) : hole.moveTo(x, -y)); sh.holes.push(hole);
+        return finishRing(sh, h, mat, y0);
+      }
+      const keep = (pts, hh) => pts.filter(([x, y]) => !(Math.abs(x) < gap / 2 && y > hh - 1));
+      const o = keep(O, hhO), ii = keep(I, hhO - th).reverse();
+      const sh = new THREE.Shape(); sh.moveTo(gap / 2, -hhO); o.forEach(([x, y]) => sh.lineTo(x, -y)); sh.lineTo(-gap / 2, -hhO);
+      sh.lineTo(-gap / 2, -(hhO - th)); ii.forEach(([x, y]) => sh.lineTo(x, -y)); sh.lineTo(gap / 2, -(hhO - th)); sh.closePath();
+      return finishRing(sh, h, mat, y0);
+    };
+    const skinTex = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 256; const g = c.getContext('2d');
+      for (let y = 0; y < 256; y += 16) { const gr = g.createLinearGradient(0, y, 0, y + 16); gr.addColorStop(0, '#eef2f5'); gr.addColorStop(.45, '#b9c3cb'); gr.addColorStop(.8, '#7d8a94'); gr.addColorStop(1, '#3d4750'); g.fillStyle = gr; g.fillRect(0, y, 64, 16); }   // стальные ламели
+      const tx = new THREE.CanvasTexture(c); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.colorSpace = THREE.SRGBColorSpace; tx.repeat.set(1 / 64, 1 / 24); return tx; })();
+    const skin = new THREE.MeshStandardMaterial({ map: skinTex, metalness: .85, roughness: .25, emissive: '#cfd8ff', emissiveIntensity: .12, side: THREE.DoubleSide }), FH = 220, FT = 14;
+    ringMesh(H2, HY, RR, FT, FH, GATE, skin, 0);                                                      // обшивка
+    solid(cx - H2, cy - HY, 2 * H2, FT, FH);
+    for (const sx of [-1, 1]) solid(sx < 0 ? cx - H2 : cx + H2 - FT, cy - HY, FT, 2 * HY, FH);
+    for (const sx of [-1, 1]) { const w = H2 - GATE / 2; solid(sx < 0 ? cx - H2 : cx + GATE / 2, cy + HY - FT, w, FT, FH); }
+    part(GATE + 8, FH - 90, FT, skin, cx, 90 + (FH - 90) / 2, cy + HY - FT / 2);                       // над воротами
+    // крыша: скруглённое кольцо над трибунами, над полем — проём (как раскрытая крыша)
+    const roofM = new THREE.MeshStandardMaterial({ color: '#f5f7f8', metalness: .5, roughness: .35, side: THREE.DoubleSide });
+    ringMesh(H2 + 6, HY + 6, RR + 6, Math.min(H2 - PW / 2 - 30, HY - PH / 2 - 30), 7, 0, roofM, FH);
+    // 360° видеоэкраны над полем — по одному на каждую сторону
+    const scrTex = (() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 96; const g = c.getContext('2d');
+      const gr = g.createLinearGradient(0, 0, 1024, 0); gr.addColorStop(0, '#0d1b4d'); gr.addColorStop(.5, '#1a237e'); gr.addColorStop(1, '#0d1b4d'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 96);
+      g.fillStyle = '#ffffff'; g.font = 'bold 54px "Segoe UI", sans-serif'; g.textBaseline = 'middle'; g.textAlign = 'center'; g.fillText('SANTIAGO BERNABÉU  ·  0 : 0  ·  ⚽', 512, 50);
+      const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
+    const scrM = new THREE.MeshStandardMaterial({ map: scrTex, emissive: '#ffffff', emissiveMap: scrTex, emissiveIntensity: .9, side: THREE.DoubleSide });
+    for (const [ox, oy, ry, w] of [[0, PH / 2 + 60, 0, PW], [0, -PH / 2 - 60, Math.PI, PW], [PW / 2 + 60, 0, Math.PI / 2, PH], [-PW / 2 - 60, 0, -Math.PI / 2, PH]]) {
+      const sc = new THREE.Mesh(new THREE.PlaneGeometry(w, 40), scrM); sc.position.set(cx + ox, FH - 40, cy + oy); sc.rotation.y = ry; scene.add(sc);
+    }
+    // светильники по краю крыши
     const lampM = new THREE.MeshStandardMaterial({ color: '#fffde7', emissive: '#fff59d', emissiveIntensity: 2 });
-    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { part(8, 80, 8, M('#90a4ae', { metalness: .6 }), cx + sx * (H2 - 30), FH + 40, cy + sy * (H2 - 30)); part(46, 18, 46, lampM, cx + sx * (H2 - 30), FH + 88, cy + sy * (H2 - 30)); }
+    for (const sy of [-1, 1]) part(PW, 4, 6, lampM, cx, FH - 4, cy + sy * (PH / 2 + 34));
     // вывеска со всех четырёх сторон
-    const signTex = (() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, 1024, 128); g.fillStyle = '#1a237e'; g.font = 'bold 72px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SANTIAGO BERNABÉU', 512, 68); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
-    for (const [ox, oy, ry] of [[0, H2 + 1, 0], [0, -H2 - 1, Math.PI], [H2 + 1, 0, Math.PI / 2], [-H2 - 1, 0, -Math.PI / 2]]) { const sg = new THREE.Mesh(new THREE.PlaneGeometry(720, 90), new THREE.MeshBasicMaterial({ map: signTex })); sg.position.set(cx + ox, FH - 60, cy + oy); sg.rotation.y = ry; scene.add(sg); }
+    const signTex = (() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 128; const g = c.getContext('2d'); g.clearRect(0, 0, 1024, 128); g.fillStyle = '#ffffff'; g.shadowColor = '#90caf9'; g.shadowBlur = 18; g.font = 'bold 72px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SANTIAGO BERNABÉU', 512, 68); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
+    for (const [ox, oy, ry] of [[0, HY + 2, 0], [0, -HY - 2, Math.PI], [H2 + 2, 0, Math.PI / 2], [-H2 - 2, 0, -Math.PI / 2]]) { const sg = new THREE.Mesh(new THREE.PlaneGeometry(720, 90), new THREE.MeshBasicMaterial({ map: signTex, transparent: true })); sg.position.set(cx + ox, FH - 60, cy + oy); sg.rotation.y = ry; scene.add(sg); }
     // касса с билетами у входа
-    const kx = cx + 150, ky = cy + H2 + 30;
+    const kx = cx + 150, ky = cy + HY + 30;
     part(44, 30, 22, M('#c62828'), kx, 15, ky); part(50, 3, 26, M('#eceff1'), kx, 31.5, ky); solid(kx - 22, ky - 11, 44, 22, 30);
     const kt = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d'); g.fillStyle = '#ffd54f'; g.fillRect(0, 0, 256, 64); g.fillStyle = '#212121'; g.font = 'bold 34px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🎟 БИЛЕТЫ · TICKETS', 128, 34); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
     const ks = new THREE.Mesh(new THREE.PlaneGeometry(42, 10.5), new THREE.MeshBasicMaterial({ map: kt })); ks.position.set(kx, 24, ky + 11.2); scene.add(ks);
@@ -5930,11 +5966,11 @@
   let stadGoing = false, stadMsgT = 0;
   setInterval(() => {                                      // зашёл в ворота стадиона
     if (stadGoing || menuOpen) return;
-    const { cx, cy, H2 } = STAD, inside = Math.abs(car.x - cx) < H2 - 12 && Math.abs(car.y - cy) < H2 - 12 && (car.z || 0) < 60;
+    const { cx, cy, H2, HY } = STAD, inside = Math.abs(car.x - cx) < H2 - 12 && Math.abs(car.y - cy) < HY - 12 && (car.z || 0) < 60;
     if (!inside) return;
     if ((save.tickets || 0) <= 0) {                           // без билета не пускают — выталкиваем к воротам
       if (Date.now() > stadMsgT) { stadMsgT = Date.now() + 3000; showMsg(t('tkNeed'), 2800); }
-      car.x = cx; car.y = cy + H2 + 30; car.vx = car.vy = 0; car.angle = Math.PI / 2;
+      car.x = cx; car.y = cy + HY + 40; car.vx = car.vy = 0; car.angle = Math.PI / 2;
       return;
     }
     stadGoing = true; save.tickets--; persist();
