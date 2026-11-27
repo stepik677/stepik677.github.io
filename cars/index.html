@@ -7984,90 +7984,143 @@
   };
   abRender(); langHooks.push(abRender);
 
-  // ================== Админ-абьюз = битва: убей всех, последний выживший получает 500 000 € ==================
+  // ================== Админ-абьюз: 3 периода по 7 минут ==================
+  // 1) ищем пиратские монеты (драться нельзя); 2) каждый сам за себя — последний живой получает 500 000 €;
+  // 3) три команды — команда-победитель делит 1 000 000 € поровну. Игроков узнаём по нику: вышел из игры = выбыл, перезайти нельзя.
   Object.entries({
-    ru: { pvStart: 'STARTING', pvTask: '⚔ Задача — убить всех! Кто останется последним, получит 500 000 €', pvSolo: 'Сейчас ты один онлайн — позови друзей, чтобы была битва!', pvYouDead: '💀 Тебя убил {n}! Ты выбыл из битвы.',
-      pvKilled: '☠ Ты убил {n}! Осталось живых: {k}', pvOut: '☠ {n} выбыл. Осталось живых: {k}', pvWin: '🏆 ТЫ ПОСЛЕДНИЙ ВЫЖИВШИЙ! +500 000 €', pvWinner: '🏆 {n} — последний выживший и получает 500 000 €!', pvDraw: '⏱ Время вышло — живых осталось несколько, приз никто не получил.', pvHud: '⚔ ❤ {h} · 👥 {k}', pvHudDead: '💀 выбыл · 👥 {k}' },
-    en: { pvStart: 'STARTING', pvTask: '⚔ Task: kill everyone! The last one standing wins 500,000 €', pvSolo: 'You are alone online — invite friends to have a battle!', pvYouDead: '💀 {n} killed you! You are out of the battle.',
-      pvKilled: '☠ You killed {n}! Alive: {k}', pvOut: '☠ {n} is out. Alive: {k}', pvWin: '🏆 YOU ARE THE LAST ONE STANDING! +500,000 €', pvWinner: '🏆 {n} is the last one standing and wins 500,000 €!', pvDraw: '⏱ Time is up — several players survived, nobody wins the prize.', pvHud: '⚔ ❤ {h} · 👥 {k}', pvHudDead: '💀 out · 👥 {k}' },
+    ru: { pvStart: 'STARTING', pvP1: 'ПЕРИОД 1 из 3 — найди пиратские монеты! Золотая спрятана в секретном лазе на Таинственном острове. Драться пока нельзя.',
+      pvP2: 'ПЕРИОД 2 из 3 — каждый сам за себя! Убей всех: последний живой получает 500 000 €. Вышел из игры — выбыл.',
+      pvP3: 'ПЕРИОД 3 из 3 — 3 команды! Ты в команде {c}. Команда-победитель делит 1 000 000 € поровну.',
+      pvSolo: 'Сейчас ты один онлайн — позови друзей!', pvYouDead: '💀 Тебя убил {n}! Ты выбыл.', pvYouLeft: '🚪 Ты выходил из игры — в этом периоде ты выбыл.',
+      pvKilled: '☠ Ты убил {n}! Осталось живых: {k}', pvOut: '☠ {n} выбыл. Осталось живых: {k}', pvWin: '🏆 ТЫ ПОСЛЕДНИЙ ВЫЖИВШИЙ! +500 000 €', pvWinner: '🏆 {n} — последний выживший и получает 500 000 €!',
+      pvTeamWin: '🏆 Команда {c} победила! Каждому в команде: {m}', pvTeamYou: '🏆 Твоя команда {c} победила! Тебе: +{m}', pvDraw: '⏱ Период закончился — победителя нет.',
+      pvHud1: '🏴‍☠️ Период 1/3 · ищи монеты', pvHud: '⚔ 2/3 · ❤ {h} · 👥 {k}', pvHudDead: '💀 выбыл · 👥 {k}', pvHud3: '{c} 3/3 · ❤ {h} · {t}', pvTeamMate: '🤝 Это твой напарник!' },
+    en: { pvStart: 'STARTING', pvP1: 'PERIOD 1 of 3 — find the pirate coins! The gold one is hidden in a secret tunnel on Mystery Island. No fighting yet.',
+      pvP2: 'PERIOD 2 of 3 — every player for themselves! Kill everyone: the last one alive wins 500,000 €. Leaving the game = out.',
+      pvP3: 'PERIOD 3 of 3 — 3 teams! You are in team {c}. The winning team splits 1,000,000 € equally.',
+      pvSolo: 'You are alone online — invite friends!', pvYouDead: '💀 {n} killed you! You are out.', pvYouLeft: '🚪 You left the game — you are out for this period.',
+      pvKilled: '☠ You killed {n}! Alive: {k}', pvOut: '☠ {n} is out. Alive: {k}', pvWin: '🏆 YOU ARE THE LAST ONE STANDING! +500,000 €', pvWinner: '🏆 {n} is the last one standing and wins 500,000 €!',
+      pvTeamWin: '🏆 Team {c} won! Each member gets {m}', pvTeamYou: '🏆 Your team {c} won! You get +{m}', pvDraw: '⏱ The period is over — no winner.',
+      pvHud1: '🏴‍☠️ Period 1/3 · find coins', pvHud: '⚔ 2/3 · ❤ {h} · 👥 {k}', pvHudDead: '💀 out · 👥 {k}', pvHud3: '{c} 3/3 · ❤ {h} · {t}', pvTeamMate: '🤝 That is your teammate!' },
   }).forEach(([k, v]) => { if (I18N[k]) Object.assign(I18N[k], v); });
-  const PV_PRIZE = 500000;
-  const pv = { bid: null, active: false, hp: 100, alive: new Map(), names: new Map(), cd: new Map(), seen: new Set(), over: false, killed: false };
+  const PV_PRIZE = 500000, PV_TEAM_PRIZE = 1000000, PV_PERIOD = AB_DUR / 3, TEAMS = ['🔴', '🔵', '🟢'];
+  const pv = { bid: null, phase: 0, hp: 100, alive: new Map(), names: new Map(), team: new Map(), cd: new Map(), seen: new Set(), killed: false, done: false, paid: false };
+  const myKey = () => nickKey(save.nick) || net.id;
+  const peerKey = id => nickKey(net.mqPeers.get(id)?.presence?.nm) || id;
+  const onlineKeys = () => { const m = new Map(); for (const p of netPeers()) if (p.peer && p.peer !== net.id) m.set(peerKey(p.peer), p.peer); return m; };   // ник → номер подключения
   const pvEl = document.createElement('div');
   pvEl.style.cssText = 'position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;background:radial-gradient(circle,rgba(120,0,0,.55),rgba(0,0,0,.8));text-align:center;font-family:"Segoe UI",system-ui,sans-serif;color:#fff;padding:20px';
-  pvEl.innerHTML = '<div style="font:900 clamp(44px,11vw,140px)/1 \'Segoe UI\',sans-serif;color:#ff1744;text-shadow:0 0 30px #ff1744,0 6px 0 #000">АДМИН-АБЬЮЗ</div><div id="pvStart" style="font:900 clamp(30px,7vw,90px)/1.1 \'Segoe UI\',sans-serif;letter-spacing:.15em;margin-top:10px;text-shadow:0 4px 0 #000"></div><div id="pvTask" style="font:800 clamp(16px,3.2vw,34px)/1.3 \'Segoe UI\',sans-serif;margin-top:22px;max-width:900px;color:#ffd54f;text-shadow:0 2px 6px #000"></div><div id="pvSolo" style="font:600 clamp(13px,2.2vw,22px)/1.3 \'Segoe UI\',sans-serif;margin-top:14px;opacity:.85"></div>';
+  pvEl.innerHTML = '<div style="font:900 clamp(44px,11vw,140px)/1 \'Segoe UI\',sans-serif;color:#ff1744;text-shadow:0 0 30px #ff1744,0 6px 0 #000">АДМИН-АБЬЮЗ</div><div id="pvStart" style="font:900 clamp(30px,7vw,90px)/1.1 \'Segoe UI\',sans-serif;letter-spacing:.15em;margin-top:10px;text-shadow:0 4px 0 #000"></div><div id="pvTask" style="font:800 clamp(16px,3.2vw,34px)/1.3 \'Segoe UI\',sans-serif;margin-top:22px;max-width:950px;color:#ffd54f;text-shadow:0 2px 6px #000"></div><div id="pvSolo" style="font:600 clamp(13px,2.2vw,22px)/1.3 \'Segoe UI\',sans-serif;margin-top:14px;opacity:.85"></div>';
   document.body.appendChild(pvEl);
   const pvPill = document.createElement('div'); pvPill.className = 'pill'; pvPill.style.cssText = 'display:none;background:rgba(183,28,28,.85);border:1px solid #ff8a80';
   document.getElementById('hud').appendChild(pvPill);
-  const pvSend = o => mqPublish(JSON.stringify({ pvp: { ...o, bid: pv.bid, rid: Math.random().toString(36).slice(2, 10) } }));
+  const pvSend = o => mqPublish(JSON.stringify({ pvp: { ...o, bid: pv.bid, ph: pv.phase, k: myKey(), nm: save.nick, rid: Math.random().toString(36).slice(2, 10) } }));
   const pvAliveN = () => [...pv.alive.values()].filter(Boolean).length;
-  const pvName = id => id === net.id ? (save.nick || t('netGuest')) : cleanName(pv.names.get(id) || net.mqPeers.get(id)?.presence?.nm);
-  function pvStart(bid) {
-    pv.bid = bid; pv.hp = 100; pv.over = false; pv.killed = false; pv.alive = new Map([[net.id, true]]); pv.names = new Map(); pv.cd = new Map();
-    for (const p of netPeers()) if (p.peer && p.peer !== net.id) { pv.alive.set(p.peer, true); pv.names.set(p.peer, p.presence?.nm); }
-    pv.active = true;                                        // битва идёт весь админ-абьюз; кто зайдёт позже — тоже участвует
-    document.getElementById('pvStart').textContent = t('pvStart'); document.getElementById('pvTask').textContent = t('pvTask');
-    document.getElementById('pvSolo').textContent = pv.alive.size >= 2 ? '' : t('pvSolo');
-    pvEl.style.display = 'flex'; clearTimeout(pvStart.tm); pvStart.tm = setTimeout(() => { pvEl.style.display = 'none'; }, 5000);
+  const pvName = k => k === myKey() ? (save.nick || t('netGuest')) : cleanName(pv.names.get(k) || k);
+  const teamOf = k => pv.team.has(k) ? pv.team.get(k) : [...k].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % 3;
+  // память: в каком периоде этого события ты уже участвовал — перезашёл = выбыл
+  const PV_KEY = 'mashinki_pv';
+  const pvMem = () => { try { const v = JSON.parse(localStorage.getItem(PV_KEY)); return v && v.bid === pv.bid ? v : { bid: pv.bid }; } catch (e) { return { bid: pv.bid }; } };
+  const pvMemSet = o => { try { localStorage.setItem(PV_KEY, JSON.stringify({ ...pvMem(), ...o, bid: pv.bid })); } catch (e) {} };
+  function pvBanner(task, solo) {
+    document.getElementById('pvStart').textContent = pv.phase === 1 ? t('pvStart') : '⚔ ' + pv.phase + ' / 3';
+    document.getElementById('pvTask').textContent = task; document.getElementById('pvSolo').textContent = solo ? t('pvSolo') : '';
+    pvEl.style.display = 'flex'; clearTimeout(pvBanner.tm); pvBanner.tm = setTimeout(() => { pvEl.style.display = 'none'; }, 6000);
     shake = Math.max(shake, 3);
   }
-  function pvEnd(msg) { if (pv.active && msg) showMsg(msg, 6000); pv.active = false; pv.over = true; }
-  function pvCheckWin() {
-    if (!pv.active || !pv.alive.get(net.id)) return;
-    if (pvAliveN() === 1 && pv.killed) { save.money += PV_PRIZE; persist(); popMoney('🏆 +' + fmt(PV_PRIZE), '#ffd54f'); pvSend({ t: 'win', id: net.id }); pvEnd(t('pvWin')); }
+  function pvStartPhase(ph) {
+    pv.phase = ph; pv.hp = 100; pv.killed = false; pv.done = false; pv.paid = false; pv.cd = new Map();
+    const me = myKey(), online = onlineKeys();
+    pv.alive = new Map([[me, true]]); pv.names = new Map([[me, save.nick]]);
+    for (const [k, id] of online) { pv.alive.set(k, true); pv.names.set(k, net.mqPeers.get(id)?.presence?.nm); }
+    if (ph === 1) { pvBanner(t('pvP1'), online.size === 0); return; }
+    const mem = pvMem();
+    if (mem['p' + ph]) { pv.alive.set(me, false); setTimeout(() => showMsg(t('pvYouLeft'), 5000), 6500); }   // уже был в этом периоде и перезашёл
+    pvMemSet({ ['p' + ph]: true });
+    if (ph === 3) {                                          // делим на 3 команды: все онлайн по алфавиту, по кругу
+      pv.team = new Map(); [...pv.alive.keys()].sort().forEach((k, i) => pv.team.set(k, i % 3));
+      pvBanner(t('pvP3', { c: TEAMS[teamOf(me)] }), online.size === 0);
+    } else pvBanner(t('pvP2'), online.size === 0);
   }
-  function pvOut(id, by) {
-    if (!pv.alive.get(id)) return;
-    pv.alive.set(id, false);
-    if (by) pv.killed = true;                                // приз — только если кого-то правда убили
-    { const r = remotes.get(id); if (id === net.id) explode(car.x, car.y, car.z || 0); else if (r && by) explode(r.x, r.y, r.z || 0); }   // смерть — взрыв на месте игрока
-    const k = pvAliveN();
-    if (id === net.id) { showMsg(t('pvYouDead', { n: pvName(by) }), 5000); if (car.onFoot) foot.ko = 2; const wEl = document.getElementById('wasted'); wEl.classList.remove('on'); void wEl.offsetWidth; wEl.classList.add('on'); document.documentElement.classList.add('isWasted'); setTimeout(() => { wEl.classList.remove('on'); document.documentElement.classList.remove('isWasted'); }, 3200); setTimeout(() => { foot.ko = 0; goHome(); }, 1300); }   // WASTED и домой, как в GTA
-    else if (by === net.id) showMsg(t('pvKilled', { n: pvName(id), k }), 3500);
-    else showMsg(t('pvOut', { n: pvName(id), k }), 2500);
+  function pvFinish(msg) { if (!pv.done && msg) showMsg(msg, 7000); pv.done = true; }
+  function pvCheckWin() {
+    if (pv.phase < 2 || pv.done || !pv.killed) return;
+    if (pv.phase === 2) {
+      if (pvAliveN() === 1 && pv.alive.get(myKey())) { save.money += PV_PRIZE; persist(); popMoney('🏆 +' + fmt(PV_PRIZE), '#ffd54f'); pvSend({ t: 'win' }); pvFinish(t('pvWin')); }
+      return;
+    }
+    const teamsAlive = new Set(); for (const [k, al] of pv.alive) if (al) teamsAlive.add(teamOf(k));
+    if (teamsAlive.size !== 1) return;
+    const w = [...teamsAlive][0], members = [...pv.alive.keys()].filter(k => teamOf(k) === w).length, share = Math.floor(PV_TEAM_PRIZE / Math.max(1, members));
+    if (teamOf(myKey()) === w && !pv.paid) { pv.paid = true; save.money += share; persist(); popMoney('🏆 +' + fmt(share), '#ffd54f'); pvFinish(t('pvTeamYou', { c: TEAMS[w], m: fmt(share) })); }
+    else pvFinish(t('pvTeamWin', { c: TEAMS[w], m: fmt(share) }));
+  }
+  function pvOut(k, by) {
+    if (!pv.alive.get(k)) return;
+    pv.alive.set(k, false);
+    if (by) pv.killed = true;
+    const kk = pvAliveN();
+    if (k === myKey()) {
+      explode(car.x, car.y, car.z || 0); showMsg(t('pvYouDead', { n: pvName(by) }), 5000); if (car.onFoot) foot.ko = 2;
+      const wEl = document.getElementById('wasted'); wEl.classList.remove('on'); void wEl.offsetWidth; wEl.classList.add('on'); document.documentElement.classList.add('isWasted');
+      setTimeout(() => { wEl.classList.remove('on'); document.documentElement.classList.remove('isWasted'); }, 3200); setTimeout(() => { foot.ko = 0; goHome(); }, 1300);   // WASTED и домой, как в GTA
+    } else {
+      if (by) { for (const [id, r] of remotes) if (peerKey(id) === k) { explode(r.x, r.y, r.z || 0); break; } }
+      showMsg(by === myKey() ? t('pvKilled', { n: pvName(k), k: kk }) : t('pvOut', { n: pvName(k), k: kk }), 3000);
+    }
     pvCheckWin();
   }
   function pvDamage(dmg, by) {                                // по мне попали
-    if (!pv.active || !pv.alive.get(net.id)) return;
+    if (pv.phase < 2 || pv.done || !pv.alive.get(myKey())) return;
     pv.hp = Math.max(0, pv.hp - dmg); shake = Math.max(shake, 2);
     const hurt = document.getElementById('hurt'); hurt?.classList.add('on'); setTimeout(() => hurt?.classList.remove('on'), 150);
-    pvSend({ t: 'hp', id: net.id, hp: Math.round(pv.hp), by });                     // все видят, сколько у тебя осталось
-    if (pv.hp <= 0) { pvSend({ t: 'out', id: net.id, by }); pvOut(net.id, by); }
+    pvSend({ t: 'hp', id: myKey(), hp: Math.round(pv.hp), by });
+    if (pv.hp <= 0) { pvSend({ t: 'out', id: myKey(), by }); pvOut(myKey(), by); }
   }
-  const pvCanHit = id => pv.active && pv.alive.get(net.id) && pv.alive.get(id) && id !== net.id;
-  window.__pvpHit = (id, dmg) => { if (!pvCanHit(id)) return; pvSend({ t: 'hit', to: id, dmg: Math.round(Math.min(100, dmg)) }); };
-  window.__pvpBlast = (x, y) => { if (!pv.active) return; for (const [id, r] of remotes) if (pvCanHit(id) && Math.hypot(r.x - x, r.y - y) < 150) window.__pvpHit(id, 70); };
+  const pvCanHitKey = k => pv.phase >= 2 && !pv.done && pv.alive.get(myKey()) && pv.alive.get(k) && k !== myKey() && !(pv.phase === 3 && teamOf(k) === teamOf(myKey()));
+  const pvCanHit = id => pvCanHitKey(peerKey(id));
+  window.__pvpHit = (id, dmg) => { const k = peerKey(id); if (!pvCanHitKey(k)) { if (pv.phase === 3 && pv.alive.get(k) && teamOf(k) === teamOf(myKey())) showMsg(t('pvTeamMate'), 1500); return; } pvSend({ t: 'hit', to: k, dmg: Math.round(Math.min(100, dmg)) }); };
+  window.__pvpBlast = (x, y) => { if (pv.phase < 2) return; for (const [id, r] of remotes) if (pvCanHit(id) && Math.hypot(r.x - x, r.y - y) < 150) window.__pvpHit(id, 70); };
   window.__pvpPunch = () => {                                // удар кулаком: ближайший игрок перед тобой
-    if (!pv.active || !pv.alive.get(net.id)) return false;
+    if (pv.phase < 2 || !pv.alive.get(myKey())) return false;
     const fx = Math.cos(car.angle), fy = Math.sin(car.angle);
     for (const [id, r] of remotes) { const dx = r.x - car.x, dy = r.y - car.y, d = Math.hypot(dx, dy); if (pvCanHit(id) && d < 40 && (dx * fx + dy * fy) / (d || 1) > .2) { window.__pvpHit(id, 20); return true; } }
     return false;
   };
-  window.__pvpTargets = consider => { if (!pv.active || !pv.alive.get(net.id)) return; for (const [id, r] of remotes) if (pvCanHit(id)) consider({ id, r }, r.x, r.y, 'peer', 14); };
+  window.__pvpTargets = consider => { if (pv.phase < 2 || !pv.alive.get(myKey())) return; for (const [id, r] of remotes) if (pvCanHit(id)) consider({ id, r }, r.x, r.y, 'peer', 14); };
   window.__onPvp = (from, a) => {
     if (typeof a.rid !== 'string' || pv.seen.has(a.rid)) return; pv.seen.add(a.rid); if (pv.seen.size > 800) pv.seen.clear();
-    if (!pv.bid || a.bid !== pv.bid) return;                 // только эта битва
-    if (!pv.alive.has(from)) { if (a.t === 'out') return; pv.alive.set(from, true); }   // зашёл позже — тоже участник
-    if (a.t === 'hit' && a.to === net.id && pv.alive.get(from)) pvDamage(Math.min(100, Math.max(0, +a.dmg || 0)), from);
-    else if (a.t === 'out' && typeof a.id === 'string' && pv.alive.has(a.id)) pvOut(a.id, typeof a.by === 'string' ? a.by : '');
-    else if (a.t === 'win' && a.id === from && pv.active) pvEnd(t('pvWinner', { n: pvName(from) }));
-    else if (a.t === 'hp' && a.id === from && a.by === net.id) popMoney('🎯 ' + pvName(from) + ' ❤ ' + Math.max(0, +a.hp || 0), '#ff5252');   // попал — видно, сколько осталось
+    if (!pv.bid || a.bid !== pv.bid || a.ph !== pv.phase || pv.phase < 2) return;   // только этот период этого админ-абьюза
+    const sk = nickKey(a.nm) || peerKey(from); pv.names.set(sk, a.nm);
+    if (!pv.alive.has(sk)) { if (a.t === 'out') return; pv.alive.set(sk, true); }   // зашёл позже — участвует
+    if (a.t === 'hit' && a.to === myKey() && pv.alive.get(sk) && !(pv.phase === 3 && teamOf(sk) === teamOf(myKey()))) pvDamage(Math.min(100, Math.max(0, +a.dmg || 0)), sk);
+    else if (a.t === 'out' && a.id === sk) pvOut(sk, typeof a.by === 'string' ? a.by : '');
+    else if (a.t === 'win' && pv.phase === 2) pvFinish(t('pvWinner', { n: pvName(sk) }));
+    else if (a.t === 'hp' && a.by === myKey()) popMoney('🎯 ' + pvName(sk) + ' ❤ ' + Math.max(0, +a.hp || 0), '#ff5252');   // попал — видно, сколько осталось
   };
   setInterval(() => {
-    const bid = ab.id;
-    if (bid && bid !== pv.bid) pvStart(bid);                 // начался админ-абьюз — начинается битва
-    if (!bid && pv.bid) { if (pv.active && pvAliveN() > 1) pvEnd(t('pvDraw')); else pv.active = false; pv.bid = null; }
-    if (pv.active) {
-      const online = new Set(netPeers().map(p => p.peer));
-      for (const [id, al] of pv.alive) if (al && id !== net.id && !online.has(id)) pvOut(id, '');   // вышел из игры — выбыл
-      for (const id of online) if (id && !pv.alive.has(id)) pv.alive.set(id, true);                // зашёл во время битвы — участвует
-      // таран: сбил машиной другого игрока
-      const sp = Math.hypot(car.vx, car.vy);
+    if (ab.id && ab.id !== pv.bid) { pv.bid = ab.id; pv.phase = 0; }
+    if (!ab.id && pv.bid) { if (pv.phase >= 2 && !pv.done && pvAliveN() > 1) pvFinish(t('pvDraw')); pv.bid = null; pv.phase = 0; }
+    if (pv.bid) {
+      const elapsed = AB_DUR - Math.max(0, ab.end - performance.now()), ph = Math.min(3, 1 + Math.floor(elapsed / PV_PERIOD));
+      if (ph !== pv.phase) { if (pv.phase >= 2 && !pv.done && pvAliveN() > 1) pvFinish(t('pvDraw')); pvStartPhase(ph); }
+    }
+    if (pv.phase >= 2 && !pv.done) {
+      const online = onlineKeys(), me = myKey();
+      for (const [k, al] of pv.alive) if (al && k !== me && !online.has(k)) pvOut(k, '');            // вышел из игры — выбыл
+      for (const [k, id] of online) if (!pv.alive.has(k)) { pv.alive.set(k, true); pv.names.set(k, net.mqPeers.get(id)?.presence?.nm); }   // новенький — участвует
+      const sp = Math.hypot(car.vx, car.vy);                  // таран машиной
       if (!car.onFoot && sp > 70) for (const [id, r] of remotes) if (pvCanHit(id) && Math.hypot(r.x - car.x, r.y - car.y) < 32 && Math.abs((r.z || 0) - (car.z || 0)) < 30 && (pv.cd.get(id) || 0) < Date.now()) { pv.cd.set(id, Date.now() + 1200); window.__pvpHit(id, 40); }
       pvCheckWin();
     }
     pvPill.style.display = pv.bid ? '' : 'none';
-    if (pv.bid) pvPill.textContent = pv.alive.get(net.id) ? t('pvHud', { h: Math.round(pv.hp), k: pvAliveN() }) : t('pvHudDead', { k: pvAliveN() });
+    if (pv.bid) {
+      const me = myKey();
+      if (pv.phase === 1) pvPill.textContent = t('pvHud1');
+      else if (!pv.alive.get(me)) pvPill.textContent = t('pvHudDead', { k: pvAliveN() });
+      else if (pv.phase === 2) pvPill.textContent = t('pvHud', { h: Math.round(pv.hp), k: pvAliveN() });
+      else { const c = [0, 0, 0]; for (const [k, al] of pv.alive) if (al) c[teamOf(k)]++; pvPill.textContent = t('pvHud3', { c: TEAMS[teamOf(me)], h: Math.round(pv.hp), t: TEAMS.map((e, i) => e + c[i]).join(' ') }); }
+    }
   }, 250);
   // ================== Автоматический админ-абьюз: каждый день в 19:35 по кипрскому времени ==================
   // У всех игроков монеты лежат в одних и тех же местах: случайность берётся из даты, Степан для запуска не нужен.
@@ -8126,8 +8179,7 @@
     }
     // таймер до следующего админ-абьюза — виден всем, пока событие не идёт
     if (!abNextPill) return;
-    abNextPill.style.display = ab.id ? 'none' : '';
-    if (ab.id) return;
+    abNextPill.style.display = 'none'; return;                // обратный отсчёт до админ-абьюза убран
     const s = Math.max(0, Math.ceil((abAutoStartOf(day + 1) - now) / 1000));
     const txt = Math.floor(s / 3600) + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
     if (abNextTime.textContent !== txt) abNextTime.textContent = txt;
