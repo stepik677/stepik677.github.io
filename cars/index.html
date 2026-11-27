@@ -1636,7 +1636,7 @@
     const CC = (NB - 1) / 2, d = Math.max(Math.abs(i - CC), Math.abs(j - CC));   // расстояние от центра города
     const r = rnd();
     let type;
-    if (d === 0) type = 'park';
+    if (d === 0) type = 'stadium';                            // в центре города — стадион «Сантьяго Бернабеу»
     else if (d === 1) type = r < .8 ? 'downtown' : 'office';
     else if (d === 2 || d === 3) type = r < .4 ? 'office' : r < .6 ? 'parking' : r < .8 ? 'park' : 'downtown';
     else type = r < .55 ? 'residential' : r < .72 ? 'lake' : r < .88 ? 'park' : 'parking';
@@ -1645,6 +1645,7 @@
     if ((type === 'office' || type === 'parking') && (i + 2 * j) % 3 === 0) type = 'roofpark';   // дом с заездом на крышу
     const b = { x, y, lx, ly, type, ops: [] };
     const op = f => b.ops.push(f);
+    if (type === 'stadium') op(() => { ctx.fillStyle = PAT.paving; ctx.fillRect(lx, ly, LS, LS); });   // площадь; сам стадион строится ниже
 
     if (type === 'downtown') {
       op(() => { ctx.fillStyle = PAT.paving; ctx.fillRect(lx, ly, LS, LS); });
@@ -5270,6 +5271,7 @@
 
   function toggleVehicle() {
     if (menuOpen || garageOpen || mapOpen || shopOpen || sleepT > 0) return;
+    if (window.__ticketHere?.()) { window.__buyTicket(); return; }          // касса стадиона — купить билет
     { const mk = window.__nearMission?.(); if (mk) { window.__startMission(mk); return; } }   // начать миссию
     { const sh = shopHere(); if (sh) { openShop(sh.kind); return; } }        // у входа в магазин — заходим
     if (nearBed()) { goSleep(); return; }                                     // у своей кровати — ложимся спать
@@ -5850,6 +5852,87 @@
     fr: '🕳 Tu as trouvé un passage secret ! Pendant l’admin abuse, des pièces s’y cachent.', es: '🕳 ¡Has encontrado un pasadizo secreto! En el admin abuse aquí hay monedas.',
     zh: '🕳 你发现了秘密通道！管理员狂欢时这里会藏金币。',
   }).forEach(([k, v]) => { if (I18N[k]) I18N[k].secFound = v; });
+  // ================== Стадион «Сантьяго Бернабеу» в центре города: касса с билетами, вход — и запускается футбол ==================
+  const STAD = (() => { const i = (NB - 1) / 2, lx = i * STEP * T + ROAD_W + SW, ly = lx; return { cx: lx + LS / 2, cy: ly + LS / 2, H2: 172, lx, ly }; })();
+  Object.entries({
+    ru: { tkPrompt: '🎟 Нажми E (🚪) — купить билет на «Сантьяго Бернабеу» за {p}', tkBought: '🎟 Билет куплен! Вход — через ворота стадиона.', tkNoMoney: '😕 Не хватает денег на билет ({p}).',
+      tkNeed: '🎟 Нужен билет! Купи его в кассе у входа.', tkGo: '⚽ Проходи на стадион — матч начинается!', tkHave: 'Билетов: {n}' },
+    en: { tkPrompt: '🎟 Press E (🚪) — buy a ticket to Santiago Bernabéu for {p}', tkBought: '🎟 Ticket bought! Enter through the stadium gate.', tkNoMoney: '😕 Not enough money for a ticket ({p}).',
+      tkNeed: '🎟 You need a ticket! Buy one at the box office by the entrance.', tkGo: '⚽ Welcome to the stadium — the match is starting!', tkHave: 'Tickets: {n}' },
+  }).forEach(([k, v]) => { if (I18N[k]) Object.assign(I18N[k], v); });
+  const TICKET_PRICE = 500;
+  {
+    const { cx, cy, H2 } = STAD, M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .6, ...o });
+    const part = (w, h, d, mat, x, z, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, z, y); m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+    const solid = (x0, y0, w, h, top) => addObs({ t: 'r', x: x0, y: y0, w, h, top, tall: top > 40 });
+    // поле: полосы, разметка, ворота
+    const PW = 230, PH = 150;
+    const pitch = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ roughness: .9, polygonOffset: true, polygonOffsetFactor: -5, map: (() => {
+      const c = document.createElement('canvas'); c.width = 920; c.height = 600; const g = c.getContext('2d');
+      for (let k = 0; k < 12; k++) { g.fillStyle = k % 2 ? '#2e7d32' : '#388e3c'; g.fillRect(k * c.width / 12, 0, c.width / 12 + 1, c.height); }
+      g.strokeStyle = '#fff'; g.lineWidth = 6; g.strokeRect(20, 20, 880, 560); g.beginPath(); g.moveTo(460, 20); g.lineTo(460, 580); g.stroke();
+      g.beginPath(); g.arc(460, 300, 80, 0, 6.283); g.stroke(); g.strokeRect(20, 160, 130, 280); g.strokeRect(770, 160, 130, 280); g.strokeRect(20, 230, 45, 140); g.strokeRect(855, 230, 45, 140);
+      const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })() }));
+    pitch.position.set(cx, .45, cy); pitch.receiveShadow = true; scene.add(pitch);
+    const white = M('#ffffff', { roughness: .3 }), net = new THREE.MeshStandardMaterial({ color: '#ffffff', transparent: true, opacity: .35, side: THREE.DoubleSide });
+    for (const sx of [-1, 1]) {
+      const gx = cx + sx * (PW / 2 - 4);
+      for (const dy of [-14, 14]) part(1.6, 12, 1.6, white, gx, 6, cy + dy);
+      part(1.6, 1.6, 30, white, gx, 12, cy);
+      const n = new THREE.Mesh(new THREE.PlaneGeometry(30, 12), net); n.position.set(gx + sx * 6, 6, cy); n.rotation.y = Math.PI / 2; scene.add(n);
+    }
+    // трибуны: 4 яруса со всех сторон, на юге — проход к воротам
+    const seatCols = [M('#eceff1'), M('#283593'), M('#eceff1'), M('#5c6bc0')], GATE = 40;
+    for (let k = 0; k < 4; k++) {
+      const inX = PW / 2 + 12 + k * 13, inY = PH / 2 + 12 + k * 13, hgt = 8 + k * 11, mat = seatCols[k];
+      part(2 * inX + 26, hgt, 13, mat, cx, hgt / 2, cy - inY - 6.5); solid(cx - inX - 13, cy - inY - 13, 2 * inX + 26, 13, hgt);   // север
+      for (const sx of [-1, 1]) { part(13, hgt, 2 * inY, mat, cx + sx * (inX + 6.5), hgt / 2, cy); solid(cx + sx * (inX + 6.5) - 6.5, cy - inY, 13, 2 * inY, hgt); }   // запад, восток
+      for (const sx of [-1, 1]) { const w = inX + 13 - GATE / 2; part(w, hgt, 13, mat, cx + sx * (GATE / 2 + w / 2), hgt / 2, cy + inY + 6.5); solid(sx < 0 ? cx - inX - 13 : cx + GATE / 2, cy + inY, w, 13, hgt); }   // юг с проходом
+    }
+    // фасад: серебристая «обшивка» по кругу, ворота на юге
+    const skinTex = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#b0bec5'; g.fillRect(0, 0, 256, 128); for (let x = 0; x < 256; x += 16) { g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x, 0, 6, 128); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x + 8, 0, 3, 128); } const tx = new THREE.CanvasTexture(c); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.colorSpace = THREE.SRGBColorSpace; tx.repeat.set(8, 1); return tx; })();
+    const skin = new THREE.MeshStandardMaterial({ map: skinTex, metalness: .7, roughness: .3 }), FH = 95, FT = 8;
+    part(2 * H2, FH, FT, skin, cx, FH / 2, cy - H2 + FT / 2); solid(cx - H2, cy - H2, 2 * H2, FT, FH);
+    for (const sx of [-1, 1]) { part(FT, FH, 2 * H2, skin, cx + sx * (H2 - FT / 2), FH / 2, cy); solid(sx < 0 ? cx - H2 : cx + H2 - FT, cy - H2, FT, 2 * H2, FH); }
+    for (const sx of [-1, 1]) { const w = H2 - GATE / 2; part(w, FH, FT, skin, cx + sx * (GATE / 2 + w / 2), FH / 2, cy + H2 - FT / 2); solid(sx < 0 ? cx - H2 : cx + GATE / 2, cy + H2 - FT, w, FT, FH); }
+    part(GATE + 4, FH - 40, FT, skin, cx, 40 + (FH - 40) / 2, cy + H2 - FT / 2);                       // над воротами
+    // крыша по кругу над трибунами (поле открыто)
+    const roofM = M('#eceff1', { metalness: .4, roughness: .4 }), RI = PW / 2 + 8, RJ = PH / 2 + 8;
+    part(2 * H2, 4, H2 - RJ, roofM, cx, FH + 2, cy - (H2 + RJ) / 2); part(2 * H2, 4, H2 - RJ, roofM, cx, FH + 2, cy + (H2 + RJ) / 2);
+    for (const sx of [-1, 1]) part(H2 - RI, 4, 2 * RJ, roofM, cx + sx * (H2 + RI) / 2, FH + 2, cy);
+    // прожекторы по углам
+    const lampM = new THREE.MeshStandardMaterial({ color: '#fffde7', emissive: '#fff59d', emissiveIntensity: 2 });
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { part(3, 30, 3, M('#90a4ae', { metalness: .6 }), cx + sx * (H2 - 14), FH + 18, cy + sy * (H2 - 14)); part(18, 8, 18, lampM, cx + sx * (H2 - 14), FH + 36, cy + sy * (H2 - 14)); }
+    // вывеска над воротами
+    const signTex = (() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, 1024, 128); g.fillStyle = '#1a237e'; g.font = 'bold 72px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SANTIAGO BERNABÉU', 512, 68); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
+    const sg = new THREE.Mesh(new THREE.PlaneGeometry(240, 30), new THREE.MeshBasicMaterial({ map: signTex })); sg.position.set(cx, FH - 22, cy + H2 + .8); scene.add(sg);
+    // касса с билетами у входа
+    const kx = cx + 75, ky = cy + H2 + 16;
+    part(36, 26, 18, M('#c62828'), kx, 13, ky); part(40, 3, 22, M('#eceff1'), kx, 27.5, ky); solid(kx - 18, ky - 9, 36, 18, 26);
+    const kt = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d'); g.fillStyle = '#ffd54f'; g.fillRect(0, 0, 256, 64); g.fillStyle = '#212121'; g.font = 'bold 34px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🎟 БИЛЕТЫ · TICKETS', 128, 34); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
+    const ks = new THREE.Mesh(new THREE.PlaneGeometry(34, 8.5), new THREE.MeshBasicMaterial({ map: kt })); ks.position.set(kx, 21, ky + 9.2); scene.add(ks);
+    STAD.kx = kx; STAD.ky = ky + 20;
+  }
+  window.__ticketHere = () => Math.hypot(car.x - STAD.kx, car.y - STAD.ky) < 34 && Math.hypot(car.vx, car.vy) < 45;
+  window.__buyTicket = () => {
+    if (save.money < TICKET_PRICE) { showMsg(t('tkNoMoney', { p: fmt(TICKET_PRICE) }), 2500); return; }
+    save.money -= TICKET_PRICE; save.tickets = (save.tickets || 0) + 1; persist();
+    popMoney('🎟 −' + fmt(TICKET_PRICE), '#ffd54f'); showMsg(t('tkBought'), 3000);
+  };
+  let stadGoing = false, stadMsgT = 0;
+  setInterval(() => {                                      // зашёл в ворота стадиона
+    if (stadGoing || menuOpen) return;
+    const { cx, cy, H2 } = STAD, inside = Math.abs(car.x - cx) < H2 - 12 && Math.abs(car.y - cy) < H2 - 12 && (car.z || 0) < 60;
+    if (!inside) return;
+    if ((save.tickets || 0) <= 0) {                           // без билета не пускают — выталкиваем к воротам
+      if (Date.now() > stadMsgT) { stadMsgT = Date.now() + 3000; showMsg(t('tkNeed'), 2800); }
+      car.x = cx; car.y = cy + H2 + 30; car.vx = car.vy = 0; car.angle = Math.PI / 2;
+      return;
+    }
+    stadGoing = true; save.tickets--; persist();
+    showMsg(t('tkGo'), 2500);
+    setTimeout(() => { location.href = '../football/index.html'; }, 1500);   // запускается футбол
+  }, 200);
   const secSc0 = scene.children.length, secOb0 = outerObs.length, secPl0 = PLATS.length;   // всё, что построят проходы, запомним — они видны только во время админ-абьюза
   {
     const stone = new THREE.MeshStandardMaterial({ map: outerTex(64, 64, (g, w, h) => { noiseFill(g, w, h, '#5d5348', ['#4e463c', '#6b6155', '#3f382f'], 900); g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 2; for (let y = 0; y < h; y += 16) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); for (let x = (y / 16) % 2 * 16; x < w; x += 32) { g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 16); g.stroke(); } } }, 4, 1), roughness: .95 });
@@ -6767,6 +6850,7 @@
     const A = AP.x0, P = {
       airport: [A - 330, GC + 40, 0], terminal: [A + 75, GC + 350, Math.PI / 2], apron: [A + 720, GC + 300, Math.PI * .75], stands: [A + 700, 6950, Math.PI / 2],
       ...(window.__fijiPlane ? { fiji: [window.__fijiPlane[0] - Math.cos(window.__fijiPlane[2]) * 110, window.__fijiPlane[1] - Math.sin(window.__fijiPlane[2]) * 110, window.__fijiPlane[2]] } : {}),
+      stadium: [STAD.cx + 75, STAD.cy + STAD.H2 + 70, -Math.PI / 2],
       cargo: [A + 950, 1900, Math.PI], fuel: [A + 2140, 1690, 0], fire: [A + 1130, 3100, 0], hangar: [A + 1780, 3420, 0], vip: [A + 2150, 7900, -.3],
     };
     SECRET_TN.forEach((T, i) => {                           // секретные проходы: ставим перед входом, лицом внутрь (кроме тайного лаза с золотом)
@@ -9513,9 +9597,10 @@
       if (Math.hypot(car.x - dest[0], car.y - dest[1]) < 110) { dest = null; showMsg(t('arrived'), 2500); }
     }
     // подсказка «сесть в машину»
-    const near = car.onFoot && Math.hypot(car.x - vstate.x, car.y - vstate.y) < 60;
-    promptEl.classList.toggle('on', near && !menuOpen && !mapOpen);
-    if (near && promptEl.textContent !== t('enter')) promptEl.textContent = t('enter');
+    const near = car.onFoot && Math.hypot(car.x - vstate.x, car.y - vstate.y) < 60, tk = window.__ticketHere?.();
+    promptEl.classList.toggle('on', (near || tk) && !menuOpen && !mapOpen);
+    const ptx = tk ? t('tkPrompt', { p: fmt(TICKET_PRICE) }) : t('enter');
+    if ((near || tk) && promptEl.textContent !== ptx) promptEl.textContent = ptx;
   }
 
   // ================== Камера (сзади и чуть сверху) ==================
