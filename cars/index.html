@@ -780,8 +780,8 @@
       profBad: '😕 Код не подошёл. Скопируй его целиком.', profCopied: '✅ Код скопирован! Вставь его здесь на другом устройстве.', profLoaded: '✅ Прогресс загружен!',
       abBtn: '🏴‍☠️ Админ-абьюз: спрятать пиратские монеты', abStop: '⏹ Закончить админ-абьюз ({s})',
       abOffline: '😕 Нет связи с сервером — админ-абьюз работает только онлайн.',
-      abGoAdmin: '🎉 Админ-абьюз начался! Монет раскидано: {n}. У игроков 6 минут.',
-      abGo: '🏴‍☠️ АДМИН-АБЬЮЗ! Степан Банан спрятал {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Единственная золотая — на Таинственном острове! У тебя 6 минут, чтобы найти любые!',
+      abGoAdmin: '🎉 Админ-абьюз начался! Монет раскидано: {n}. У игроков 21 минута.',
+      abGo: '🏴‍☠️ АДМИН-АБЬЮЗ! Степан Банан спрятал {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Единственная золотая — на Таинственном острове! У тебя 21 минута, чтобы найти любые!',
       abBronze: '🥉', abSilver: '🥈', abGold: '🥇',
       abTook: '🪙 {n} нашёл монету! Осталось: {l}', abEnd: '⏱ Админ-абьюз закончился! Ты нашёл {n} из {t} монет: +{m}',
       xfBtn: '📲 Перенести информацию', xfTitle: '📲 Перенести информацию',
@@ -844,8 +844,8 @@
       profBad: '😕 That code didn’t work. Copy all of it.', profCopied: '✅ Code copied! Paste it here on another device.', profLoaded: '✅ Progress loaded!',
       abBtn: '🏴‍☠️ Admin abuse: hide pirate coins', abStop: '⏹ End admin abuse ({s})',
       abOffline: '😕 No connection to the server — admin abuse only works online.',
-      abGoAdmin: '🎉 Admin abuse started! Coins scattered: {n}. Players have 6 minutes.',
-      abGo: '🏴‍☠️ ADMIN ABUSE! Stepan Banan hid {n} pirate coins: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. The only gold one is on Mystery Island! You have 6 minutes to find any of them!',
+      abGoAdmin: '🎉 Admin abuse started! Coins scattered: {n}. Players have 21 minutes.',
+      abGo: '🏴‍☠️ ADMIN ABUSE! Stepan Banan hid {n} pirate coins: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. The only gold one is on Mystery Island! You have 21 minutes to find any of them!',
       abBronze: '🥉', abSilver: '🥈', abGold: '🥇',
       abTook: '🪙 {n} found a coin! Left: {l}', abEnd: '⏱ Admin abuse is over! You found {n} of {t} coins: +{m}',
       xfBtn: '📲 Transfer progress', xfTitle: '📲 Transfer progress',
@@ -5217,6 +5217,7 @@
       const dx = so.x - car.x, dy = so.y - car.y, d = Math.hypot(dx, dy);
       if (!(so.down > 0) && d < 34 && (dx * Math.cos(car.angle) + dy * Math.sin(car.angle)) / (d || 1) > .25) { foot.punchT = .3; foot.punchCd = .42; window.__hitGang?.(so, 1); shake = 1.2; return; }
     }
+    if (car.onFoot && foot.ko <= 0 && foot.punchCd <= 0 && !(window.__gunOut?.()) && window.__pvpPunch?.()) { foot.punchT = .3; foot.punchCd = .42; fightT = 8; shake = 1.2; return; }   // удар кулаком по другому игроку (битва)
     if (!car.onFoot && spec.missiles && !menuOpen && !garageOpen && !mapOpen) { window.__jetFire?.(); return; }   // в истребителе — ракеты
     if (car.onFoot && foot.ko <= 0 && !menuOpen && !garageOpen && !mapOpen && window.__gunOut?.()) { window.__fireDown?.(); return; }   // в руках оружие — стреляем
     if (!car.onFoot || foot.ko > 0 || foot.punchCd > 0 || menuOpen || garageOpen || mapOpen) return;
@@ -7769,7 +7770,7 @@
   window.__chatUnread = () => chatUnread;
   window.__onChat = onChat;
   // ================== Админ-абьюз: Степан раскидывает монеты по укромным местам, у всех 6 минут ==================
-  const AB_N = 6, AB_DUR = 360000;                         // 1 золотая + 2 серебряные + 3 бронзовые
+  const AB_N = 6, AB_DUR = 1260000;   // 21 минута                         // 1 золотая + 2 серебряные + 3 бронзовые
   // пиратские монеты: бронзовая, серебряная и золотая — толстые, с ободком и черепом с костями на обеих сторонах
   const AB_TIERS = [
     { key: 'abBronze', value: 100000, scale: 1.5, base: '#b8733a', light: '#f0b27a', dark: '#5a2e10', emissive: '#4a2208', fx: '#ffb27a' },
@@ -7991,7 +7992,7 @@
       pvKilled: '☠ You killed {n}! Alive: {k}', pvOut: '☠ {n} is out. Alive: {k}', pvWin: '🏆 YOU ARE THE LAST ONE STANDING! +500,000 €', pvWinner: '🏆 {n} is the last one standing and wins 500,000 €!', pvDraw: '⏱ Time is up — several players survived, nobody wins the prize.', pvHud: '⚔ ❤ {h} · 👥 {k}', pvHudDead: '💀 out · 👥 {k}' },
   }).forEach(([k, v]) => { if (I18N[k]) Object.assign(I18N[k], v); });
   const PV_PRIZE = 500000;
-  const pv = { bid: null, active: false, hp: 100, alive: new Map(), names: new Map(), cd: new Map(), seen: new Set(), over: false };
+  const pv = { bid: null, active: false, hp: 100, alive: new Map(), names: new Map(), cd: new Map(), seen: new Set(), over: false, killed: false };
   const pvEl = document.createElement('div');
   pvEl.style.cssText = 'position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;background:radial-gradient(circle,rgba(120,0,0,.55),rgba(0,0,0,.8));text-align:center;font-family:"Segoe UI",system-ui,sans-serif;color:#fff;padding:20px';
   pvEl.innerHTML = '<div style="font:900 clamp(44px,11vw,140px)/1 \'Segoe UI\',sans-serif;color:#ff1744;text-shadow:0 0 30px #ff1744,0 6px 0 #000">АДМИН-АБЬЮЗ</div><div id="pvStart" style="font:900 clamp(30px,7vw,90px)/1.1 \'Segoe UI\',sans-serif;letter-spacing:.15em;margin-top:10px;text-shadow:0 4px 0 #000"></div><div id="pvTask" style="font:800 clamp(16px,3.2vw,34px)/1.3 \'Segoe UI\',sans-serif;margin-top:22px;max-width:900px;color:#ffd54f;text-shadow:0 2px 6px #000"></div><div id="pvSolo" style="font:600 clamp(13px,2.2vw,22px)/1.3 \'Segoe UI\',sans-serif;margin-top:14px;opacity:.85"></div>';
@@ -8002,24 +8003,26 @@
   const pvAliveN = () => [...pv.alive.values()].filter(Boolean).length;
   const pvName = id => id === net.id ? (save.nick || t('netGuest')) : cleanName(pv.names.get(id) || net.mqPeers.get(id)?.presence?.nm);
   function pvStart(bid) {
-    pv.bid = bid; pv.hp = 100; pv.over = false; pv.alive = new Map([[net.id, true]]); pv.names = new Map(); pv.cd = new Map();
+    pv.bid = bid; pv.hp = 100; pv.over = false; pv.killed = false; pv.alive = new Map([[net.id, true]]); pv.names = new Map(); pv.cd = new Map();
     for (const p of netPeers()) if (p.peer && p.peer !== net.id) { pv.alive.set(p.peer, true); pv.names.set(p.peer, p.presence?.nm); }
-    pv.active = pv.alive.size >= 2;
+    pv.active = true;                                        // битва идёт весь админ-абьюз; кто зайдёт позже — тоже участвует
     document.getElementById('pvStart').textContent = t('pvStart'); document.getElementById('pvTask').textContent = t('pvTask');
-    document.getElementById('pvSolo').textContent = pv.active ? '' : t('pvSolo');
+    document.getElementById('pvSolo').textContent = pv.alive.size >= 2 ? '' : t('pvSolo');
     pvEl.style.display = 'flex'; clearTimeout(pvStart.tm); pvStart.tm = setTimeout(() => { pvEl.style.display = 'none'; }, 5000);
     shake = Math.max(shake, 3);
   }
   function pvEnd(msg) { if (pv.active && msg) showMsg(msg, 6000); pv.active = false; pv.over = true; }
   function pvCheckWin() {
     if (!pv.active || !pv.alive.get(net.id)) return;
-    if (pvAliveN() === 1) { save.money += PV_PRIZE; persist(); popMoney('🏆 +' + fmt(PV_PRIZE), '#ffd54f'); pvSend({ t: 'win', id: net.id }); pvEnd(t('pvWin')); }
+    if (pvAliveN() === 1 && pv.killed) { save.money += PV_PRIZE; persist(); popMoney('🏆 +' + fmt(PV_PRIZE), '#ffd54f'); pvSend({ t: 'win', id: net.id }); pvEnd(t('pvWin')); }
   }
   function pvOut(id, by) {
     if (!pv.alive.get(id)) return;
     pv.alive.set(id, false);
+    if (by) pv.killed = true;                                // приз — только если кого-то правда убили
+    { const r = remotes.get(id); if (id === net.id) explode(car.x, car.y, car.z || 0); else if (r && by) explode(r.x, r.y, r.z || 0); }   // смерть — взрыв на месте игрока
     const k = pvAliveN();
-    if (id === net.id) showMsg(t('pvYouDead', { n: pvName(by) }), 5000);
+    if (id === net.id) { showMsg(t('pvYouDead', { n: pvName(by) }), 5000); if (car.onFoot) foot.ko = 2; const wEl = document.getElementById('wasted'); wEl.classList.remove('on'); void wEl.offsetWidth; wEl.classList.add('on'); document.documentElement.classList.add('isWasted'); setTimeout(() => { wEl.classList.remove('on'); document.documentElement.classList.remove('isWasted'); }, 3200); setTimeout(() => { foot.ko = 0; goHome(); }, 1300); }   // WASTED и домой, как в GTA
     else if (by === net.id) showMsg(t('pvKilled', { n: pvName(id), k }), 3500);
     else showMsg(t('pvOut', { n: pvName(id), k }), 2500);
     pvCheckWin();
@@ -8028,18 +8031,27 @@
     if (!pv.active || !pv.alive.get(net.id)) return;
     pv.hp = Math.max(0, pv.hp - dmg); shake = Math.max(shake, 2);
     const hurt = document.getElementById('hurt'); hurt?.classList.add('on'); setTimeout(() => hurt?.classList.remove('on'), 150);
+    pvSend({ t: 'hp', id: net.id, hp: Math.round(pv.hp), by });                     // все видят, сколько у тебя осталось
     if (pv.hp <= 0) { pvSend({ t: 'out', id: net.id, by }); pvOut(net.id, by); }
   }
   const pvCanHit = id => pv.active && pv.alive.get(net.id) && pv.alive.get(id) && id !== net.id;
   window.__pvpHit = (id, dmg) => { if (!pvCanHit(id)) return; pvSend({ t: 'hit', to: id, dmg: Math.round(Math.min(100, dmg)) }); };
   window.__pvpBlast = (x, y) => { if (!pv.active) return; for (const [id, r] of remotes) if (pvCanHit(id) && Math.hypot(r.x - x, r.y - y) < 150) window.__pvpHit(id, 70); };
+  window.__pvpPunch = () => {                                // удар кулаком: ближайший игрок перед тобой
+    if (!pv.active || !pv.alive.get(net.id)) return false;
+    const fx = Math.cos(car.angle), fy = Math.sin(car.angle);
+    for (const [id, r] of remotes) { const dx = r.x - car.x, dy = r.y - car.y, d = Math.hypot(dx, dy); if (pvCanHit(id) && d < 40 && (dx * fx + dy * fy) / (d || 1) > .2) { window.__pvpHit(id, 20); return true; } }
+    return false;
+  };
   window.__pvpTargets = consider => { if (!pv.active || !pv.alive.get(net.id)) return; for (const [id, r] of remotes) if (pvCanHit(id)) consider({ id, r }, r.x, r.y, 'peer', 14); };
   window.__onPvp = (from, a) => {
     if (typeof a.rid !== 'string' || pv.seen.has(a.rid)) return; pv.seen.add(a.rid); if (pv.seen.size > 800) pv.seen.clear();
-    if (a.bid !== pv.bid || !pv.alive.has(from)) return;     // только участники этой битвы
+    if (!pv.bid || a.bid !== pv.bid) return;                 // только эта битва
+    if (!pv.alive.has(from)) { if (a.t === 'out') return; pv.alive.set(from, true); }   // зашёл позже — тоже участник
     if (a.t === 'hit' && a.to === net.id && pv.alive.get(from)) pvDamage(Math.min(100, Math.max(0, +a.dmg || 0)), from);
     else if (a.t === 'out' && typeof a.id === 'string' && pv.alive.has(a.id)) pvOut(a.id, typeof a.by === 'string' ? a.by : '');
     else if (a.t === 'win' && a.id === from && pv.active) pvEnd(t('pvWinner', { n: pvName(from) }));
+    else if (a.t === 'hp' && a.id === from && a.by === net.id) popMoney('🎯 ' + pvName(from) + ' ❤ ' + Math.max(0, +a.hp || 0), '#ff5252');   // попал — видно, сколько осталось
   };
   setInterval(() => {
     const bid = ab.id;
@@ -8048,24 +8060,25 @@
     if (pv.active) {
       const online = new Set(netPeers().map(p => p.peer));
       for (const [id, al] of pv.alive) if (al && id !== net.id && !online.has(id)) pvOut(id, '');   // вышел из игры — выбыл
+      for (const id of online) if (id && !pv.alive.has(id)) pv.alive.set(id, true);                // зашёл во время битвы — участвует
       // таран: сбил машиной другого игрока
       const sp = Math.hypot(car.vx, car.vy);
       if (!car.onFoot && sp > 70) for (const [id, r] of remotes) if (pvCanHit(id) && Math.hypot(r.x - car.x, r.y - car.y) < 32 && Math.abs((r.z || 0) - (car.z || 0)) < 30 && (pv.cd.get(id) || 0) < Date.now()) { pv.cd.set(id, Date.now() + 1200); window.__pvpHit(id, 40); }
       pvCheckWin();
     }
-    pvPill.style.display = pv.bid && pv.alive.size >= 2 ? '' : 'none';
+    pvPill.style.display = pv.bid ? '' : 'none';
     if (pv.bid) pvPill.textContent = pv.alive.get(net.id) ? t('pvHud', { h: Math.round(pv.hp), k: pvAliveN() }) : t('pvHudDead', { k: pvAliveN() });
   }, 250);
   // ================== Автоматический админ-абьюз: каждый день в 19:35 по кипрскому времени ==================
   // У всех игроков монеты лежат в одних и тех же местах: случайность берётся из даты, Степан для запуска не нужен.
   Object.entries({
-    ru: ['до админ-абьюза', '🏴‍☠️ 19:35 — АДМИН-АБЬЮЗ! Спрятано {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Единственная золотая — на Таинственном острове! У тебя 6 минут!', '⏳ Сейчас идёт автоматический админ-абьюз (19:35) — дождись, пока он закончится.'],
-    en: ['until admin abuse', '🏴‍☠️ 19:35 — ADMIN ABUSE! {n} pirate coins are hidden: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. The only gold one is on Mystery Island! You have 6 minutes!', '⏳ The automatic admin abuse (19:35) is running — wait until it ends.'],
-    uk: ['до адмін-абʼюзу', '🏴‍☠️ 19:35 — АДМІН-АБʼЮЗ! Сховано {n} піратських монет: 🥉 бронзова — {b}, 🥈 срібна — {s}, 🥇 золота — {g}. Єдина золота — на Таємничому острові! У тебе 6 хвилин!', '⏳ Зараз іде автоматичний адмін-абʼюз (19:35) — дочекайся, поки він закінчиться.'],
-    de: ['bis zum Admin-Abuse', '🏴‍☠️ 19:35 — ADMIN-ABUSE! {n} Piratenmünzen sind versteckt: 🥉 Bronze — {b}, 🥈 Silber — {s}, 🥇 Gold — {g}. Die einzige goldene liegt auf der Geheimnisvollen Insel! Du hast 6 Minuten!', '⏳ Der automatische Admin-Abuse (19:35) läuft — warte, bis er vorbei ist.'],
-    fr: ['avant l’admin abuse', '🏴‍☠️ 19:35 — ADMIN ABUSE ! {n} pièces de pirate sont cachées : 🥉 bronze — {b}, 🥈 argent — {s}, 🥇 or — {g}. La seule en or est sur l’Île mystérieuse ! Tu as 6 minutes !', '⏳ L’admin abuse automatique (19:35) est en cours — attends qu’il se termine.'],
-    es: ['para el admin abuse', '🏴‍☠️ 19:35 — ¡ADMIN ABUSE! Hay {n} monedas pirata escondidas: 🥉 bronce — {b}, 🥈 plata — {s}, 🥇 oro — {g}. ¡La única de oro está en la Isla Misteriosa! ¡Tienes 6 minutos!', '⏳ El admin abuse automático (19:35) está en marcha: espera a que termine.'],
-    zh: ['距离管理员狂欢', '🏴‍☠️ 19:35 — 管理员狂欢！藏了 {n} 枚海盗金币：🥉 铜币 — {b}，🥈 银币 — {s}，🥇 金币 — {g}。唯一的金币在神秘岛上！你有 6 分钟！', '⏳ 自动管理员狂欢（19:35）正在进行，请等它结束。'],
+    ru: ['до админ-абьюза', '🏴‍☠️ 19:35 — АДМИН-АБЬЮЗ! Спрятано {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Единственная золотая — на Таинственном острове! У тебя 21 минута!', '⏳ Сейчас идёт автоматический админ-абьюз (19:35) — дождись, пока он закончится.'],
+    en: ['until admin abuse', '🏴‍☠️ 19:35 — ADMIN ABUSE! {n} pirate coins are hidden: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. The only gold one is on Mystery Island! You have 21 minutes!', '⏳ The automatic admin abuse (19:35) is running — wait until it ends.'],
+    uk: ['до адмін-абʼюзу', '🏴‍☠️ 19:35 — АДМІН-АБʼЮЗ! Сховано {n} піратських монет: 🥉 бронзова — {b}, 🥈 срібна — {s}, 🥇 золота — {g}. Єдина золота — на Таємничому острові! У тебе 21 хвилина!', '⏳ Зараз іде автоматичний адмін-абʼюз (19:35) — дочекайся, поки він закінчиться.'],
+    de: ['bis zum Admin-Abuse', '🏴‍☠️ 19:35 — ADMIN-ABUSE! {n} Piratenmünzen sind versteckt: 🥉 Bronze — {b}, 🥈 Silber — {s}, 🥇 Gold — {g}. Die einzige goldene liegt auf der Geheimnisvollen Insel! Du hast 21 Minuten!', '⏳ Der automatische Admin-Abuse (19:35) läuft — warte, bis er vorbei ist.'],
+    fr: ['avant l’admin abuse', '🏴‍☠️ 19:35 — ADMIN ABUSE ! {n} pièces de pirate sont cachées : 🥉 bronze — {b}, 🥈 argent — {s}, 🥇 or — {g}. La seule en or est sur l’Île mystérieuse ! Tu as 21 minutes !', '⏳ L’admin abuse automatique (19:35) est en cours — attends qu’il se termine.'],
+    es: ['para el admin abuse', '🏴‍☠️ 19:35 — ¡ADMIN ABUSE! Hay {n} monedas pirata escondidas: 🥉 bronce — {b}, 🥈 plata — {s}, 🥇 oro — {g}. ¡La única de oro está en la Isla Misteriosa! ¡Tienes 21 minutos!', '⏳ El admin abuse automático (19:35) está en marcha: espera a que termine.'],
+    zh: ['距离管理员狂欢', '🏴‍☠️ 19:35 — 管理员狂欢！藏了 {n} 枚海盗金币：🥉 铜币 — {b}，🥈 银币 — {s}，🥇 金币 — {g}。唯一的金币在神秘岛上！你有 21 分钟！', '⏳ 自动管理员狂欢（19:35）正在进行，请等它结束。'],
   }).forEach(([k, v]) => { if (I18N[k]) [I18N[k].abNext, I18N[k].abAutoGo, I18N[k].abBusy] = v; });
   const DAY_MS = 86400000, AB_AUTO_AT = (19 * 60 + 35) * 60000;   // 19:35 по часам Кипра
   // Кипр: зимой UTC+2, летом UTC+3 (летнее время — с последнего воскресенья марта до последнего воскресенья октября, 01:00 UTC)
