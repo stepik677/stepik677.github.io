@@ -5891,7 +5891,7 @@
     }
     // фасад: серебристая «обшивка» по кругу, ворота на юге
     const skinTex = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#b0bec5'; g.fillRect(0, 0, 256, 128); for (let x = 0; x < 256; x += 16) { g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x, 0, 6, 128); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x + 8, 0, 3, 128); } const tx = new THREE.CanvasTexture(c); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.colorSpace = THREE.SRGBColorSpace; tx.repeat.set(8, 1); return tx; })();
-    const skin = new THREE.MeshStandardMaterial({ map: skinTex, metalness: .7, roughness: .3 }), FH = 95, FT = 8;
+    const skin = new THREE.MeshStandardMaterial({ map: skinTex, metalness: .7, roughness: .3, emissive: '#3949ab', emissiveIntensity: .25 }), FH = 140, FT = 8;   // высокий, слегка светится ночью
     part(2 * H2, FH, FT, skin, cx, FH / 2, cy - H2 + FT / 2); solid(cx - H2, cy - H2, 2 * H2, FT, FH);
     for (const sx of [-1, 1]) { part(FT, FH, 2 * H2, skin, cx + sx * (H2 - FT / 2), FH / 2, cy); solid(sx < 0 ? cx - H2 : cx + H2 - FT, cy - H2, FT, 2 * H2, FH); }
     for (const sx of [-1, 1]) { const w = H2 - GATE / 2; part(w, FH, FT, skin, cx + sx * (GATE / 2 + w / 2), FH / 2, cy + H2 - FT / 2); solid(sx < 0 ? cx - H2 : cx + GATE / 2, cy + H2 - FT, w, FT, FH); }
@@ -5905,7 +5905,7 @@
     for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { part(3, 30, 3, M('#90a4ae', { metalness: .6 }), cx + sx * (H2 - 14), FH + 18, cy + sy * (H2 - 14)); part(18, 8, 18, lampM, cx + sx * (H2 - 14), FH + 36, cy + sy * (H2 - 14)); }
     // вывеска над воротами
     const signTex = (() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, 1024, 128); g.fillStyle = '#1a237e'; g.font = 'bold 72px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SANTIAGO BERNABÉU', 512, 68); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
-    const sg = new THREE.Mesh(new THREE.PlaneGeometry(240, 30), new THREE.MeshBasicMaterial({ map: signTex })); sg.position.set(cx, FH - 22, cy + H2 + .8); scene.add(sg);
+    for (const [ox, oy, ry] of [[0, H2 + .8, 0], [0, -H2 - .8, Math.PI], [H2 + .8, 0, Math.PI / 2], [-H2 - .8, 0, -Math.PI / 2]]) { const sg = new THREE.Mesh(new THREE.PlaneGeometry(300, 38), new THREE.MeshBasicMaterial({ map: signTex })); sg.position.set(cx + ox, FH - 26, cy + oy); sg.rotation.y = ry; scene.add(sg); }   // вывеска со всех четырёх сторон
     // касса с билетами у входа
     const kx = cx + 75, ky = cy + H2 + 16;
     part(36, 26, 18, M('#c62828'), kx, 13, ky); part(40, 3, 22, M('#eceff1'), kx, 27.5, ky); solid(kx - 18, ky - 9, 36, 18, 26);
@@ -5913,6 +5913,7 @@
     const ks = new THREE.Mesh(new THREE.PlaneGeometry(34, 8.5), new THREE.MeshBasicMaterial({ map: kt })); ks.position.set(kx, 21, ky + 9.2); scene.add(ks);
     STAD.kx = kx; STAD.ky = ky + 20;
   }
+  setTimeout(() => { try { if (!localStorage.getItem('mashinki_stadium_hint')) { localStorage.setItem('mashinki_stadium_hint', '1'); setTimeout(() => showMsg('🏟 В центре города — стадион «Сантьяго Бернабеу»! Купи билет в кассе у ворот и заходи — начнётся футбол ⚽', 7000), 9000); } } catch (e) {} }, 0);
   window.__ticketHere = () => Math.hypot(car.x - STAD.kx, car.y - STAD.ky) < 34 && Math.hypot(car.vx, car.vy) < 45;
   window.__buyTicket = () => {
     if (save.money < TICKET_PRICE) { showMsg(t('tkNoMoney', { p: fmt(TICKET_PRICE) }), 2500); return; }
@@ -9360,6 +9361,7 @@
       for (const b of blocks) {
         const bi = Math.round((b.x - ROAD_W) / RCELL), bj = Math.round((b.y - ROAD_W) / RCELL);
         let key = null;
+        if (b.type === 'stadium') { mapLabel(g, s, '🏟 Santiago Bernabéu', b.x + BS / 2, b.y + BS / 2 + 30 / s, 20, '#ffffff'); continue; }
         if (b.type === 'park') key = 'dPark'; else if (b.type === 'lake') key = 'dLake'; else if (b.type === 'shops') key = 'dShops';
         else if (b.type === 'parking' && z >= 2.5) key = 'dParking';
         if (key && z >= 1.7) mapLabel(g, s, t(key), b.x + BS / 2, b.y + BS / 2, Math.min(22, 11 + z * 2), key === 'dLake' ? '#d6f0ff' : key === 'dShops' ? '#ffe0b2' : '#e8f5d0');
