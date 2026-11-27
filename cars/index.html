@@ -8056,18 +8056,18 @@
     pvPill.style.display = pv.bid && pv.alive.size >= 2 ? '' : 'none';
     if (pv.bid) pvPill.textContent = pv.alive.get(net.id) ? t('pvHud', { h: Math.round(pv.hp), k: pvAliveN() }) : t('pvHudDead', { k: pvAliveN() });
   }, 250);
-  // ================== Автоматический админ-абьюз: каждый день в 19:30 по кипрскому времени ==================
+  // ================== Автоматический админ-абьюз: каждый день в 19:35 по кипрскому времени ==================
   // У всех игроков монеты лежат в одних и тех же местах: случайность берётся из даты, Степан для запуска не нужен.
   Object.entries({
-    ru: ['до админ-абьюза', '🏴‍☠️ 19:30 — АДМИН-АБЬЮЗ! Спрятано {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Единственная золотая — на Таинственном острове! У тебя 6 минут!', '⏳ Сейчас идёт автоматический админ-абьюз (19:30) — дождись, пока он закончится.'],
-    en: ['until admin abuse', '🏴‍☠️ 19:30 — ADMIN ABUSE! {n} pirate coins are hidden: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. The only gold one is on Mystery Island! You have 6 minutes!', '⏳ The automatic admin abuse (19:30) is running — wait until it ends.'],
-    uk: ['до адмін-абʼюзу', '🏴‍☠️ 19:30 — АДМІН-АБʼЮЗ! Сховано {n} піратських монет: 🥉 бронзова — {b}, 🥈 срібна — {s}, 🥇 золота — {g}. Єдина золота — на Таємничому острові! У тебе 6 хвилин!', '⏳ Зараз іде автоматичний адмін-абʼюз (19:30) — дочекайся, поки він закінчиться.'],
-    de: ['bis zum Admin-Abuse', '🏴‍☠️ 19:30 — ADMIN-ABUSE! {n} Piratenmünzen sind versteckt: 🥉 Bronze — {b}, 🥈 Silber — {s}, 🥇 Gold — {g}. Die einzige goldene liegt auf der Geheimnisvollen Insel! Du hast 6 Minuten!', '⏳ Der automatische Admin-Abuse (19:30) läuft — warte, bis er vorbei ist.'],
-    fr: ['avant l’admin abuse', '🏴‍☠️ 19:30 — ADMIN ABUSE ! {n} pièces de pirate sont cachées : 🥉 bronze — {b}, 🥈 argent — {s}, 🥇 or — {g}. La seule en or est sur l’Île mystérieuse ! Tu as 6 minutes !', '⏳ L’admin abuse automatique (19:30) est en cours — attends qu’il se termine.'],
-    es: ['para el admin abuse', '🏴‍☠️ 19:30 — ¡ADMIN ABUSE! Hay {n} monedas pirata escondidas: 🥉 bronce — {b}, 🥈 plata — {s}, 🥇 oro — {g}. ¡La única de oro está en la Isla Misteriosa! ¡Tienes 6 minutos!', '⏳ El admin abuse automático (19:30) está en marcha: espera a que termine.'],
-    zh: ['距离管理员狂欢', '🏴‍☠️ 19:30 — 管理员狂欢！藏了 {n} 枚海盗金币：🥉 铜币 — {b}，🥈 银币 — {s}，🥇 金币 — {g}。唯一的金币在神秘岛上！你有 6 分钟！', '⏳ 自动管理员狂欢（19:30）正在进行，请等它结束。'],
+    ru: ['до админ-абьюза', '🏴‍☠️ 19:35 — АДМИН-АБЬЮЗ! Спрятано {n} пиратских монет: 🥉 бронзовая — {b}, 🥈 серебряная — {s}, 🥇 золотая — {g}. Единственная золотая — на Таинственном острове! У тебя 6 минут!', '⏳ Сейчас идёт автоматический админ-абьюз (19:35) — дождись, пока он закончится.'],
+    en: ['until admin abuse', '🏴‍☠️ 19:35 — ADMIN ABUSE! {n} pirate coins are hidden: 🥉 bronze — {b}, 🥈 silver — {s}, 🥇 gold — {g}. The only gold one is on Mystery Island! You have 6 minutes!', '⏳ The automatic admin abuse (19:35) is running — wait until it ends.'],
+    uk: ['до адмін-абʼюзу', '🏴‍☠️ 19:35 — АДМІН-АБʼЮЗ! Сховано {n} піратських монет: 🥉 бронзова — {b}, 🥈 срібна — {s}, 🥇 золота — {g}. Єдина золота — на Таємничому острові! У тебе 6 хвилин!', '⏳ Зараз іде автоматичний адмін-абʼюз (19:35) — дочекайся, поки він закінчиться.'],
+    de: ['bis zum Admin-Abuse', '🏴‍☠️ 19:35 — ADMIN-ABUSE! {n} Piratenmünzen sind versteckt: 🥉 Bronze — {b}, 🥈 Silber — {s}, 🥇 Gold — {g}. Die einzige goldene liegt auf der Geheimnisvollen Insel! Du hast 6 Minuten!', '⏳ Der automatische Admin-Abuse (19:35) läuft — warte, bis er vorbei ist.'],
+    fr: ['avant l’admin abuse', '🏴‍☠️ 19:35 — ADMIN ABUSE ! {n} pièces de pirate sont cachées : 🥉 bronze — {b}, 🥈 argent — {s}, 🥇 or — {g}. La seule en or est sur l’Île mystérieuse ! Tu as 6 minutes !', '⏳ L’admin abuse automatique (19:35) est en cours — attends qu’il se termine.'],
+    es: ['para el admin abuse', '🏴‍☠️ 19:35 — ¡ADMIN ABUSE! Hay {n} monedas pirata escondidas: 🥉 bronce — {b}, 🥈 plata — {s}, 🥇 oro — {g}. ¡La única de oro está en la Isla Misteriosa! ¡Tienes 6 minutos!', '⏳ El admin abuse automático (19:35) está en marcha: espera a que termine.'],
+    zh: ['距离管理员狂欢', '🏴‍☠️ 19:35 — 管理员狂欢！藏了 {n} 枚海盗金币：🥉 铜币 — {b}，🥈 银币 — {s}，🥇 金币 — {g}。唯一的金币在神秘岛上！你有 6 分钟！', '⏳ 自动管理员狂欢（19:35）正在进行，请等它结束。'],
   }).forEach(([k, v]) => { if (I18N[k]) [I18N[k].abNext, I18N[k].abAutoGo, I18N[k].abBusy] = v; });
-  const DAY_MS = 86400000, AB_AUTO_AT = (19 * 60 + 30) * 60000;   // 19:30 по часам Кипра
+  const DAY_MS = 86400000, AB_AUTO_AT = (19 * 60 + 35) * 60000;   // 19:35 по часам Кипра
   // Кипр: зимой UTC+2, летом UTC+3 (летнее время — с последнего воскресенья марта до последнего воскресенья октября, 01:00 UTC)
   const cyOff = ms => {
     const y = new Date(ms).getUTCFullYear();
@@ -8075,7 +8075,7 @@
     return ms >= lastSun(2) && ms < lastSun(9) ? 3 * 3600000 : 2 * 3600000;
   };
   const abAutoDay = now => Math.floor((now + cyOff(now) - AB_AUTO_AT) / DAY_MS);   // номер последнего начавшегося события
-  const abAutoStartOf = day => { const u = day * DAY_MS + AB_AUTO_AT; return u - cyOff(u - 2 * 3600000); };   // момент 19:30 на Кипре (в мс UTC)
+  const abAutoStartOf = day => { const u = day * DAY_MS + AB_AUTO_AT; return u - cyOff(u - 2 * 3600000); };   // момент 19:35 на Кипре (в мс UTC)
   const abAutoRnd = day => {                                // одинаковые «случайные» числа у всех игроков
     let sd = (day * 2654435761) % 2147483646 + 1;
     const r = () => (sd = sd * 16807 % 2147483647) / 2147483647;
@@ -8095,7 +8095,7 @@
   function abAutoTick() {
     const now = Date.now(), day = abAutoDay(now), st = abAutoStartOf(day), id = 'auto-' + day, left = st + AB_DUR - now;
     const done = ab.autoDone === id || (abAutoMem && abAutoMem.id === id && abAutoMem.done);
-    if (left > 1000 && !ab.id && !done) {                   // 19:30 наступило (или игрок зашёл во время события) — начинаем
+    if (left > 1000 && !ab.id && !done) {                   // 19:35 наступило (или игрок зашёл во время события) — начинаем
       const pts = abusePlaces(AB_N, abAutoRnd(day), true);
       if (pts.length) {
         abStart(id, pts, left); ab.auto = true;
