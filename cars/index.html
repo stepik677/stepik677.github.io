@@ -5823,6 +5823,62 @@
     mover('train', [[A + 600, GC + 380], [A + 600, GC + 1340], [A + 612, GC + 1340], [A + 612, GC + 380]], 45, 0);
     mover('follow', [[WORLD + 2690, AP.y0 + 300], [WORLD + 2690, AP.y1 - 300], [WORLD + 2710, AP.y1 - 300], [WORLD + 2710, AP.y0 + 300]], 110, 0);
   }
+  // ================== Секретные проходы: снаружи — холм с кустами, сквозь кусты можно проехать, внутри — коридор с факелами и тайная комната ==================
+  const SECRETS = [];                                          // тайные комнаты: туда прячутся монеты админ-абьюза
+  Object.entries({
+    ru: '🕳 Ты нашёл секретный проход! Во время админ-абьюза здесь бывают монеты.', en: '🕳 You found a secret passage! Coins hide here during admin abuse.',
+    uk: '🕳 Ти знайшов таємний прохід! Під час адмін-абʼюзу тут бувають монети.', de: '🕳 Du hast einen Geheimgang gefunden! Beim Admin-Abuse liegen hier Münzen.',
+    fr: '🕳 Tu as trouvé un passage secret ! Pendant l’admin abuse, des pièces s’y cachent.', es: '🕳 ¡Has encontrado un pasadizo secreto! En el admin abuse aquí hay monedas.',
+    zh: '🕳 你发现了秘密通道！管理员狂欢时这里会藏金币。',
+  }).forEach(([k, v]) => { if (I18N[k]) I18N[k].secFound = v; });
+  {
+    const stone = new THREE.MeshStandardMaterial({ map: outerTex(64, 64, (g, w, h) => { noiseFill(g, w, h, '#5d5348', ['#4e463c', '#6b6155', '#3f382f'], 900); g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 2; for (let y = 0; y < h; y += 16) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); for (let x = (y / 16) % 2 * 16; x < w; x += 32) { g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 16); g.stroke(); } } }, 4, 1), roughness: .95 });
+    const floorM = new THREE.MeshStandardMaterial({ color: '#3b342c', roughness: 1, polygonOffset: true, polygonOffsetFactor: -4 });
+    const grass = new THREE.MeshStandardMaterial({ color: '#4f7f3c', roughness: 1 });
+    const bushM = new THREE.MeshStandardMaterial({ color: '#2e6b2a', roughness: 1 }), bushG = new THREE.IcosahedronGeometry(15, 0);
+    const torchM = new THREE.MeshStandardMaterial({ color: '#ffcc80', emissive: '#ff9100', emissiveIntensity: 2.4 }), stickM = new THREE.MeshStandardMaterial({ color: '#4e342e' });
+    const chestM = new THREE.MeshStandardMaterial({ color: '#6d4c2f', roughness: .8 }), goldM = new THREE.MeshStandardMaterial({ color: '#ffca28', metalness: .8, roughness: .25, emissive: '#7a5200', emissiveIntensity: .4 });
+    // x0, y0 — вход; коридор идёт вдоль X (alongX) или Y, в сторону dir (+1 / -1)
+    function secret(x0, y0, alongX, dir) {
+      const L = 180, W = 46, H = 34, CW = 100, T2 = 8, U = L + CW + T2;
+      const wx = (u, v) => alongX ? [x0 + dir * u, y0 + v] : [x0 + v, y0 + dir * u];
+      const hs = []; for (let u = 0; u <= U; u += 30) for (const v of [-CW / 2, 0, CW / 2]) hs.push(terrainH(...wx(u, v)));
+      const base = Math.min(...hs) - 3, top = Math.max(...hs) + H;
+      const wb = (u0, v0, du, dv, mat, obs = true, b = base, hh = top - base) => {   // коробка в координатах прохода (u — вдоль, v — поперёк)
+        const [ax, ay] = wx(u0, v0), [bx, by] = wx(u0 + du, v0 + dv);
+        return box(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay), hh, mat, b, obs);
+      };
+      wb(0, -W / 2 - T2, L, T2, stone); wb(0, W / 2, L, T2, stone);                          // стены коридора
+      wb(L, -CW / 2 - T2, CW, T2, stone); wb(L, CW / 2, CW, T2, stone); wb(L + CW, -CW / 2 - T2, T2, CW + 2 * T2, stone);   // комната
+      wb(L, -CW / 2, T2, CW / 2 - W / 2, stone); wb(L, W / 2, T2, CW / 2 - W / 2, stone);
+      const roof = wb(0, -CW / 2 - T2, U, CW + 2 * T2, stone, false, top, 5);               // потолок
+      { const [ax, ay] = wx(0, -W / 2), [bx, by] = wx(L + CW, W / 2); flat(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay), floorM, Math.max(...hs) + .5); }
+      // снаружи — травяной холм (изнутри его не видно), перед входом кусты — сквозь них можно проехать
+      const [hx, hy] = wx(U / 2 - 20, 0), hill = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2), grass);
+      hill.scale.set(alongX ? U / 2 + 50 : CW / 2 + 45, top - base + 18, alongX ? CW / 2 + 45 : U / 2 + 50); hill.position.set(hx, base, hy); hill.receiveShadow = true; scene.add(hill);
+      for (let k = -2; k <= 2; k++) { const [bx, by] = wx(-30 - Math.abs(k) * 6, k * 14), b = new THREE.Mesh(bushG, bushM); b.position.set(bx, terrainH(bx, by) + 10, by); b.scale.set(1, .9 + (k & 1) * .3, 1); b.rotation.y = k; scene.add(b); }
+      // факелы вдоль стен
+      for (let u = 25; u < L; u += 55) for (const sv of [-1, 1]) {
+        const [tx, ty] = wx(u, sv * (W / 2 - 1.5));
+        const st = new THREE.Mesh(new THREE.BoxGeometry(2, 8, 2), stickM); st.position.set(tx, base + hs[0] - base + 20, ty); scene.add(st);
+        const fl = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 3), torchM); fl.position.set(tx, base + hs[0] - base + 26, ty); scene.add(fl);
+      }
+      // тайная комната: сундук с золотом и факелы по углам
+      const [cx, cy] = wx(L + CW / 2, 0), fz = Math.max(...hs);
+      const ch = new THREE.Mesh(new THREE.BoxGeometry(alongX ? 18 : 28, 14, alongX ? 28 : 18), chestM); ch.position.set(...(() => { const [qx, qy] = wx(L + CW - 14, 0); return [qx, fz + 7, qy]; })()); scene.add(ch);
+      const lid = new THREE.Mesh(new THREE.BoxGeometry(alongX ? 19 : 29, 3, alongX ? 29 : 19), goldM); lid.position.set(ch.position.x, fz + 15.5, ch.position.z); scene.add(lid);
+      for (let k = 0; k < 7; k++) { const c = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 1.2, 10), goldM); const [qx, qy] = wx(L + CW - 34 + (k % 3) * 6, -10 + k * 3); c.position.set(qx, fz + 1 + (k % 2), qy); scene.add(c); }
+      for (const [du, dv] of [[8, -CW / 2 + 3], [8, CW / 2 - 3], [CW - 8, -CW / 2 + 3], [CW - 8, CW / 2 - 3]]) { const [tx, ty] = wx(L + du, dv); const fl = new THREE.Mesh(new THREE.BoxGeometry(3, 5, 3), torchM); fl.position.set(tx, fz + 24, ty); scene.add(fl); }
+      const [ax, ay] = wx(0, -CW / 2), [bx, by] = wx(L + CW, CW / 2);
+      SECRETS.push({ hide: [hill, roof], cx, cy, z: fz, x0: Math.min(ax, bx), x1: Math.max(ax, bx), y0: Math.min(ay, by), y1: Math.max(ay, by), inside: false });
+    }
+    secret(AP.x0 + 1450, 8300, false, 1);              // в аэропорту между рулёжкой и полосой
+    secret(AP.x0 + 2300, 2650, true, 1);               // в аэропорту за топливным складом
+    secret(-290, 2500, true, 1);                       // у западного края города
+    secret(3000, -290, false, 1);                      // у северного края города, по дороге к базе
+    secret(WORLD + 290, 8000, true, -1);               // у восточного края города
+    secret(2500, WORLD + 290, false, -1);              // у южного края города, по дороге к пляжу
+  }
   // --- военная база (въезд через ворота, открытые ангары с истребителями, вышка с радаром, казармы) ---
   const MB_TOWERS = [], MB_TANKS = [], MB_LAMPS = [], MB_AA = [], MB_FLAGS = [];
   let mbRadar = null, mbBar = null;
@@ -6575,6 +6631,12 @@
     for (const V of AP_MOVERS) { V.s += V.v * dt; const [x, y, h] = routeAt(V.R, V.s); V.g.position.set(x, 0, y); V.g.rotation.y = -h; }
     for (const d of AP_SPIN) d.rotation.y += dt * 1.3;
     for (const b of AP_BAGS) { b.s += 14 * dt; const [x, y, h] = routeAt(b.R, b.s); b.m.position.set(x, 11, y); b.m.rotation.y = -h; }
+    for (const S of SECRETS) {                                                                  // нашёл секретный проход
+      const ins = car.x > S.x0 && car.x < S.x1 && car.y > S.y0 && car.y < S.y1 && (car.z || 0) < S.z + 40;
+      if (ins && !S.inside) showMsg(t('secFound'), 4000);
+      if (ins !== S.inside) for (const m of S.hide) m.visible = !ins;                          // внутри холм и потолок прячем — иначе камера не видит машину
+      S.inside = ins;
+    }
     // в зале терминала: приветствие и рамка досмотра
     const inHall = car.onFoot && car.x > AP_HALL.x0 && car.x < AP_HALL.x1 && car.y > AP_HALL.y0 && car.y < AP_HALL.y1;
     if (inHall && !apInHall) showMsg(t('apWelcome'), 4000);
@@ -7595,6 +7657,8 @@
         out.push([Math.round(x), Math.round(y), Math.round(z0 + 14), 2]);
       }
     }
+    // 🕳 в секретных проходах: обе серебряные и одна бронзовая — в тайных комнатах (разных)
+    { const sp = SECRETS.slice(); for (let k = 0; k < 3 && sp.length && out.length < n; k++) { const s = sp.splice(Math.floor(R() * sp.length), 1)[0]; out.push([Math.round(s.cx), Math.round(s.cy), Math.round(s.z + 14), out.length < gold + AB_MIX[1] ? 1 : 0]); } }
     // 🥈 и 🥉 — на главном острове: глухие дворы города, склоны горы, лес и поля за городом
     for (let tries = 0; out.length < n && tries < 30000; tries++) {
       const city = R() < .6;
