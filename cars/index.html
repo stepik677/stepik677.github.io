@@ -5860,7 +5860,7 @@
     // проход: вход (ex, ey), идёт вдоль X или Y в сторону dir. Lr — спуск (люк), Lc — коридор, затем тайная комната CW×CW
     function passage(ex, ey, alongX, dir, f0, f1, Lr, kind) {
       const W = 46, CW = 100, T2 = 8, Lc = 170, U = Lr + Lc + CW, H = 40;
-      const ceil = f1 + H, top = kind === 'hatch' ? f0 - 4 : ceil;
+      const ceil = f1 + H, top = kind !== 'cave' ? f0 - 4 : ceil;
       const wx = (u, v) => alongX ? [ex + dir * u, ey + v] : [ex + v, ey + dir * u];
       const wb = (u0, v0, du, dv, mat, b, hh, obs = true) => { const [ax, ay] = wx(u0, v0), [bx, by] = wx(u0 + du, v0 + dv); return box(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay), hh, mat, b, obs); };
       // стены: коридор (вместе со спуском), комната, торцы
@@ -5896,6 +5896,9 @@
         for (const sv of [-1, 1]) wb(0, sv < 0 ? -W / 2 - 3 : W / 2, Lr, 3, ironM, f0, 1.2, false);
         wb(-3, -W / 2 - 3, 3, W + 6, ironM, f0, 1.2, false);
         const lidM = new THREE.Mesh(new THREE.BoxGeometry(alongX ? 40 : W, 2, alongX ? W : 40), ironM); const [lx, ly] = wx(-24, 0); lidM.position.set(lx, f0 + 1.5, ly); lidM.rotation[alongX ? 'z' : 'x'] = .12; scene.add(lidM);
+      } else if (kind === 'hidden') {                       // почти невидимый лаз: тёмно-зелёное пятно в траве, без крышки и рамки
+        const [ax, ay] = wx(0, -W / 2), [bx, by] = wx(Lr, W / 2);
+        flat(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay), new THREE.MeshStandardMaterial({ color: '#2c4327', roughness: 1, polygonOffset: true, polygonOffsetFactor: -6 }), f0 + .35);
       } else {                                              // пещера: каменная арка в склоне и тьма внутри
         const [px1, py1] = wx(-4, -W / 2 - 14), [px2, py2] = wx(-4, W / 2 + 14), [lx, ly] = wx(-4, 0);
         for (const [x, y] of [[px1, py1], [px2, py2]]) { const r = new THREE.Mesh(new THREE.DodecahedronGeometry(18, 0), rockM); r.position.set(x, f0 + 20, y); r.scale.set(1, 1.6, 1); scene.add(r); }
@@ -5904,8 +5907,8 @@
         mouth.rotation.y = alongX ? (dir > 0 ? -Math.PI / 2 : Math.PI / 2) : (dir > 0 ? Math.PI : 0); scene.add(mouth);   // со стороны входа — чёрная дыра
       }
       const [rx0, ry0] = wx(0, -CW / 2 - T2), [rx1, ry1] = wx(U + T2, CW / 2 + T2);
-      TUNNELS.push({ ex, ey, alongX, dir, f0, f1, Lr, Lc, CW, W, U, ceil, surf: kind === 'hatch' ? f0 - 9 : ceil - 6, x0: Math.min(rx0, rx1), x1: Math.max(rx0, rx1), y0: Math.min(ry0, ry1), y1: Math.max(ry0, ry1) });
-      SECRETS.push({ cx, cy, z: f1, x0: Math.min(rx0, rx1), x1: Math.max(rx0, rx1), y0: Math.min(ry0, ry1), y1: Math.max(ry0, ry1), inside: false });
+      TUNNELS.push({ ex, ey, alongX, dir, f0, f1, Lr, Lc, CW, W, U, ceil, surf: kind !== 'cave' ? f0 - 9 : ceil - 6, x0: Math.min(rx0, rx1), x1: Math.max(rx0, rx1), y0: Math.min(ry0, ry1), y1: Math.max(ry0, ry1) });
+      SECRETS.push({ gold: kind === 'hidden', cx, cy, z: f1, x0: Math.min(rx0, rx1), x1: Math.max(rx0, rx1), y0: Math.min(ry0, ry1), y1: Math.max(ry0, ry1), inside: false });
     }
     // пещера в горе Орлиной: идём к горе и ищем место, где склон круто поднимается — там вход
     function cave(sx, sy, alongX, dir) {
@@ -5924,6 +5927,23 @@
     hatch(4200, -150, true);                              // у северного края города
     hatch(WORLD + 150, 8000, false);                      // у восточного края города
     hatch(2500, WORLD + 150, true);                       // у южного края города
+    // 🥇 секретный лаз на Таинственном острове — в холмах за тайным городом, почти не видно; там золотая монета
+    {
+      const fits = (ex, ey, alongX, dir) => {
+        const f0 = terrainH(ex, ey); if (f0 < 30) return null;
+        const wx = (u, v) => alongX ? [ex + dir * u, ey + v] : [ex + v, ey + dir * u];
+        for (let u = -30; u <= 110 + 170 + 108; u += 20) for (const v of [-60, 0, 60]) {
+          const [x, y] = wx(u, v), h = terrainH(x, y);
+          if (inSecCity(x, y) || h < f0 - (u < 110 ? 5 : 3) || h > f0 + 90 || (u < 110 && h > f0 + 8) || outerSolid(x, y, h + 2)) return null;
+        }
+        return f0;
+      };
+      let done = false;
+      for (let r = SEC_S * .62 + 500; r < SEC_S * .62 + 1800 && !done; r += 120) for (let k = 0; k < 36 && !done; k++) {
+        const th = k / 36 * Math.PI * 2 + r * .001, ex = SEC_CX + Math.cos(th) * r, ey = SEC_CY + Math.sin(th) * r;
+        for (const [ax, d] of [[true, 1], [true, -1], [false, 1], [false, -1]]) { const f0 = fits(ex, ey, ax, d); if (f0 !== null) { passage(ex, ey, ax, d, f0, f0 - 36, 110, 'hidden'); done = true; break; } }
+      }
+    }
   }
   const SECRET_OBJS = scene.children.slice(secSc0), SECRET_OBS = outerObs.splice(secOb0), SECRET_PL = PLATS.splice(secPl0), SECRET_TN = TUNNELS.splice(0);
   let secretsOn = true;
@@ -6748,7 +6768,8 @@
       ...(window.__fijiPlane ? { fiji: [window.__fijiPlane[0] - Math.cos(window.__fijiPlane[2]) * 110, window.__fijiPlane[1] - Math.sin(window.__fijiPlane[2]) * 110, window.__fijiPlane[2]] } : {}),
       cargo: [A + 950, 1900, Math.PI], fuel: [A + 2140, 1690, 0], fire: [A + 1130, 3100, 0], hangar: [A + 1780, 3420, 0], vip: [A + 2150, 7900, -.3],
     };
-    SECRET_TN.forEach((T, i) => {                           // секретные проходы: ставим перед входом, лицом внутрь
+    SECRET_TN.forEach((T, i) => {                           // секретные проходы: ставим перед входом, лицом внутрь (кроме тайного лаза с золотом)
+      if (i >= 7) return;
       const u = -70, x = T.alongX ? T.ex + T.dir * u : T.ex, y = T.alongX ? T.ey : T.ey + T.dir * u;
       P[i < 2 ? 'cave' + (i + 1) : 'hatch' + (i - 1)] = [x, y, T.alongX ? (T.dir > 0 ? 0 : Math.PI) : (T.dir > 0 ? Math.PI / 2 : -Math.PI / 2)];
     });
@@ -6943,7 +6964,7 @@
       }
       const nx = b.x + b.vx * dt, ny = b.y + b.vy * dt, nz = b.z + b.vz * dt;
       b.m.rotation.z = Math.atan2(b.vz, Math.hypot(b.vx, b.vy) + 1);
-      if (nz <= groundHeight(nx, ny, nz) + 2 || solidAtZ(nx, ny, nz) || nz < SEA) { explode(nx, ny, Math.max(SEA, nz - 6)); scene.remove(b.m); bombs.splice(i, 1); continue; }
+      if (nz <= groundHeight(nx, ny, nz) + 2 || solidAtZ(nx, ny, nz) || nz < SEA) { explode(nx, ny, Math.max(SEA, nz - 6)); window.__pvpBlast?.(nx, ny); scene.remove(b.m); bombs.splice(i, 1); continue; }
       b.x = nx; b.y = ny; b.z = nz; b.m.position.set(nx, nz, ny);
     }
     if (mbRadar) mbRadar.rotation.y += dt * 1.6;
@@ -7481,6 +7502,7 @@
     if (m.bank && typeof m.bank === 'object') { onBank(id, m.bank); return; }
     if (m.chat && typeof m.chat === 'object') { window.__onChat?.(id, m.chat); return; }
     if (m.abuse && typeof m.abuse === 'object') { window.__onAbuse?.(id, m.abuse); return; }
+    if (m.pvp && typeof m.pvp === 'object') { window.__onPvp?.(id, m.pvp); return; }
     if (m.bye) { const old = net.mqPeers.get(id); if (old) { net.mqPeers.delete(id); showMsg(t('netLeft', { n: cleanName(old.presence.nm) }), 1800); dropRemote(id); renderNet(); } return; }
     if (!Number.isFinite(m.x) || !Number.isFinite(m.y)) return;
     const isNew = !net.mqPeers.has(id);
@@ -7800,6 +7822,7 @@
     };
     // 🥇 золотые — только на Таинственном острове: в глухих дворах тайного города и в холмах вокруг него
     const gold = AB_MIX[0];
+    { const G = SECRETS.find(q => q.gold); if (G) out.push([Math.round(G.cx), Math.round(G.cy), Math.round(G.z + 14), 2]); }   // 🥇 в тайном лазе
     for (let tries = 0; out.length < gold && tries < 20000; tries++) {
       if (R() < .6) {
         const mx = SEC_SRC + R() * SEC_S, my = SEC_SRC + R() * SEC_S;   // точка в главном городе → такая же в тайном
@@ -7818,7 +7841,7 @@
       }
     }
     // 🕳 в секретных проходах: обе серебряные и одна бронзовая — в тайных комнатах (разных)
-    { const sp = SECRETS.slice(); for (let k = 0; k < 3 && sp.length && out.length < n; k++) { const s = sp.splice(Math.floor(R() * sp.length), 1)[0]; out.push([Math.round(s.cx), Math.round(s.cy), Math.round(s.z + 14), out.length < gold + AB_MIX[1] ? 1 : 0]); } }
+    { const sp = SECRETS.filter(q => !q.gold); for (let k = 0; k < 3 && sp.length && out.length < n; k++) { const s = sp.splice(Math.floor(R() * sp.length), 1)[0]; out.push([Math.round(s.cx), Math.round(s.cy), Math.round(s.z + 14), out.length < gold + AB_MIX[1] ? 1 : 0]); } }
     // 🥈 и 🥉 — на главном острове: глухие дворы города, склоны горы, лес и поля за городом
     for (let tries = 0; out.length < n && tries < 30000; tries++) {
       const city = R() < .6;
@@ -7959,6 +7982,80 @@
     });
   };
   abRender(); langHooks.push(abRender);
+
+  // ================== Админ-абьюз = битва: убей всех, последний выживший получает 500 000 € ==================
+  Object.entries({
+    ru: { pvStart: 'STARTING', pvTask: '⚔ Задача — убить всех! Кто останется последним, получит 500 000 €', pvSolo: 'Сейчас ты один онлайн — позови друзей, чтобы была битва!', pvYouDead: '💀 Тебя убил {n}! Ты выбыл из битвы.',
+      pvKilled: '☠ Ты убил {n}! Осталось живых: {k}', pvOut: '☠ {n} выбыл. Осталось живых: {k}', pvWin: '🏆 ТЫ ПОСЛЕДНИЙ ВЫЖИВШИЙ! +500 000 €', pvWinner: '🏆 {n} — последний выживший и получает 500 000 €!', pvDraw: '⏱ Время вышло — живых осталось несколько, приз никто не получил.', pvHud: '⚔ ❤ {h} · 👥 {k}', pvHudDead: '💀 выбыл · 👥 {k}' },
+    en: { pvStart: 'STARTING', pvTask: '⚔ Task: kill everyone! The last one standing wins 500,000 €', pvSolo: 'You are alone online — invite friends to have a battle!', pvYouDead: '💀 {n} killed you! You are out of the battle.',
+      pvKilled: '☠ You killed {n}! Alive: {k}', pvOut: '☠ {n} is out. Alive: {k}', pvWin: '🏆 YOU ARE THE LAST ONE STANDING! +500,000 €', pvWinner: '🏆 {n} is the last one standing and wins 500,000 €!', pvDraw: '⏱ Time is up — several players survived, nobody wins the prize.', pvHud: '⚔ ❤ {h} · 👥 {k}', pvHudDead: '💀 out · 👥 {k}' },
+  }).forEach(([k, v]) => { if (I18N[k]) Object.assign(I18N[k], v); });
+  const PV_PRIZE = 500000;
+  const pv = { bid: null, active: false, hp: 100, alive: new Map(), names: new Map(), cd: new Map(), seen: new Set(), over: false };
+  const pvEl = document.createElement('div');
+  pvEl.style.cssText = 'position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;background:radial-gradient(circle,rgba(120,0,0,.55),rgba(0,0,0,.8));text-align:center;font-family:"Segoe UI",system-ui,sans-serif;color:#fff;padding:20px';
+  pvEl.innerHTML = '<div style="font:900 clamp(44px,11vw,140px)/1 \'Segoe UI\',sans-serif;color:#ff1744;text-shadow:0 0 30px #ff1744,0 6px 0 #000">АДМИН-АБЬЮЗ</div><div id="pvStart" style="font:900 clamp(30px,7vw,90px)/1.1 \'Segoe UI\',sans-serif;letter-spacing:.15em;margin-top:10px;text-shadow:0 4px 0 #000"></div><div id="pvTask" style="font:800 clamp(16px,3.2vw,34px)/1.3 \'Segoe UI\',sans-serif;margin-top:22px;max-width:900px;color:#ffd54f;text-shadow:0 2px 6px #000"></div><div id="pvSolo" style="font:600 clamp(13px,2.2vw,22px)/1.3 \'Segoe UI\',sans-serif;margin-top:14px;opacity:.85"></div>';
+  document.body.appendChild(pvEl);
+  const pvPill = document.createElement('div'); pvPill.className = 'pill'; pvPill.style.cssText = 'display:none;background:rgba(183,28,28,.85);border:1px solid #ff8a80';
+  document.getElementById('hud').appendChild(pvPill);
+  const pvSend = o => mqPublish(JSON.stringify({ pvp: { ...o, bid: pv.bid, rid: Math.random().toString(36).slice(2, 10) } }));
+  const pvAliveN = () => [...pv.alive.values()].filter(Boolean).length;
+  const pvName = id => id === net.id ? (save.nick || t('netGuest')) : cleanName(pv.names.get(id) || net.mqPeers.get(id)?.presence?.nm);
+  function pvStart(bid) {
+    pv.bid = bid; pv.hp = 100; pv.over = false; pv.alive = new Map([[net.id, true]]); pv.names = new Map(); pv.cd = new Map();
+    for (const p of netPeers()) if (p.peer && p.peer !== net.id) { pv.alive.set(p.peer, true); pv.names.set(p.peer, p.presence?.nm); }
+    pv.active = pv.alive.size >= 2;
+    document.getElementById('pvStart').textContent = t('pvStart'); document.getElementById('pvTask').textContent = t('pvTask');
+    document.getElementById('pvSolo').textContent = pv.active ? '' : t('pvSolo');
+    pvEl.style.display = 'flex'; clearTimeout(pvStart.tm); pvStart.tm = setTimeout(() => { pvEl.style.display = 'none'; }, 5000);
+    shake = Math.max(shake, 3);
+  }
+  function pvEnd(msg) { if (pv.active && msg) showMsg(msg, 6000); pv.active = false; pv.over = true; }
+  function pvCheckWin() {
+    if (!pv.active || !pv.alive.get(net.id)) return;
+    if (pvAliveN() === 1) { save.money += PV_PRIZE; persist(); popMoney('🏆 +' + fmt(PV_PRIZE), '#ffd54f'); pvSend({ t: 'win', id: net.id }); pvEnd(t('pvWin')); }
+  }
+  function pvOut(id, by) {
+    if (!pv.alive.get(id)) return;
+    pv.alive.set(id, false);
+    const k = pvAliveN();
+    if (id === net.id) showMsg(t('pvYouDead', { n: pvName(by) }), 5000);
+    else if (by === net.id) showMsg(t('pvKilled', { n: pvName(id), k }), 3500);
+    else showMsg(t('pvOut', { n: pvName(id), k }), 2500);
+    pvCheckWin();
+  }
+  function pvDamage(dmg, by) {                                // по мне попали
+    if (!pv.active || !pv.alive.get(net.id)) return;
+    pv.hp = Math.max(0, pv.hp - dmg); shake = Math.max(shake, 2);
+    const hurt = document.getElementById('hurt'); hurt?.classList.add('on'); setTimeout(() => hurt?.classList.remove('on'), 150);
+    if (pv.hp <= 0) { pvSend({ t: 'out', id: net.id, by }); pvOut(net.id, by); }
+  }
+  const pvCanHit = id => pv.active && pv.alive.get(net.id) && pv.alive.get(id) && id !== net.id;
+  window.__pvpHit = (id, dmg) => { if (!pvCanHit(id)) return; pvSend({ t: 'hit', to: id, dmg: Math.round(Math.min(100, dmg)) }); };
+  window.__pvpBlast = (x, y) => { if (!pv.active) return; for (const [id, r] of remotes) if (pvCanHit(id) && Math.hypot(r.x - x, r.y - y) < 150) window.__pvpHit(id, 70); };
+  window.__pvpTargets = consider => { if (!pv.active || !pv.alive.get(net.id)) return; for (const [id, r] of remotes) if (pvCanHit(id)) consider({ id, r }, r.x, r.y, 'peer', 14); };
+  window.__onPvp = (from, a) => {
+    if (typeof a.rid !== 'string' || pv.seen.has(a.rid)) return; pv.seen.add(a.rid); if (pv.seen.size > 800) pv.seen.clear();
+    if (a.bid !== pv.bid || !pv.alive.has(from)) return;     // только участники этой битвы
+    if (a.t === 'hit' && a.to === net.id && pv.alive.get(from)) pvDamage(Math.min(100, Math.max(0, +a.dmg || 0)), from);
+    else if (a.t === 'out' && typeof a.id === 'string' && pv.alive.has(a.id)) pvOut(a.id, typeof a.by === 'string' ? a.by : '');
+    else if (a.t === 'win' && a.id === from && pv.active) pvEnd(t('pvWinner', { n: pvName(from) }));
+  };
+  setInterval(() => {
+    const bid = ab.id;
+    if (bid && bid !== pv.bid) pvStart(bid);                 // начался админ-абьюз — начинается битва
+    if (!bid && pv.bid) { if (pv.active && pvAliveN() > 1) pvEnd(t('pvDraw')); else pv.active = false; pv.bid = null; }
+    if (pv.active) {
+      const online = new Set(netPeers().map(p => p.peer));
+      for (const [id, al] of pv.alive) if (al && id !== net.id && !online.has(id)) pvOut(id, '');   // вышел из игры — выбыл
+      // таран: сбил машиной другого игрока
+      const sp = Math.hypot(car.vx, car.vy);
+      if (!car.onFoot && sp > 70) for (const [id, r] of remotes) if (pvCanHit(id) && Math.hypot(r.x - car.x, r.y - car.y) < 32 && Math.abs((r.z || 0) - (car.z || 0)) < 30 && (pv.cd.get(id) || 0) < Date.now()) { pv.cd.set(id, Date.now() + 1200); window.__pvpHit(id, 40); }
+      pvCheckWin();
+    }
+    pvPill.style.display = pv.bid && pv.alive.size >= 2 ? '' : 'none';
+    if (pv.bid) pvPill.textContent = pv.alive.get(net.id) ? t('pvHud', { h: Math.round(pv.hp), k: pvAliveN() }) : t('pvHudDead', { k: pvAliveN() });
+  }, 250);
   // ================== Автоматический админ-абьюз: каждый день в 19:30 по кипрскому времени ==================
   // У всех игроков монеты лежат в одних и тех же местах: случайность берётся из даты, Степан для запуска не нужен.
   Object.entries({
@@ -8607,11 +8704,13 @@
     for (const c of chase.cops) { if (c.mode !== 'drive' && !(c.odown > 0)) consider(c, c.ox, c.oy, 'cop', 14); else if (c.mode === 'drive') consider(c, c.x, c.y, 'copcar', 8); }
     for (const tc of traffic) if (!(tc.crash > 0)) consider(tc, tc.x, tc.y, 'car', 8);
     for (const so of soldiers) if (!(so.down > 0)) consider(so, so.x, so.y, 'soldier', so.ground ? 14 : so.z + 14);
+    window.__pvpTargets?.(consider);                          // во время битвы админ-абьюза — другие игроки
     return out.sort((a, b) => a.score - b.score);
   }
   function hitTarget(tg, W, mult = 1) {
     const dx = tg.x - car.x, dy = tg.y - car.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
     emit(tg.x, 14, tg.y, '#ffffff', 1.6, .25, (Math.random() - .5) * 90, Math.random() * 60, (Math.random() - .5) * 90, 0, .9);
+    if (tg.kind === 'peer') { window.__pvpHit?.(tg.o.id, W.dmg * mult); return; }   // попал в другого игрока
     if (tg.kind === 'person') { shootPerson(tg.o, ux, uy, W.push * mult); gunWanted(1); }
     else if (tg.kind === 'cop') { tg.o.odown = 5; tg.o.ofall = 0; gunWanted(1); }
     else if (tg.kind === 'soldier') { if (tg.o.gang) window.__hitGang?.(tg.o, Math.max(1, Math.round(W.dmg / 9 * mult))); else { tg.o.down = 7; tg.o.p.root.rotation.z = 0; gunWanted(1); } }
@@ -8786,7 +8885,7 @@
       if (!boom && low) for (const pp of people) if (!pp.inactive && pp.mode !== 'fly' && Math.hypot(pp.x - nx, pp.y - ny) < 16) { boom = true; break; }
       if (!boom && low) for (const tc of traffic) if (Math.hypot(tc.x - nx, tc.y - ny) < 26) { boom = true; break; }
       if (!boom) for (const c of chase.cops) if (Math.abs(nz - (c.z || 0) - 12) < 50 && Math.hypot((c.mode === 'drive' ? c.x : c.ox) - nx, (c.mode === 'drive' ? c.y : c.oy) - ny) < 24) { boom = true; break; }
-      if (boom) { explode(r.x, r.y, nz - 14); scene.remove(r.m); rockets.splice(i, 1); continue; }
+      if (boom) { explode(r.x, r.y, nz - 14); window.__pvpBlast?.(r.x, r.y); scene.remove(r.m); rockets.splice(i, 1); continue; }
       r.x = nx; r.y = ny; r.z = nz; r.m.position.set(r.x, r.z, r.y);
     }
   }
