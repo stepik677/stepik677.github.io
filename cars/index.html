@@ -3270,6 +3270,7 @@
   const RESERVED = [
     { x0: 640, y0: roadPos(5), x1: roadPos(5) + 40, y1: roadPos(5) + ROAD_W },        // трюк-мост и дом-тоннель
     { x0: roadPos(6), y0: roadPos(1) + ROAD_W, x1: roadPos(6) + ROAD_W, y1: roadPos(2) }, // второй тоннель
+    { x0: roadPos(NB >> 1), y0: roadPos(NB >> 1), x1: roadPos((NB >> 1) + 1) + ROAD_W, y1: roadPos((NB >> 1) + 1) + ROAD_W },   // стадион с площадью
   ];
   const inReserved = (x, y, m = 0) => RESERVED.some(z => x > z.x0 - m && x < z.x1 + m && y > z.y0 - m && y < z.y1 + m);
 
@@ -4415,7 +4416,7 @@
     return dir > 0 ? mid + off : mid - off;
   }
   // по дороге трюк-трассы (въезд, мост, дом) обычные машины не ездят
-  const segAllowed = (axis, k, seg) => seg >= 0 && seg < NB && !(axis === 'h' && k === 5 && seg >= 1 && seg <= 3);
+  const segAllowed = (axis, k, seg) => seg >= 0 && seg < NB && !(axis === 'h' && k === 5 && seg >= 1 && seg <= 3) && !((k === (NB >> 1) || k === (NB >> 1) + 1) && seg >= (NB >> 1) - 1 && seg <= (NB >> 1) + 1);   // вокруг стадиона дороги закрыты
   const headingOf = (axis, dir) => axis === 'v' ? (dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (dir > 0 ? 0 : Math.PI);
   const angDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
   const pickR = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -4668,7 +4669,8 @@
   }
   function spawnPeople(n) {
     while (people.length < n) {
-      const b = blocks[Math.floor(Math.random() * blocks.length)];
+      let b = blocks[Math.floor(Math.random() * blocks.length)];
+      while (b.type === 'stadium') b = blocks[Math.floor(Math.random() * blocks.length)];   // внутри стадиона не гуляют
       const i = people.length;
       people.push({ b, s: Math.random() * P_PER, dir: Math.random() < .5 ? 1 : -1, v: 16 + Math.random() * 14, ph: Math.random() * 6,
         dodge: 0, side: 0, stop: 0, mode: 'walk', x: 0, y: 0, yaw: 0, downT: 0, fallA: 0, angryT: 0, hitCd: 0, punchT: 0 });
@@ -5853,7 +5855,7 @@
     zh: '🕳 你发现了秘密通道！管理员狂欢时这里会藏金币。',
   }).forEach(([k, v]) => { if (I18N[k]) I18N[k].secFound = v; });
   // ================== Стадион «Сантьяго Бернабеу» в центре города: касса с билетами, вход — и запускается футбол ==================
-  const STAD = (() => { const i = (NB - 1) / 2, lx = i * STEP * T + ROAD_W + SW, ly = lx; return { cx: lx + LS / 2, cy: ly + LS / 2, H2: 172, lx, ly }; })();
+  const STAD = (() => { const i = (NB - 1) / 2, lx = i * STEP * T + ROAD_W + SW; return { cx: lx + LS / 2, cy: lx + LS / 2, H2: 530, P0: roadPos(i), P1: roadPos(i + 1) + ROAD_W }; })();   // в 3 раза больше: квартал и дороги вокруг
   Object.entries({
     ru: { tkPrompt: '🎟 Нажми E (🚪) — купить билет на «Сантьяго Бернабеу» за {p}', tkBought: '🎟 Билет куплен! Вход — через ворота стадиона.', tkNoMoney: '😕 Не хватает денег на билет ({p}).',
       tkNeed: '🎟 Нужен билет! Купи его в кассе у входа.', tkGo: '⚽ Проходи на стадион — матч начинается!', tkHave: 'Билетов: {n}' },
@@ -5862,56 +5864,61 @@
   }).forEach(([k, v]) => { if (I18N[k]) Object.assign(I18N[k], v); });
   const TICKET_PRICE = 500;
   {
-    const { cx, cy, H2 } = STAD, M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .6, ...o });
+    const { cx, cy, H2, P0, P1 } = STAD, M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .6, ...o });
     const part = (w, h, d, mat, x, z, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, z, y); m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
     const solid = (x0, y0, w, h, top) => addObs({ t: 'r', x: x0, y: y0, w, h, top, tall: top > 40 });
+    // площадь вокруг стадиона — поверх закрытых дорог
+    const plaza = new THREE.Mesh(new THREE.PlaneGeometry(P1 - P0, P1 - P0).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ roughness: .9, polygonOffset: true, polygonOffsetFactor: -3, map: (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.fillStyle = '#c9c2b4'; g.fillRect(0, 0, 256, 256); g.strokeStyle = 'rgba(0,0,0,.12)'; g.lineWidth = 3; for (let v = 0; v <= 256; v += 64) { g.beginPath(); g.moveTo(v, 0); g.lineTo(v, 256); g.stroke(); g.beginPath(); g.moveTo(0, v); g.lineTo(256, v); g.stroke(); }
+      const tx = new THREE.CanvasTexture(c); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set((P1 - P0) / 160, (P1 - P0) / 160); tx.colorSpace = THREE.SRGBColorSpace; return tx; })() }));
+    plaza.position.set((P0 + P1) / 2, .3, (P0 + P1) / 2); plaza.receiveShadow = true; scene.add(plaza);
     // поле: полосы, разметка, ворота
-    const PW = 230, PH = 150;
+    const PW = 690, PH = 450;
     const pitch = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ roughness: .9, polygonOffset: true, polygonOffsetFactor: -5, map: (() => {
-      const c = document.createElement('canvas'); c.width = 920; c.height = 600; const g = c.getContext('2d');
-      for (let k = 0; k < 12; k++) { g.fillStyle = k % 2 ? '#2e7d32' : '#388e3c'; g.fillRect(k * c.width / 12, 0, c.width / 12 + 1, c.height); }
-      g.strokeStyle = '#fff'; g.lineWidth = 6; g.strokeRect(20, 20, 880, 560); g.beginPath(); g.moveTo(460, 20); g.lineTo(460, 580); g.stroke();
-      g.beginPath(); g.arc(460, 300, 80, 0, 6.283); g.stroke(); g.strokeRect(20, 160, 130, 280); g.strokeRect(770, 160, 130, 280); g.strokeRect(20, 230, 45, 140); g.strokeRect(855, 230, 45, 140);
+      const c = document.createElement('canvas'); c.width = 1380; c.height = 900; const g = c.getContext('2d');
+      for (let k = 0; k < 14; k++) { g.fillStyle = k % 2 ? '#2e7d32' : '#388e3c'; g.fillRect(k * c.width / 14, 0, c.width / 14 + 1, c.height); }
+      g.strokeStyle = '#fff'; g.lineWidth = 7; g.strokeRect(30, 30, 1320, 840); g.beginPath(); g.moveTo(690, 30); g.lineTo(690, 870); g.stroke();
+      g.beginPath(); g.arc(690, 450, 120, 0, 6.283); g.stroke(); g.strokeRect(30, 240, 195, 420); g.strokeRect(1155, 240, 195, 420); g.strokeRect(30, 345, 68, 210); g.strokeRect(1282, 345, 68, 210);
       const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })() }));
-    pitch.position.set(cx, .45, cy); pitch.receiveShadow = true; scene.add(pitch);
+    pitch.position.set(cx, .5, cy); pitch.receiveShadow = true; scene.add(pitch);
     const white = M('#ffffff', { roughness: .3 }), net = new THREE.MeshStandardMaterial({ color: '#ffffff', transparent: true, opacity: .35, side: THREE.DoubleSide });
     for (const sx of [-1, 1]) {
-      const gx = cx + sx * (PW / 2 - 4);
-      for (const dy of [-14, 14]) part(1.6, 12, 1.6, white, gx, 6, cy + dy);
-      part(1.6, 1.6, 30, white, gx, 12, cy);
-      const n = new THREE.Mesh(new THREE.PlaneGeometry(30, 12), net); n.position.set(gx + sx * 6, 6, cy); n.rotation.y = Math.PI / 2; scene.add(n);
+      const gx = cx + sx * (PW / 2 - 12);
+      for (const dy of [-40, 40]) part(4, 34, 4, white, gx, 17, cy + dy);
+      part(4, 4, 84, white, gx, 34, cy);
+      const n = new THREE.Mesh(new THREE.PlaneGeometry(84, 34), net); n.position.set(gx + sx * 16, 17, cy); n.rotation.y = Math.PI / 2; scene.add(n);
     }
-    // трибуны: 4 яруса со всех сторон, на юге — проход к воротам
-    const seatCols = [M('#eceff1'), M('#283593'), M('#eceff1'), M('#5c6bc0')], GATE = 40;
-    for (let k = 0; k < 4; k++) {
-      const inX = PW / 2 + 12 + k * 13, inY = PH / 2 + 12 + k * 13, hgt = 8 + k * 11, mat = seatCols[k];
-      part(2 * inX + 26, hgt, 13, mat, cx, hgt / 2, cy - inY - 6.5); solid(cx - inX - 13, cy - inY - 13, 2 * inX + 26, 13, hgt);   // север
-      for (const sx of [-1, 1]) { part(13, hgt, 2 * inY, mat, cx + sx * (inX + 6.5), hgt / 2, cy); solid(cx + sx * (inX + 6.5) - 6.5, cy - inY, 13, 2 * inY, hgt); }   // запад, восток
-      for (const sx of [-1, 1]) { const w = inX + 13 - GATE / 2; part(w, hgt, 13, mat, cx + sx * (GATE / 2 + w / 2), hgt / 2, cy + inY + 6.5); solid(sx < 0 ? cx - inX - 13 : cx + GATE / 2, cy + inY, w, 13, hgt); }   // юг с проходом
+    // трибуны: 6 ярусов со всех сторон, на юге — проход к воротам
+    const seatCols = [M('#eceff1'), M('#283593'), M('#eceff1'), M('#5c6bc0'), M('#eceff1'), M('#283593')], GATE = 110, ST = 26;
+    for (let k = 0; k < 6; k++) {
+      const inX = PW / 2 + 20 + k * ST, inY = PH / 2 + 20 + k * ST, hgt = 14 + k * 24, mat = seatCols[k];
+      part(2 * inX + 2 * ST, hgt, ST, mat, cx, hgt / 2, cy - inY - ST / 2); solid(cx - inX - ST, cy - inY - ST, 2 * inX + 2 * ST, ST, hgt);   // север
+      for (const sx of [-1, 1]) { part(ST, hgt, 2 * inY, mat, cx + sx * (inX + ST / 2), hgt / 2, cy); solid(cx + sx * (inX + ST / 2) - ST / 2, cy - inY, ST, 2 * inY, hgt); }   // запад, восток
+      for (const sx of [-1, 1]) { const w = inX + ST - GATE / 2; part(w, hgt, ST, mat, cx + sx * (GATE / 2 + w / 2), hgt / 2, cy + inY + ST / 2); solid(sx < 0 ? cx - inX - ST : cx + GATE / 2, cy + inY, w, ST, hgt); }   // юг с проходом
     }
     // фасад: серебристая «обшивка» по кругу, ворота на юге
-    const skinTex = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#b0bec5'; g.fillRect(0, 0, 256, 128); for (let x = 0; x < 256; x += 16) { g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x, 0, 6, 128); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x + 8, 0, 3, 128); } const tx = new THREE.CanvasTexture(c); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.colorSpace = THREE.SRGBColorSpace; tx.repeat.set(8, 1); return tx; })();
-    const skin = new THREE.MeshStandardMaterial({ map: skinTex, metalness: .7, roughness: .3, emissive: '#3949ab', emissiveIntensity: .25 }), FH = 140, FT = 8;   // высокий, слегка светится ночью
+    const skinTex = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#b0bec5'; g.fillRect(0, 0, 256, 128); for (let x = 0; x < 256; x += 16) { g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x, 0, 6, 128); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x + 8, 0, 3, 128); } const tx = new THREE.CanvasTexture(c); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.colorSpace = THREE.SRGBColorSpace; tx.repeat.set(20, 2); return tx; })();
+    const skin = new THREE.MeshStandardMaterial({ map: skinTex, metalness: .7, roughness: .3, emissive: '#3949ab', emissiveIntensity: .25 }), FH = 220, FT = 12;   // высокий, слегка светится ночью
     part(2 * H2, FH, FT, skin, cx, FH / 2, cy - H2 + FT / 2); solid(cx - H2, cy - H2, 2 * H2, FT, FH);
     for (const sx of [-1, 1]) { part(FT, FH, 2 * H2, skin, cx + sx * (H2 - FT / 2), FH / 2, cy); solid(sx < 0 ? cx - H2 : cx + H2 - FT, cy - H2, FT, 2 * H2, FH); }
     for (const sx of [-1, 1]) { const w = H2 - GATE / 2; part(w, FH, FT, skin, cx + sx * (GATE / 2 + w / 2), FH / 2, cy + H2 - FT / 2); solid(sx < 0 ? cx - H2 : cx + GATE / 2, cy + H2 - FT, w, FT, FH); }
-    part(GATE + 4, FH - 40, FT, skin, cx, 40 + (FH - 40) / 2, cy + H2 - FT / 2);                       // над воротами
+    part(GATE + 8, FH - 90, FT, skin, cx, 90 + (FH - 90) / 2, cy + H2 - FT / 2);                       // над воротами
     // крыша по кругу над трибунами (поле открыто)
-    const roofM = M('#eceff1', { metalness: .4, roughness: .4 }), RI = PW / 2 + 8, RJ = PH / 2 + 8;
-    part(2 * H2, 4, H2 - RJ, roofM, cx, FH + 2, cy - (H2 + RJ) / 2); part(2 * H2, 4, H2 - RJ, roofM, cx, FH + 2, cy + (H2 + RJ) / 2);
-    for (const sx of [-1, 1]) part(H2 - RI, 4, 2 * RJ, roofM, cx + sx * (H2 + RI) / 2, FH + 2, cy);
+    const roofM = M('#eceff1', { metalness: .4, roughness: .4 }), RI = PW / 2 + 20, RJ = PH / 2 + 20;
+    part(2 * H2, 6, H2 - RJ, roofM, cx, FH + 3, cy - (H2 + RJ) / 2); part(2 * H2, 6, H2 - RJ, roofM, cx, FH + 3, cy + (H2 + RJ) / 2);
+    for (const sx of [-1, 1]) part(H2 - RI, 6, 2 * RJ, roofM, cx + sx * (H2 + RI) / 2, FH + 3, cy);
     // прожекторы по углам
     const lampM = new THREE.MeshStandardMaterial({ color: '#fffde7', emissive: '#fff59d', emissiveIntensity: 2 });
-    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { part(3, 30, 3, M('#90a4ae', { metalness: .6 }), cx + sx * (H2 - 14), FH + 18, cy + sy * (H2 - 14)); part(18, 8, 18, lampM, cx + sx * (H2 - 14), FH + 36, cy + sy * (H2 - 14)); }
-    // вывеска над воротами
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { part(8, 80, 8, M('#90a4ae', { metalness: .6 }), cx + sx * (H2 - 30), FH + 40, cy + sy * (H2 - 30)); part(46, 18, 46, lampM, cx + sx * (H2 - 30), FH + 88, cy + sy * (H2 - 30)); }
+    // вывеска со всех четырёх сторон
     const signTex = (() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, 1024, 128); g.fillStyle = '#1a237e'; g.font = 'bold 72px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SANTIAGO BERNABÉU', 512, 68); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
-    for (const [ox, oy, ry] of [[0, H2 + .8, 0], [0, -H2 - .8, Math.PI], [H2 + .8, 0, Math.PI / 2], [-H2 - .8, 0, -Math.PI / 2]]) { const sg = new THREE.Mesh(new THREE.PlaneGeometry(300, 38), new THREE.MeshBasicMaterial({ map: signTex })); sg.position.set(cx + ox, FH - 26, cy + oy); sg.rotation.y = ry; scene.add(sg); }   // вывеска со всех четырёх сторон
+    for (const [ox, oy, ry] of [[0, H2 + 1, 0], [0, -H2 - 1, Math.PI], [H2 + 1, 0, Math.PI / 2], [-H2 - 1, 0, -Math.PI / 2]]) { const sg = new THREE.Mesh(new THREE.PlaneGeometry(720, 90), new THREE.MeshBasicMaterial({ map: signTex })); sg.position.set(cx + ox, FH - 60, cy + oy); sg.rotation.y = ry; scene.add(sg); }
     // касса с билетами у входа
-    const kx = cx + 75, ky = cy + H2 + 16;
-    part(36, 26, 18, M('#c62828'), kx, 13, ky); part(40, 3, 22, M('#eceff1'), kx, 27.5, ky); solid(kx - 18, ky - 9, 36, 18, 26);
+    const kx = cx + 150, ky = cy + H2 + 30;
+    part(44, 30, 22, M('#c62828'), kx, 15, ky); part(50, 3, 26, M('#eceff1'), kx, 31.5, ky); solid(kx - 22, ky - 11, 44, 22, 30);
     const kt = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d'); g.fillStyle = '#ffd54f'; g.fillRect(0, 0, 256, 64); g.fillStyle = '#212121'; g.font = 'bold 34px "Segoe UI", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🎟 БИЛЕТЫ · TICKETS', 128, 34); const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return tx; })();
-    const ks = new THREE.Mesh(new THREE.PlaneGeometry(34, 8.5), new THREE.MeshBasicMaterial({ map: kt })); ks.position.set(kx, 21, ky + 9.2); scene.add(ks);
-    STAD.kx = kx; STAD.ky = ky + 20;
+    const ks = new THREE.Mesh(new THREE.PlaneGeometry(42, 10.5), new THREE.MeshBasicMaterial({ map: kt })); ks.position.set(kx, 24, ky + 11.2); scene.add(ks);
+    STAD.kx = kx; STAD.ky = ky + 26;
   }
   setTimeout(() => { try { if (!localStorage.getItem('mashinki_stadium_hint')) { localStorage.setItem('mashinki_stadium_hint', '1'); setTimeout(() => showMsg('🏟 В центре города — стадион «Сантьяго Бернабеу»! Купи билет в кассе у ворот и заходи — начнётся футбол ⚽', 7000), 9000); } } catch (e) {} }, 0);
   window.__ticketHere = () => Math.hypot(car.x - STAD.kx, car.y - STAD.ky) < 34 && Math.hypot(car.vx, car.vy) < 45;
@@ -6851,7 +6858,7 @@
     const A = AP.x0, P = {
       airport: [A - 330, GC + 40, 0], terminal: [A + 75, GC + 350, Math.PI / 2], apron: [A + 720, GC + 300, Math.PI * .75], stands: [A + 700, 6950, Math.PI / 2],
       ...(window.__fijiPlane ? { fiji: [window.__fijiPlane[0] - Math.cos(window.__fijiPlane[2]) * 110, window.__fijiPlane[1] - Math.sin(window.__fijiPlane[2]) * 110, window.__fijiPlane[2]] } : {}),
-      stadium: [STAD.cx + 75, STAD.cy + STAD.H2 + 70, -Math.PI / 2],
+      stadium: [STAD.kx, STAD.ky + 90, -Math.PI / 2],
       cargo: [A + 950, 1900, Math.PI], fuel: [A + 2140, 1690, 0], fire: [A + 1130, 3100, 0], hangar: [A + 1780, 3420, 0], vip: [A + 2150, 7900, -.3],
     };
     SECRET_TN.forEach((T, i) => {                           // секретные проходы: ставим перед входом, лицом внутрь (кроме тайного лаза с золотом)
