@@ -2709,6 +2709,7 @@
     { id: 'shturmovik', kind: 'plane', hidden: true, name: 'Штурмовик', desc: '', price: 0, color: '#6b7354', jet: true, pods: true, missiles: true, bombs: true, max: 700, accel: 340, turn: 1.3, grip: 14, colL: 56, colW: 32 },
     { id: 'stels', kind: 'plane', hidden: true, name: 'Стелс-бомбардировщик', desc: '', price: 0, color: '#1c1f24', style: 'stealth', missiles: true, bombs: true, max: 780, accel: 360, turn: 1.2, grip: 14, colL: 50, colW: 56 },
     { id: 'bombardir', kind: 'plane', hidden: true, name: 'Бомбардировщик', desc: '', price: 0, color: '#4b5a32', style: 'bomber', bombs: true, max: 520, accel: 220, turn: .95, grip: 12, colL: 76, colW: 56 },
+    { id: 'fidzhi', kind: 'plane', hidden: true, name: 'Бомбардировщик «Фиджи»', desc: '', price: 0, color: '#26c6da', color2: '#ff7043', style: 'bomber', bombs: true, max: 909, accel: 300, turn: 1.15, grip: 13, colL: 76, colW: 56 },   // 909 × 0,33 = 300 км/ч
     { id: 'transport', kind: 'plane', hidden: true, name: 'Транспортный самолёт', desc: '', price: 0, color: '#7d8790', style: 'transport', max: 470, accel: 190, turn: .85, grip: 12, colL: 96, colW: 66 },
     { id: 'lainer', kind: 'plane', hidden: true, name: 'Пассажирский лайнер', desc: '', price: 0, color: '#f5f5f5', color2: '#1565c0', style: 'airliner', max: 640, accel: 210, turn: .8, grip: 12, colL: 118, colW: 104 },
     { id: 'boevoy', kind: 'heli', hidden: true, name: 'Боевой вертолёт', desc: '', price: 0, color: '#3d4a2f', attack: true, missiles: true, max: 430, accel: 330, turn: 1.7, grip: 13, size: 1.1, colL: 46, colW: 18 },
@@ -6647,6 +6648,31 @@
     placeParked('strela', AP.x0 + 2350, 7400, Math.PI, 'airport'); placeParked('strela', AP.x0 + 2350, 7750, Math.PI, 'airport');   // бизнес-джеты у VIP-терминала
     placeParked('kukuruznik', AP.x0 + 2350, 8050, Math.PI, 'airport'); placeParked('strekoza', AP.x0 + 2550, 8210, 0, 'airport');
   }
+  // ---------- остров Фиджи: бомбардировщик «Фиджи» (300 км/ч, бомбы) на своей взлётке у края острова ----------
+  {
+    const I = ISLES.find(q => q.kind === 'fiji');
+    if (I) {
+      const L = 600, K = I.skate;
+      const inPark = (x, y) => { if (!K) return false; const dx = x - K.x, dy = y - K.y, ca = Math.cos(K.a), sa = Math.sin(K.a); return Math.abs(dx * ca + dy * sa) < K.S / 2 + 50 && Math.abs(-dx * sa + dy * ca) < K.S / 2 + 50; };
+      const ok = (x, y) => terrainH(x, y) > 1.5 && !inPark(x, y) && !solidAtZ(x, y, terrainH(x, y) + 2);
+      let best = null;
+      for (let r = 1250; r >= 500 && !best; r -= 50) for (let k = 0; k < 48 && !best; k++) {          // по кругу у края острова, полоса вдоль берега
+        const th = k / 48 * Math.PI * 2, cx = I.x + Math.cos(th) * r, cy = I.y + Math.sin(th) * r, a = th + Math.PI / 2, ux = Math.cos(a), uy = Math.sin(a);
+        let good = true;
+        for (let s2 = -L / 2; s2 <= L / 2 && good; s2 += 20) for (const w of [-35, 0, 35]) if (!ok(cx + ux * s2 - uy * w, cy + uy * s2 + ux * w)) { good = false; break; }
+        if (good) best = { cx, cy, a };
+      }
+      if (best) {
+        const { cx, cy, a } = best, ux = Math.cos(a), uy = Math.sin(a);
+        const h = Math.max(...[-.5, -.25, 0, .25, .5].map(f => terrainH(cx + ux * L * f, cy + uy * L * f)));
+        const strip = new THREE.Mesh(new THREE.PlaneGeometry(L, 90).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: outerTex(256, 64, (g, w, hh) => { g.fillStyle = '#c9b48a'; g.fillRect(0, 0, w, hh); g.fillStyle = '#f4f4f4'; for (let x = 8; x < w; x += 32) g.fillRect(x, hh / 2 - 2, 16, 4); }, L / 220, 1), roughness: 1, polygonOffset: true, polygonOffsetFactor: -4 }));
+        strip.position.set(cx, h + .5, cy); strip.rotation.y = -a; strip.receiveShadow = true; scene.add(strip);
+        const px = cx - ux * (L / 2 - 70), py = cy - uy * (L / 2 - 70);
+        placeParked('fidzhi', px, py, a, null);
+        window.__fijiPlane = [px, py, a];
+      }
+    }
+  }
   // ---------- самолёты аэропорта сами взлетают, делают большой круг над морем и садятся ----------
   const AIR_RX = WORLD + 3500, AIR_R = 1600, AIR_YS = AP.y1 + 2600, AIR_YN = AP.y0 - 2600, AIR_YT = AP.y1 - 550, AIR_CRUISE = 650;   // касание — подальше от забора
   const AIR_LA = AIR_YS - AIR_YN, AIR_LC = Math.PI * AIR_R, AIR_TOT = 2 * AIR_LA + 2 * AIR_LC;
@@ -6678,10 +6704,48 @@
   });
   let airClock = 0;
   let apInHall = false, apSecCd = 0;
+  // ================== Прицел: куда полетят бомбы и ракеты — туда, куда смотрит камера ==================
+  const AIM = { on: false, x: 0, y: 0, z: 0, hintShown: false };
+  const aimMark = new THREE.Group();
+  {
+    const red = new THREE.MeshBasicMaterial({ color: '#ff1744', transparent: true, opacity: .85, depthTest: false });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(22, 28, 32).rotateX(-Math.PI / 2), red); aimMark.add(ring);
+    const dot = new THREE.Mesh(new THREE.CircleGeometry(5, 16).rotateX(-Math.PI / 2), red); aimMark.add(dot);
+    for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.PlaneGeometry(14, 3).rotateX(-Math.PI / 2), red); const a = k * Math.PI / 2; b.position.set(Math.cos(a) * 38, 0, Math.sin(a) * 38); b.rotation.y = -a; aimMark.add(b); }
+    aimMark.renderOrder = 10; aimMark.traverse(o => o.renderOrder = 10); aimMark.visible = false; scene.add(aimMark);
+  }
+  const aimDir = new THREE.Vector3(), aimAxis = new THREE.Vector3();
+  function updateAim() {
+    const armed = !car.onFoot && car.fly && (spec.bombs || spec.missiles) && car.z > groundHeight(car.x, car.y, car.z) + 15;
+    AIM.on = false;
+    if (armed) {
+      camera.getWorldDirection(aimDir);
+      aimAxis.set(-aimDir.z, 0, aimDir.x).normalize(); aimDir.applyAxisAngle(aimAxis, -.3);   // луч чуть ниже центра экрана
+      let px = camera.position.x, py = camera.position.y, pz = camera.position.z, step = 30;
+      for (let i = 0; i < 400; i++) {
+        px += aimDir.x * step; py += aimDir.y * step; pz += aimDir.z * step;
+        const g = Math.max(SEA, groundHeight(px, pz, py));
+        if (py <= g) { AIM.on = true; AIM.x = px; AIM.y = pz; AIM.z = g; break; }
+        if (py < -50) break;
+      }
+      if (AIM.on && !AIM.hintShown) { AIM.hintShown = true; showMsg(t('aimHint'), 6000); }
+    }
+    aimMark.visible = AIM.on;
+    if (AIM.on) { aimMark.position.set(AIM.x, AIM.z + 2, AIM.y); const sc = Math.max(1, Math.hypot(AIM.x - car.x, AIM.y - car.y) / 900); aimMark.scale.setScalar(sc); aimMark.rotation.y += .03; }
+  }
+  window.__aim = AIM;
+  Object.entries({ ru: '🎯 Прицел — красный круг на земле. Крути камеру (тяни мышкой/пальцем или Z / X), чтобы навести: бомбы и ракеты полетят туда.',
+    en: '🎯 The aim is the red circle on the ground. Turn the camera (drag with mouse/finger or Z / X) to aim: bombs and missiles fly there.',
+    uk: '🎯 Приціл — червоне коло на землі. Крути камеру (тягни мишкою/пальцем або Z / X), щоб навести: бомби й ракети полетять туди.',
+    de: '🎯 Das Ziel ist der rote Kreis am Boden. Dreh die Kamera (mit Maus/Finger ziehen oder Z / X): Bomben und Raketen fliegen dorthin.',
+    fr: '🎯 La cible est le cercle rouge au sol. Tourne la caméra (glisse à la souris/au doigt ou Z / X) : bombes et missiles iront là.',
+    es: '🎯 La mira es el círculo rojo en el suelo. Gira la cámara (arrastra con ratón/dedo o Z / X): bombas y misiles van allí.',
+    zh: '🎯 瞄准点是地上的红圈。转动镜头（鼠标/手指拖动或 Z / X）来瞄准：炸弹和导弹会飞向那里。' }).forEach(([k, v]) => { if (I18N[k]) I18N[k].aimHint = v; });
   // ссылки на места: .../cars/#go=airport, #go=terminal, #go=cave1 … — машина сразу оказывается там
   function goPlaces() {
     const A = AP.x0, P = {
       airport: [A - 330, GC + 40, 0], terminal: [A + 75, GC + 350, Math.PI / 2], apron: [A + 720, GC + 300, Math.PI * .75], stands: [A + 700, 6950, Math.PI / 2],
+      ...(window.__fijiPlane ? { fiji: [window.__fijiPlane[0] - Math.cos(window.__fijiPlane[2]) * 110, window.__fijiPlane[1] - Math.sin(window.__fijiPlane[2]) * 110, window.__fijiPlane[2]] } : {}),
       cargo: [A + 950, 1900, Math.PI], fuel: [A + 2140, 1690, 0], fire: [A + 1130, 3100, 0], hangar: [A + 1780, 3420, 0], vip: [A + 2150, 7900, -.3],
     };
     SECRET_TN.forEach((T, i) => {                           // секретные проходы: ставим перед входом, лицом внутрь
@@ -6711,6 +6775,7 @@
     zh: ['📍 到了！踩油门——入口就在前面。', '🚤 先下船上岸。'] }).forEach(([k, v]) => { if (I18N[k]) [I18N[k].goHere, I18N[k].goBoat] = v; });
   function updateAirTraffic(dt) {
     airClock += dt;
+    updateAim();
     for (const P of overFly) {
       P.a += P.w * dt;
       const x = WORLD / 2 + Math.cos(P.a) * P.R, y = WORLD / 2 + Math.sin(P.a) * P.R, hd = Math.atan2(Math.cos(P.a) * P.w, -Math.sin(P.a) * P.w);
@@ -6855,7 +6920,8 @@
   function dropBomb() {
     if (bombCd > 0) return; bombCd = .35;
     const m = new THREE.Mesh(bombGeo, bombMat); m.rotation.y = -car.angle; m.position.set(car.x, car.z + 4, car.y); scene.add(m);
-    bombs.push({ m, x: car.x, y: car.y, z: car.z + 4, vx: car.vx * .9, vy: car.vy * .9, vz: (car.fly ? car.fly.vz : 0) - 10 });
+    const A = window.__aim;
+    bombs.push({ m, x: car.x, y: car.y, z: car.z + 4, vx: car.vx * .9, vy: car.vy * .9, vz: (car.fly ? car.fly.vz : 0) - 10, tx: A && A.on ? A.x : null, ty: A && A.on ? A.y : 0, tz: A && A.on ? A.z : 0 });   // с прицелом — бомба наводится на красный круг
   }
   const shells = [];                                          // снаряды танков
   const shellGeo = new THREE.SphereGeometry(2.6, 8, 6), shellMat = new THREE.MeshBasicMaterial({ color: '#ffcc80' });
@@ -6871,6 +6937,10 @@
     bombCd -= dt;
     for (let i = bombs.length - 1; i >= 0; i--) {                    // падающие бомбы
       const b = bombs[i]; b.vz -= 330 * dt; b.vx *= 1 - .15 * dt; b.vy *= 1 - .15 * dt;
+      if (b.tx !== null && b.tx !== undefined) {                                      // управляемая бомба: подруливаем так, чтобы упасть в прицел
+        const hgt = Math.max(1, b.z - b.tz), tf = (b.vz + Math.sqrt(b.vz * b.vz + 2 * 330 * hgt)) / 330;
+        const k = Math.min(1, 4 * dt); b.vx += ((b.tx - b.x) / tf - b.vx) * k; b.vy += ((b.ty - b.y) / tf - b.vy) * k;
+      }
       const nx = b.x + b.vx * dt, ny = b.y + b.vy * dt, nz = b.z + b.vz * dt;
       b.m.rotation.z = Math.atan2(b.vz, Math.hypot(b.vx, b.vy) + 1);
       if (nz <= groundHeight(nx, ny, nz) + 2 || solidAtZ(nx, ny, nz) || nz < SEA) { explode(nx, ny, Math.max(SEA, nz - 6)); scene.remove(b.m); bombs.splice(i, 1); continue; }
@@ -8597,7 +8667,9 @@
     jetCd = .45; jetSide = -jetSide;
     const ca = Math.cos(car.angle), sa = Math.sin(car.angle), ox = -sa * 18 * jetSide, oy = ca * 18 * jetSide;
     const spd = (car.fly.spd || 0) + 900;
-    fireRocket(car.x + ca * 30 + ox, car.z + 8, car.y + sa * 30 + oy, car.angle, car.fly.vz - 60 + Math.sin(car.fly.pitch) * spd, spd);
+    const A = window.__aim, sx = car.x + ca * 30 + ox, sy = car.y + sa * 30 + oy, sz = car.z + 8;
+    if (A && A.on) { const d = Math.hypot(A.x - sx, A.y - sy) || 1; fireRocket(sx, sz, sy, Math.atan2(A.y - sy, A.x - sx), (A.z + 4 - sz) / d * spd, spd); }   // ракета летит в прицел
+    else fireRocket(sx, sz, sy, car.angle, car.fly.vz - 60 + Math.sin(car.fly.pitch) * spd, spd);
     shake = Math.max(shake, 1.2);
   }
   window.__jetFire = jetFire;
